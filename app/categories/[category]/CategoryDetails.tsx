@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
 import PageSizeSelect from "@/app/PageSizeSelect";
+import TransactionFilters, { emptyFilters, filterQuery, type FilterOptions, type FilterState } from "@/app/TransactionFilters";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
@@ -56,6 +57,8 @@ const emptyData: CategoryData = {
   total: 0,
 };
 
+const emptyFilterOptions: FilterOptions = { wallets: [], types: [], categories: [], tags: [], authors: [] };
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
@@ -86,13 +89,16 @@ export default function CategoryDetails({ category }: { category: string }) {
   const [tagMessage, setTagMessage] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [spendingByTagEnabled, setSpendingByTagEnabled] = useState(true);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
+  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
+  const [activeFilterQuery, setActiveFilterQuery] = useState("");
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(
-        `/api/categories/${category}?page=${page}&pageSize=${pageSize}`,
+        `/api/categories/${category}?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}`,
         { cache: "no-store" },
       );
       const result = await response.json();
@@ -105,9 +111,14 @@ export default function CategoryDetails({ category }: { category: string }) {
     } finally {
       setLoading(false);
     }
-  }, [category, pageSize]);
+  }, [activeFilterQuery, category, pageSize]);
 
   useEffect(() => { void load(1); }, [load]);
+  useEffect(() => {
+    void fetch("/api/filter-options", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((options: FilterOptions) => setFilterOptions(options));
+  }, []);
 
   const chartGroups = useMemo(() => data.spendingTotals.map((total) => {
     const segments = data.segments.filter((segment) => segment.currency === total.currency);
@@ -161,12 +172,14 @@ export default function CategoryDetails({ category }: { category: string }) {
               <p>{data.total.toLocaleString("en-CH")} matching {data.total === 1 ? "transaction" : "transactions"} across {data.wallets.length} {data.wallets.length === 1 ? "wallet" : "wallets"}</p>
             </div>
           </div>
-          <div className="category-spend">
-            <small>Net category total</small>
-            {loading && !data.spendingTotals.length ? <strong>Loading…</strong> : data.spendingTotals.map((total) => (
-              <strong key={total.currency}>{formatAmount(total.amount, total.currency)}</strong>
-            ))}
-            <button className="category-settings-button" onClick={() => setSettingsOpen(true)}>Category settings</button>
+          <div className="category-summary-actions">
+            <div className="category-spend">
+              <small>Net category total</small>
+              {loading && !data.spendingTotals.length ? <strong>Loading…</strong> : data.spendingTotals.map((total) => (
+                <strong key={total.currency}>{formatAmount(total.amount, total.currency)}</strong>
+              ))}
+            </div>
+            <button aria-label="Category settings" className="settings-cog-button" onClick={() => setSettingsOpen(true)} title="Category settings">⚙</button>
           </div>
         </section>
 
@@ -288,6 +301,18 @@ export default function CategoryDetails({ category }: { category: string }) {
               <div className="ledger-head">
                 <div><h2>Category transactions</h2><p>All matching wallets, newest first</p></div>
               </div>
+              <TransactionFilters
+                active={Boolean(activeFilterQuery)}
+                hideCategories
+                onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
+                onChange={setDraftFilters}
+                onClear={() => {
+                  setDraftFilters(emptyFilters);
+                  setActiveFilterQuery("");
+                }}
+                options={filterOptions}
+                value={draftFilters}
+              />
               <div className="table-wrap">
                 <table>
                   <thead><tr><th>Date</th><th>Wallet</th><th>Type</th><th>Note & labels</th><th>Author</th><th className="right">Amount</th></tr></thead>

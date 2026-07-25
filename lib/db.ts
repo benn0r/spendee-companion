@@ -263,27 +263,39 @@ export function setWalletStartingBalance(
   return { wallet, currency, startingAmount: amount };
 }
 
-export function getCategoryDetails(db: Db, category: string, page: number, pageSize: number) {
+export function getCategoryDetails(
+  db: Db,
+  category: string,
+  page: number,
+  pageSize: number,
+  filters?: TransactionFilters,
+) {
+  const appliedFilters = filters ?? {
+    wallets: [], types: [], categories: [], tags: [], authors: [],
+  };
+  const filtered = transactionFilterWhere({ ...appliedFilters, categories: [] }, true);
+  const where = `${filtered.sql} AND category_name = ?`;
+  const params = [...filtered.params, category];
   const total = (db.prepare(`
     SELECT COUNT(*) AS count FROM transactions
-    WHERE category_name = ? AND deleted_at IS NULL
-  `).get(category) as { count: number }).count;
+    ${where}
+  `).get(...params) as { count: number }).count;
   const rows = db.prepare(`
     SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
       note, labels, author, source_file AS sourceFile, source_row AS sourceRow,
       imported_at AS importedAt
     FROM transactions
-    WHERE category_name = ? AND deleted_at IS NULL
+    ${where}
     ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
-  `).all(category, pageSize, (page - 1) * pageSize);
+  `).all(...params, pageSize, (page - 1) * pageSize);
   const spendRows = db.prepare(`
     SELECT labels, amount, currency FROM transactions
     WHERE category_name = ? AND deleted_at IS NULL
   `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
   const dayRows = db.prepare(`
     SELECT date, amount, currency FROM transactions
-    WHERE category_name = ? AND deleted_at IS NULL
-  `).all(category) as Array<{ date: string; amount: number; currency: string }>;
+    ${where}
+  `).all(...params) as Array<{ date: string; amount: number; currency: string }>;
   const tagFrequency = new Map<string, number>();
   const parsedSpendRows = spendRows.map((row) => {
     const tags = row.labels

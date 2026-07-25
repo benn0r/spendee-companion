@@ -66,6 +66,16 @@ export default function MonthlyReport() {
     ));
   }
 
+  function openSettings() {
+    setColumns(report.columns);
+    setEditing(true);
+  }
+
+  function closeSettings() {
+    setColumns(report.columns);
+    setEditing(false);
+  }
+
   async function save() {
     setSaving(true);
     setMessage(null);
@@ -106,22 +116,30 @@ export default function MonthlyReport() {
             <h1>Monthy</h1>
             <p>Compare net category totals by month and combine categories into custom columns.</p>
           </div>
-          <button className="report-config-button" onClick={() => setEditing((value) => !value)}>
-            {editing ? "Close settings" : "Configure columns"}
-          </button>
+          <button aria-label="Monthy settings" className="settings-cog-button" onClick={openSettings} title="Monthy settings">⚙</button>
         </section>
 
         {message && <div className="notice success">{message}</div>}
 
         {editing && (
-          <section className="report-config">
-            <div className="section-heading">
-              <div><h2>Table columns</h2><p>Name each column and select the categories it includes.</p></div>
-              <button className="save-report" disabled={saving} onClick={() => void save()}>
-                {saving ? "Saving…" : "Save columns"}
-              </button>
-            </div>
-            <div className="report-column-list">
+          <div className="dialog-backdrop" role="presentation" onMouseDown={closeSettings}>
+            <section
+              aria-labelledby="monthy-settings-title"
+              aria-modal="true"
+              className="category-settings-dialog monthy-settings-dialog"
+              role="dialog"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className="dialog-head">
+                <div>
+                  <p className="eyebrow">MONTHY</p>
+                  <h2 id="monthy-settings-title">Table columns</h2>
+                  <span>Name each column, set its budget, and select the categories it includes.</span>
+                </div>
+                <button aria-label="Close settings" onClick={closeSettings}>×</button>
+              </div>
+              <div className="monthy-settings-body">
+                <div className="report-column-list">
               {columns.map((column, index) => (
                 <article className="report-column-editor" key={`${column.id ?? "new"}-${index}`}>
                   <div className="report-column-head">
@@ -169,12 +187,21 @@ export default function MonthlyReport() {
                   </div>
                 </article>
               ))}
-            </div>
-            <button
-              className="add-report-column"
-              onClick={() => setColumns((current) => [...current, { name: "New column", categories: [], budget: null }])}
-            >＋ Add column</button>
-          </section>
+                </div>
+                <button
+                  className="add-report-column"
+                  onClick={() => setColumns((current) => [...current, { name: "New column", categories: [], budget: null }])}
+                >＋ Add column</button>
+              </div>
+              {message && <p className="dialog-message">{message}</p>}
+              <div className="dialog-actions">
+                <button className="cancel" onClick={closeSettings}>Cancel</button>
+                <button className="save" disabled={saving} onClick={() => void save()}>
+                  {saving ? "Saving…" : "Save columns"}
+                </button>
+              </div>
+            </section>
+          </div>
         )}
 
         <section className="ledger monthly-report">

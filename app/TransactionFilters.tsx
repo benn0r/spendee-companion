@@ -106,6 +106,7 @@ export default function TransactionFilters({
   onChange,
   onApply,
   onClear,
+  hideCategories = false,
 }: {
   options: FilterOptions;
   value: FilterState;
@@ -113,6 +114,7 @@ export default function TransactionFilters({
   onChange: (filters: FilterState) => void;
   onApply: () => void;
   onClear: () => void;
+  hideCategories?: boolean;
 }) {
   const update = (patch: Partial<FilterState>) => onChange({ ...value, ...patch });
   const panelRef = useRef<HTMLElement>(null);
@@ -141,7 +143,7 @@ export default function TransactionFilters({
         </label>
         <MultiFilter label="Wallets" options={options.wallets} selected={value.wallets} onChange={(wallets) => update({ wallets })} />
         <MultiFilter searchable label="Types" options={options.types} selected={value.types} onChange={(types) => update({ types })} />
-        <MultiFilter searchable label="Categories" options={options.categories} selected={value.categories} onChange={(categories) => update({ categories })} />
+        {!hideCategories && <MultiFilter searchable label="Categories" options={options.categories} selected={value.categories} onChange={(categories) => update({ categories })} />}
         <MultiFilter searchable label="Tags" options={options.tags} selected={value.tags} onChange={(tags) => update({ tags })} />
         <MultiFilter label="Authors" options={options.authors} selected={value.authors} onChange={(authors) => update({ authors })} />
       </div>
