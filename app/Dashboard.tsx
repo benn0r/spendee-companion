@@ -22,7 +22,11 @@ type Row = {
 type PageData = { rows: Row[]; page: number; pages: number; total: number; pageSize: number };
 type ReviewItem = Row & { action: "update" | "delete"; transactionId: number; isDeleted: number; proposed: (Row & { fingerprint: string; identityKey: string }) | null };
 type ImportResult = { summary: { total: number; imported: number; duplicates: number; changes: number; deletions: number; files: number; failed: number } };
-type WalletSummary = { wallet: string; transactionCount: number; totals: Array<{ currency: string; total: number }> };
+type WalletSummary = {
+  wallet: string;
+  transactionCount: number;
+  totals: Array<{ currency: string; transactionTotal: number; startingAmount: number; total: number }>;
+};
 
 const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pending: 0 };
 const emptyPage = { rows: [], page: 1, pages: 1, total: 0, pageSize: 25 };

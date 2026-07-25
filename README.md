@@ -30,6 +30,8 @@ exports.
 - Lets the user approve or reject proposed changes and deletions in batches.
 - Shows the current transaction-derived total for every wallet on the homepage,
   with a dedicated paginated activity page for each wallet.
+- Supports a persisted starting amount per wallet and currency; wallet totals
+  combine that starting amount with all active transactions.
 - Paginates both lists on the server and stores data in a WAL-mode SQLite
   database.
 

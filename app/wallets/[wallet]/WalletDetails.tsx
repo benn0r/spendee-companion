@@ -21,7 +21,7 @@ type Row = {
 type WalletData = {
   wallet: string;
   rows: Row[];
-  totals: Array<{ currency: string; total: number }>;
+  totals: Array<{ currency: string; transactionTotal: number; startingAmount: number; total: number }>;
   page: number;
   pages: number;
   pageSize: number;
@@ -50,6 +50,9 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   const [data, setData] = useState<WalletData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [startingAmounts, setStartingAmounts] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -59,6 +62,11 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not load this wallet.");
       setData(result);
+      setStartingAmounts(Object.fromEntries(
+        result.totals.map((total: { currency: string; startingAmount: number }) =>
+          [total.currency, String(total.startingAmount)]
+        ),
+      ));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load this wallet.");
     } finally {
@@ -67,6 +75,32 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   }, [wallet]);
 
   useEffect(() => { void load(1); }, [load]);
+
+  async function saveStartingAmount(currency: string) {
+    const amount = Number(startingAmounts[currency]);
+    if (!Number.isFinite(amount)) {
+      setError("Enter a valid starting amount.");
+      return;
+    }
+    setSaving(currency);
+    setSaved(null);
+    setError(null);
+    try {
+      const response = await fetch(`/api/wallets/${encodeURIComponent(wallet)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency, startingAmount: amount }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Could not save the starting amount.");
+      await load(data.page);
+      setSaved(currency);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save the starting amount.");
+    } finally {
+      setSaving(null);
+    }
+  }
 
   return (
     <main>
@@ -95,9 +129,36 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
             {loading && !data.totals.length ? (
               <strong>Loading…</strong>
             ) : data.totals.map((total) => (
-              <strong className={total.total < 0 ? "negative" : ""} key={total.currency}>
-                {formatAmount(total.total, total.currency)}
-              </strong>
+              <div className="balance-entry" key={total.currency}>
+                <strong className={total.total < 0 ? "negative" : ""}>
+                  {formatAmount(total.total, total.currency)}
+                </strong>
+                <span>{formatAmount(total.transactionTotal, total.currency)} from transactions</span>
+                <label>
+                  <span>Starting amount</span>
+                  <div>
+                    <input
+                      aria-label={`Starting amount in ${total.currency}`}
+                      inputMode="decimal"
+                      type="number"
+                      step="0.01"
+                      value={startingAmounts[total.currency] ?? ""}
+                      onChange={(event) => setStartingAmounts((current) => ({
+                        ...current,
+                        [total.currency]: event.target.value,
+                      }))}
+                    />
+                    <b>{total.currency}</b>
+                    <button
+                      disabled={saving === total.currency}
+                      onClick={() => void saveStartingAmount(total.currency)}
+                      type="button"
+                    >
+                      {saving === total.currency ? "Saving…" : saved === total.currency ? "Saved" : "Save"}
+                    </button>
+                  </div>
+                </label>
+              </div>
             ))}
           </div>
         </section>

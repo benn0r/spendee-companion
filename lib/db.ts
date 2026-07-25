@@ -82,6 +82,13 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
     CREATE INDEX IF NOT EXISTS reconciliation_status_idx ON reconciliation_items(status, created_at DESC);
     CREATE UNIQUE INDEX IF NOT EXISTS reconciliation_pending_unique
       ON reconciliation_items(transaction_id, action) WHERE status = 'pending';
+    CREATE TABLE IF NOT EXISTS wallet_starting_balances (
+      wallet TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (wallet, currency)
+    );
   `);
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
@@ -104,16 +111,22 @@ export type WalletSummary = {
   wallet: string;
   transactionCount: number;
   currency: string;
+  transactionTotal: number;
+  startingAmount: number;
   total: number;
 };
 
 export function getWalletSummaries(db: Db): WalletSummary[] {
   return db.prepare(`
-    SELECT wallet, COUNT(*) AS transactionCount, currency, COALESCE(SUM(amount), 0) AS total
-    FROM transactions
-    WHERE deleted_at IS NULL
-    GROUP BY wallet, currency
-    ORDER BY wallet COLLATE NOCASE, currency COLLATE NOCASE
+    SELECT t.wallet, COUNT(*) AS transactionCount, t.currency,
+      COALESCE(SUM(t.amount), 0) AS transactionTotal,
+      COALESCE(b.amount, 0) AS startingAmount,
+      COALESCE(SUM(t.amount), 0) + COALESCE(b.amount, 0) AS total
+    FROM transactions t
+    LEFT JOIN wallet_starting_balances b ON b.wallet = t.wallet AND b.currency = t.currency
+    WHERE t.deleted_at IS NULL
+    GROUP BY t.wallet, t.currency, b.amount
+    ORDER BY t.wallet COLLATE NOCASE, t.currency COLLATE NOCASE
   `).all() as WalletSummary[];
 }
 
@@ -130,11 +143,19 @@ export function getWalletTransactions(db: Db, wallet: string, page: number, page
     ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
   `).all(wallet, pageSize, (page - 1) * pageSize);
   const totals = db.prepare(`
-    SELECT currency, COALESCE(SUM(amount), 0) AS total
-    FROM transactions
-    WHERE wallet = ? AND deleted_at IS NULL
-    GROUP BY currency ORDER BY currency COLLATE NOCASE
-  `).all(wallet) as Array<{ currency: string; total: number }>;
+    SELECT t.currency, COALESCE(SUM(t.amount), 0) AS transactionTotal,
+      COALESCE(b.amount, 0) AS startingAmount,
+      COALESCE(SUM(t.amount), 0) + COALESCE(b.amount, 0) AS total
+    FROM transactions t
+    LEFT JOIN wallet_starting_balances b ON b.wallet = t.wallet AND b.currency = t.currency
+    WHERE t.wallet = ? AND t.deleted_at IS NULL
+    GROUP BY t.currency, b.amount ORDER BY t.currency COLLATE NOCASE
+  `).all(wallet) as Array<{
+    currency: string;
+    transactionTotal: number;
+    startingAmount: number;
+    total: number;
+  }>;
   return {
     wallet,
     rows,
@@ -144,6 +165,26 @@ export function getWalletTransactions(db: Db, wallet: string, page: number, page
     total,
     pages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+export function setWalletStartingBalance(
+  db: Db,
+  wallet: string,
+  currency: string,
+  amount: number,
+) {
+  const exists = db.prepare(`
+    SELECT 1 FROM transactions
+    WHERE wallet = ? AND currency = ? AND deleted_at IS NULL LIMIT 1
+  `).get(wallet, currency);
+  if (!exists) throw new Error("Wallet currency not found.");
+  db.prepare(`
+    INSERT INTO wallet_starting_balances (wallet, currency, amount)
+    VALUES (?, ?, ?)
+    ON CONFLICT(wallet, currency) DO UPDATE
+    SET amount = excluded.amount, updated_at = CURRENT_TIMESTAMP
+  `).run(wallet, currency, amount);
+  return { wallet, currency, startingAmount: amount };
 }
 
 function normalized(value: string | null): string {

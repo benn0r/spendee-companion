@@ -149,9 +149,19 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
 .wallet-hero-title .eyebrow { margin-bottom: 4px; }
 .wallet-hero-title h1 { font-size: 24px; }
 .wallet-hero-title p:last-child { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
-.balance-group { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.balance-group small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.balance-group { min-width: 310px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.balance-group > small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
 .balance-group strong { color: var(--green-dark); font-size: 24px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.balance-entry { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.balance-entry > span { color: var(--muted); font-size: 9px; }
+.balance-entry label { margin-top: 7px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 9px; }
+.balance-entry label > span { white-space: nowrap; }
+.balance-entry label div { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: white; overflow: hidden; }
+.balance-entry input { width: 104px; padding: 8px 9px; border: 0; outline: 0; color: var(--slate); background: transparent; font: inherit; font-size: 11px; font-variant-numeric: tabular-nums; }
+.balance-entry label b { padding-right: 8px; color: var(--muted); font-size: 9px; }
+.balance-entry button { align-self: stretch; padding: 0 10px; border: 0; color: white; background: var(--green); cursor: pointer; font-size: 9px; font-weight: 600; }
+.balance-entry button:hover { background: var(--green-dark); }
+.balance-entry button:disabled { opacity: .6; cursor: wait; }
 .wallet-error { padding: 70px 24px; border: 1px solid var(--line); border-radius: 13px; background: white; text-align: center; }
 .wallet-error h2 { margin: 0 0 16px; font-size: 16px; }
 .wallet-error a { color: var(--green-dark); font-size: 11px; font-weight: 600; }
@@ -170,7 +180,11 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
   .page-heading { align-items: flex-start; }
   .wallet-grid { grid-template-columns: 1fr; }
   .wallet-hero { align-items: flex-start; flex-direction: column; }
-  .balance-group { width: 100%; padding-top: 15px; align-items: flex-start; border-top: 1px solid var(--line); }
+  .balance-group { width: 100%; min-width: 0; padding-top: 15px; align-items: flex-start; border-top: 1px solid var(--line); }
+  .balance-entry { width: 100%; align-items: flex-start; }
+  .balance-entry label { width: 100%; align-items: flex-start; flex-direction: column; }
+  .balance-entry label div { width: 100%; }
+  .balance-entry input { flex: 1; }
   .database-status { display: none; }
   .overview-grid { display: block; }
   .dropzone { padding: 20px; grid-template-columns: auto 1fr; }
