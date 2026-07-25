@@ -1,7 +1,7 @@
 # Spendee
 
 A private, self-hosted archive for Spendee transaction exports. Upload one or
-more `.xlsx` files, keep every exported field in SQLite, browse transactions
+more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse transactions
 with server-side pagination, and review duplicate occurrences separately.
 
 ![Spendee desktop interface](docs/screenshots/spendee-desktop.png)
@@ -16,7 +16,8 @@ with server-side pagination, and review duplicate occurrences separately.
 
 - Imports Spendee's `Date`, `Wallet`, `Type`, `Category name`, `Amount`,
   `Currency`, `Note`, `Labels`, and `Author` columns.
-- Accepts multiple workbooks in one upload, including valid header-only exports.
+- Accepts mixed XLSX/CSV batches in one upload, including valid header-only exports.
+- Continues processing the rest of a batch when an individual file is invalid.
 - Preserves import batch, source filename, source row, raw row data, and import
   timestamp for traceability.
 - Detects duplicates using a SHA-256 fingerprint of all nine normalized export

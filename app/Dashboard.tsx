@@ -19,7 +19,7 @@ type Row = {
   sourceRow: number;
 };
 type PageData = { rows: Row[]; page: number; pages: number; total: number; pageSize: number };
-type ImportResult = { summary: { total: number; imported: number; duplicates: number } };
+type ImportResult = { summary: { total: number; imported: number; duplicates: number; files: number; failed: number } };
 
 const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0 };
 const emptyPage = { rows: [], page: 1, pages: 1, total: 0, pageSize: 25 };
@@ -73,8 +73,8 @@ export default function Dashboard() {
       const result = await response.json() as ImportResult & { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Import failed.");
       setMessage({
-        tone: "success",
-        text: `${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated`,
+        tone: result.summary.failed ? "error" : "success",
+        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
       });
       await load(tab, 1);
     } catch (error) {
@@ -106,11 +106,11 @@ export default function Dashboard() {
         >
           <div className="upload-icon">↑</div>
           <h2>{uploading ? "Importing…" : "Drop your exports here"}</h2>
-          <p>Upload one or several Spendee .xlsx files</p>
+          <p>Upload one or many Spendee .xlsx or .csv files</p>
           <button disabled={uploading} onClick={() => inputRef.current?.click()}>
             {uploading ? "Please wait" : "Choose files"}
           </button>
-          <input ref={inputRef} type="file" accept=".xlsx" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
+          <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
         </div>
       </section>
 

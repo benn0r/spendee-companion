@@ -1,4 +1,5 @@
 import { readSheet } from "read-excel-file/node";
+import { parse } from "csv-parse/sync";
 import { transactionColumns, type TransactionInput } from "./types";
 
 const asOptionalText = (value: unknown) => {
@@ -15,9 +16,8 @@ function asDate(value: unknown): string {
   return date.toISOString();
 }
 
-export async function parseWorkbook(buffer: Buffer) {
-  const cells = await readSheet(buffer);
-  if (!cells.length) throw new Error("The workbook does not contain a readable worksheet.");
+function parseCells(cells: unknown[][]) {
+  if (!cells.length) throw new Error("The file does not contain a readable transaction table.");
   const headers = new Set(cells[0].map((value) => String(value ?? "").trim()));
   const missing = transactionColumns.filter((column) => !headers.has(column));
   if (missing.length) throw new Error(`Missing required columns: ${missing.join(", ")}`);
@@ -45,4 +45,25 @@ export async function parseWorkbook(buffer: Buffer) {
     const raw = Object.fromEntries(transactionColumns.map((column) => [column, get(column)]));
     return { transaction, sourceRow: index + 2, raw };
   });
+}
+
+export async function parseImportFile(buffer: Buffer, filename: string) {
+  const extension = filename.toLowerCase().split(".").pop();
+  if (extension === "xlsx") {
+    return parseCells(await readSheet(buffer));
+  }
+  if (extension === "csv") {
+    const cells = parse(buffer, {
+      bom: true,
+      delimiter: [",", ";", "\t"],
+      relax_column_count: true,
+      skip_empty_lines: true,
+    }) as unknown[][];
+    return parseCells(cells);
+  }
+  throw new Error("Only .xlsx and .csv files are supported.");
+}
+
+export async function parseWorkbook(buffer: Buffer) {
+  return parseImportFile(buffer, "transactions.xlsx");
 }

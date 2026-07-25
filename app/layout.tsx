@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Spendee · Transaction archive",
-  description: "Import Spendee XLSX exports into a durable, duplicate-aware archive.",
+  description: "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

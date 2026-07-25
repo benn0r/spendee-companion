@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
 import { openDatabase, importTransactions } from "../lib/db";
+import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 
 const paths: string[] = [];
@@ -34,4 +35,34 @@ test("persists unique transactions and separates every duplicate occurrence", ()
   assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions").get() as { count: number }).count, 1);
   assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 2);
   db.close();
+});
+
+test("parses quoted CSV exports with the same transaction schema", async () => {
+  const csv = [
+    "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
+    '2026-04-01T11:58:51+00:00,Account,Expense,Food & Drink,-12.50,CHF,"Lunch, coffee","food,work",Spendee Contributors',
+  ].join("\n");
+  const rows = await parseImportFile(Buffer.from(csv), "transactions.csv");
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0].transaction, {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food & Drink",
+    amount: -12.5,
+    currency: "CHF",
+    note: "Lunch, coffee",
+    labels: "food,work",
+    author: "Spendee Contributors",
+  });
+});
+
+test("parses semicolon-delimited CSV exports", async () => {
+  const csv = [
+    "Date;Wallet;Type;Category name;Amount;Currency;Note;Labels;Author",
+    "2026-04-01T11:58:51+00:00;Cash;Income;Refund;22;CHF;;;Spendee Contributors",
+  ].join("\n");
+  const rows = await parseImportFile(Buffer.from(csv), "transactions.csv");
+  assert.equal(rows[0].transaction.wallet, "Cash");
+  assert.equal(rows[0].transaction.amount, 22);
 });
