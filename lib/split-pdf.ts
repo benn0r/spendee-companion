@@ -60,8 +60,8 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
     ];
     summaries.forEach(([label, value], index) => {
       const x = 64 + index * 160;
-      document.fillColor(muted).font("Helvetica-Bold").fontSize(7).text(label, x, summaryTop + 13, { width: 145 });
-      document.fillColor(slate).fontSize(14).text(value, x, summaryTop + 26, { width: 145 });
+      document.fillColor(muted).font("Helvetica-Bold").fontSize(7).text(label, x, summaryTop + 16, { width: 145 });
+      document.fillColor(slate).fontSize(14).text(value, x, summaryTop + 29, { width: 145 });
     });
     document.y = summaryTop + 80;
 
@@ -100,9 +100,9 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
       document.fillColor(muted).font("Helvetica").fontSize(7).text(details, 126, y + 12, { width: 260 });
       document.fillColor(slate).font("Helvetica-Bold").fontSize(9)
         .text(money(entry.amount, split.currency), 400, y + 1, { width: 147, align: "right" });
-      document.y = y + 27;
+      document.y = y + 25;
       document.strokeColor(line).moveTo(48, document.y).lineTo(right, document.y).stroke();
-      document.moveDown(0.25);
+      document.y = y + 31;
     }
 
     const pageRange = document.bufferedPageRange();
