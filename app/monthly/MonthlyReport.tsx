@@ -21,7 +21,12 @@ function monthLabel(value: string) {
 }
 
 function money(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat("de-CH", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export default function MonthlyReport() {
