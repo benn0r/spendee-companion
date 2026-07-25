@@ -268,13 +268,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .category-tooltip-content { position: absolute; top: calc(100% + 8px); right: 0; z-index: 4; width: max-content; max-width: 240px; padding: 8px 10px; border-radius: 7px; color: white; background: var(--slate); box-shadow: 0 5px 18px #34455433; font-size: 9px; font-weight: 400; line-height: 1.45; text-align: left; text-transform: none; letter-spacing: 0; white-space: normal; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: .14s ease; }
 .category-tooltip-content b { display: block; margin-bottom: 2px; color: #b9f0de; font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
 .category-tooltip:hover .category-tooltip-content, .category-tooltip:focus .category-tooltip-content { opacity: 1; transform: translateY(0); }
-.monthly-currency-totals { display: flex; flex-direction: column; gap: 4px; }
-.monthly-currency-totals + .monthly-currency-totals { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
-.monthly-total { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; }
-.monthly-total small { margin: 0; color: var(--muted); font-size: 7px; text-transform: uppercase; letter-spacing: .04em; }
-.monthly-total strong { font-variant-numeric: tabular-nums; }
-.monthly-total.expense strong { color: var(--coral); }
-.monthly-total.income strong { color: var(--green-dark); }
+.monthly-value strong { display: block; color: var(--slate); font-variant-numeric: tabular-nums; }
 .monthly-value span { color: #adb5bb; }
 
 @media (max-width: 900px) {

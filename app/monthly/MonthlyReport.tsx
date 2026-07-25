@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Column = { id?: number; name: string; categories: string[] };
-type Cell = Array<{ currency: string; expenses: number; income: number }>;
+type Cell = Array<{ currency: string; amount: number }>;
 type Report = {
   categories: string[];
   columns: Column[];
@@ -90,7 +90,7 @@ export default function MonthlyReport() {
           <div>
             <p className="eyebrow">SPENDING OVER TIME</p>
             <h1>Monthly categories</h1>
-            <p>Compare expenses and income by month and combine categories into custom columns.</p>
+            <p>Compare net category totals by month and combine categories into custom columns.</p>
           </div>
           <button className="report-config-button" onClick={() => setEditing((value) => !value)}>
             {editing ? "Close settings" : "Configure columns"}
@@ -152,7 +152,7 @@ export default function MonthlyReport() {
 
         <section className="ledger monthly-report">
           <div className="ledger-head">
-            <div><h2>Monthly totals</h2><p>Expenses and income across all active transactions and wallets</p></div>
+            <div><h2>Monthly totals</h2><p>Expenses plus income across all active transactions and wallets</p></div>
             <span>{report.columns.length} {report.columns.length === 1 ? "column" : "columns"}</span>
           </div>
           <div className="table-wrap">
@@ -184,23 +184,14 @@ export default function MonthlyReport() {
                 {loading ? (
                   <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>Loading report…</td></tr>
                 ) : report.months.length === 0 ? (
-                  <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>No categorized expenses yet.</td></tr>
+                  <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>No categorized transactions yet.</td></tr>
                 ) : report.months.map((row) => (
                   <tr key={row.month}>
                     <td><strong>{monthLabel(row.month)}</strong></td>
                     {row.cells.map((cell, index) => (
                       <td className="right monthly-value" key={index}>
                         {cell.length ? cell.map((value) => (
-                          <span className="monthly-currency-totals" key={value.currency}>
-                            <span className="monthly-total expense">
-                              <small>Expenses</small>
-                              <strong>{money(value.expenses, value.currency)}</strong>
-                            </span>
-                            <span className="monthly-total income">
-                              <small>Income</small>
-                              <strong>{money(value.income, value.currency)}</strong>
-                            </span>
-                          </span>
+                          <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
                         )) : <span>—</span>}
                       </td>
                     ))}

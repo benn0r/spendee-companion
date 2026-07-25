@@ -315,13 +315,13 @@ test("builds and persists merged monthly category columns", () => {
     {
       month: "2025-02",
       cells: [
-        [{ currency: "CHF", expenses: 20, income: 0 }],
-        [{ currency: "CHF", expenses: 100, income: 0 }],
+        [{ currency: "CHF", amount: -20 }],
+        [{ currency: "CHF", amount: -100 }],
       ],
     },
     {
       month: "2025-01",
-      cells: [[{ currency: "CHF", expenses: 80, income: 15 }], []],
+      cells: [[{ currency: "CHF", amount: -65 }], []],
     },
   ]);
   db.close();
