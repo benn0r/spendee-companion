@@ -29,7 +29,7 @@ import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
 import { parseTransactionFilters } from "../lib/transaction-filters";
 import { createSplitPdf } from "../lib/split-pdf";
-import { intlLocale, normalizeLocale, translate } from "../lib/i18n";
+import { intlLocale, normalizeLocale, translate, translateUiText } from "../lib/i18n";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -490,7 +490,14 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
 
 test("provides locale normalization, formatting metadata, and message fallback", () => {
   assert.equal(normalizeLocale("en"), "en");
+  assert.equal(normalizeLocale("de"), "de");
   assert.equal(normalizeLocale("unknown"), "en");
+  assert.equal(intlLocale("de"), "de-CH");
+  assert.equal(translate("de", "split.pdf.total"), "GESAMT");
+  assert.equal(translateUiText("de", "Transactions"), "Transaktionen");
+  assert.equal(translateUiText("de", "Page 2 of 7"), "Seite 2 von 7");
+  assert.equal(translateUiText("de", "23. July"), "23. Juli");
+  assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");
   assert.equal(intlLocale("en"), "en-CH");
   assert.equal(translate("en", "split.pdf.page", { page: 3 }), "Page 3");
   assert.equal(translate("en", "future.message"), "future.message");

@@ -243,7 +243,10 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .page-size-select select { height: 28px; padding: 0 24px 0 7px; border: 1px solid var(--line); border-radius: 7px; outline: 0; color: var(--slate); background: white; font-size: 9px; }
 .pagination button { width: 29px; height: 29px; border: 1px solid var(--line); border-radius: 7px; color: var(--slate); background: white; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
-.site-footer { padding: 12px 18px; border-top: 1px solid var(--line); color: #98a1a9; background: white; font-size: 8px; letter-spacing: .4px; line-height: 1; text-align: center; }
+.site-footer { padding: 10px 18px; border-top: 1px solid var(--line); color: #7f8991; background: white; font-size: 10px; letter-spacing: .2px; line-height: 1; display: flex; align-items: center; justify-content: center; gap: 16px; }
+.footer-language { display: inline-flex; align-items: center; gap: 6px; }
+.footer-language select { min-height: 30px; padding: 3px 26px 3px 8px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--ink); font: inherit; }
+@media (max-width: 520px) { .site-footer { justify-content: space-between; } }
 .back-home { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--slate); background: white; font-size: 11px; font-weight: 600; text-decoration: none; }
 .back-home:hover { border-color: #b9ddd1; color: var(--green-dark); }
 .wallet-page { padding-top: 24px; }
