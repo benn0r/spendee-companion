@@ -506,6 +506,15 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(translateUiText("de", "Page 2 of 7"), "Seite 2 von 7");
   assert.equal(translateUiText("de", "23. July"), "23. Juli");
   assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");
+  for (const phrase of [
+    "Search wallets…", "No matches", "Current month", "Saved", "Actions", "Missing", "Restore", "Changed",
+    "Import an XLSX or CSV export to begin.", "No duplicates have been found.", "Expense", "Income", "New column",
+    "Category settings saved.", "Could not load this wallet.", "Could not save split.", "Enter a title for the split.",
+    "3 active transactions", "2 of 5 selected", "4 proposed changes need your review", "3 separated duplicates",
+    "Delete selected (2)", "Split selected (2)", "matches #42", "Position 1 description", "Remove position 1",
+    "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF", "Select transaction 9",
+    "Transactions through 2026-07-25 are marked as verified.", "0 records", "25 Jul 2026, 10:30",
+  ]) assert.notEqual(translateUiText("de", phrase), phrase, `missing German UI translation: ${phrase}`);
   assert.equal(intlLocale("en"), "en-CH");
   assert.equal(translate("en", "split.pdf.page", { page: 3 }), "Page 3");
   assert.equal(translate("en", "future.message"), "future.message");

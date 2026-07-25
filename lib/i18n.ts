@@ -71,7 +71,6 @@ const germanUi: Record<string, string> = {
   "Category": "Kategorie",
   "Note & labels": "Notiz & Tags",
   "Author": "Autor",
-  "Amount": "Betrag",
   "Select": "Auswählen",
   "Loading transactions…": "Transaktionen werden geladen…",
   "Apply filters": "Filter anwenden",
@@ -187,6 +186,67 @@ const germanUi: Record<string, string> = {
   "Select all duplicates on this page": "Alle Duplikate auf dieser Seite auswählen",
   "Transaction filters": "Transaktionsfilter",
   "Amount comparison": "Betragsvergleich",
+  "Search wallets": "Portemonnaies durchsuchen",
+  "Search categories": "Kategorien durchsuchen",
+  "Search tags": "Tags durchsuchen",
+  "Search wallets…": "Portemonnaies durchsuchen…",
+  "Search categories…": "Kategorien durchsuchen…",
+  "Search tags…": "Tags durchsuchen…",
+  "No matches": "Keine Treffer",
+  "No options": "Keine Optionen",
+  "Current month": "Aktueller Monat",
+  "current month": "aktueller Monat",
+  "Net category total ·": "Netto-Kategoriesumme ·",
+  "Saved": "Gespeichert",
+  "Actions": "Aktionen",
+  "Missing": "Fehlt",
+  "Restore": "Wiederherstellen",
+  "Changed": "Geändert",
+  "No category": "Keine Kategorie",
+  "Import an XLSX or CSV export to begin.": "Zum Start einen XLSX- oder CSV-Export importieren.",
+  "No duplicates have been found.": "Keine Duplikate gefunden.",
+  "Expense": "Ausgabe",
+  "Income": "Einnahme",
+  "Transfer": "Übertrag",
+  "New column": "Neue Spalte",
+  "Column": "Spalte",
+  "Columns": "Spalten",
+  "Category settings saved.": "Kategorieeinstellungen gespeichert.",
+  "Monthly report columns saved.": "Spalten des Monatsberichts gespeichert.",
+  "Could not load this wallet.": "Dieses Portemonnaie konnte nicht geladen werden.",
+  "Could not load this category.": "Diese Kategorie konnte nicht geladen werden.",
+  "Could not save the starting amount.": "Der Startbetrag konnte nicht gespeichert werden.",
+  "Could not save tag selection.": "Die Tag-Auswahl konnte nicht gespeichert werden.",
+  "Could not save the columns.": "Die Spalten konnten nicht gespeichert werden.",
+  "Could not save report columns.": "Die Berichtsspalten konnten nicht gespeichert werden.",
+  "Could not save the validation date.": "Das Verifizierungsdatum konnte nicht gespeichert werden.",
+  "Could not save split.": "Die Aufteilung konnte nicht gespeichert werden.",
+  "Could not delete split.": "Die Aufteilung konnte nicht gelöscht werden.",
+  "Could not delete duplicates.": "Die Duplikate konnten nicht gelöscht werden.",
+  "Enter a title for the split.": "Einen Titel für die Aufteilung eingeben.",
+  "Selected transactions must use one currency.": "Die ausgewählten Transaktionen müssen dieselbe Währung verwenden.",
+  "Complete every custom position or remove it.": "Alle eigenen Positionen vervollständigen oder entfernen.",
+  "Enter a valid starting amount.": "Einen gültigen Startbetrag eingeben.",
+  "Import failed.": "Import fehlgeschlagen.",
+  "Review failed.": "Prüfung fehlgeschlagen.",
+  "Split not found.": "Aufteilung nicht gefunden.",
+  "Wallet not found.": "Portemonnaie nicht gefunden.",
+  "Category not found.": "Kategorie nicht gefunden.",
+  "Select a valid month.": "Einen gültigen Monat auswählen.",
+  "Choose at least one XLSX or CSV file.": "Mindestens eine XLSX- oder CSV-Datei auswählen.",
+  "Full import files must contain exactly one wallet.": "Dateien für den vollständigen Import müssen genau ein Portemonnaie enthalten.",
+  "A header-only file cannot be used for a full import.": "Eine Datei nur mit Kopfzeile kann nicht vollständig importiert werden.",
+  "selected": "ausgewählt",
+  "matching": "passende",
+  "across": "in",
+  "active": "aktive",
+  "from the active ledger": "aus dem aktiven Bestand entfernen",
+  "Amount": "Betrag",
+  "0 records": "0 Datensätze",
+  "records": "Datensätze",
+  "position": "Position",
+  "positions": "Positionen",
+  "Close category settings": "Kategorieeinstellungen schliessen",
 };
 
 export function translateUiText(locale: AppLocale, text: string) {
@@ -204,8 +264,41 @@ export function translateUiText(locale: AppLocale, text: string) {
       .replace(/^(\d+) duplicates?$/, "$1 Duplikate")
       .replace(/^(\d+) splits?$/, "$1 Aufteilungen")
       .replace(/^(\d+) selected transactions?$/, "$1 Transaktionen ausgewählt")
-      .replace(/^(\d+) custom position$/, "$1 eigene Position")
-      .replace(/^(\d+) custom positions$/, "$1 eigene Positionen")
+      .replace(/^(· )?(\d+) custom position$/, "$1$2 eigene Position")
+      .replace(/^(· )?(\d+) custom positions$/, "$1$2 eigene Positionen")
+      .replace(/^(\d+) active transaction$/, "$1 aktive Transaktion")
+      .replace(/^(\d+) active transactions$/, "$1 aktive Transaktionen")
+      .replace(/^(\d+) columns?$/, "$1 Spalten")
+      .replace(/^(\d+) of (\d+) selected$/, "$1 von $2 ausgewählt")
+      .replace(/^(\d+) proposed change needs your review$/, "$1 vorgeschlagene Änderung muss geprüft werden")
+      .replace(/^(\d+) proposed changes need your review$/, "$1 vorgeschlagene Änderungen müssen geprüft werden")
+      .replace(/^(\d+) separated duplicate$/, "$1 getrenntes Duplikat")
+      .replace(/^(\d+) separated duplicates$/, "$1 getrennte Duplikate")
+      .replace(/^(\d+) duplicates? deleted\.$/, "$1 Duplikate gelöscht.")
+      .replace(/^(\d+) pending item approved\.$/, "$1 ausstehender Eintrag freigegeben.")
+      .replace(/^(\d+) pending items approved\.$/, "$1 ausstehende Einträge freigegeben.")
+      .replace(/^(\d+) pending item rejected\.$/, "$1 ausstehender Eintrag abgelehnt.")
+      .replace(/^(\d+) pending items rejected\.$/, "$1 ausstehende Einträge abgelehnt.")
+      .replace(/^Delete selected \((\d+)\)$/, "Auswahl löschen ($1)")
+      .replace(/^Split selected \((\d+)\)$/, "Auswahl aufteilen ($1)")
+      .replace(/^matches #(\d+)$/, "entspricht #$1")
+      .replace(/^Position (\d+) description$/, "Beschreibung der Position $1")
+      .replace(/^Position (\d+) amount$/, "Betrag der Position $1")
+      .replace(/^Remove position (\d+)$/, "Position $1 entfernen")
+      .replace(/^Remove (.+)$/, "$1 entfernen")
+      .replace(/^Selected categories: (.+)$/, "Ausgewählte Kategorien: $1")
+      .replace(/^Starting amount in (.+)$/, "Startbetrag in $1")
+      .replace(/^Select duplicate (\d+)$/, "Duplikat $1 auswählen")
+      .replace(/^Select transaction (\d+)$/, "Transaktion $1 auswählen")
+      .replace(/^Category icon (\d+)$/, "Kategoriesymbol $1")
+      .replace(/^(.+) spending pie chart$/, "Kreisdiagramm der Ausgaben in $1")
+      .replace(/^Wallet \"(.+)\" appears in more than one full-import file\.$/, "Das Portemonnaie „$1“ kommt in mehreren Dateien für den vollständigen Import vor.")
+      .replace(/^Delete \"(.+)\"\? This cannot be undone\.$/, "„$1“ löschen? Dies kann nicht rückgängig gemacht werden.")
+      .replace(/^Delete (\d+) selected duplicate\? This cannot be undone\.$/, "$1 ausgewähltes Duplikat löschen? Dies kann nicht rückgängig gemacht werden.")
+      .replace(/^Delete (\d+) selected duplicates\? This cannot be undone\.$/, "$1 ausgewählte Duplikate löschen? Dies kann nicht rückgängig gemacht werden.")
+      .replace(/^Transactions through (.+) are marked as verified\.$/, "Transaktionen bis $1 sind als verifiziert markiert.")
+      .replace(/^Transaction verification date cleared\.$/, "Verifizierungsdatum der Transaktionen gelöscht.")
+      .replace(/^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated$/, "$1 Dateien verarbeitet · $2 importiert · $3 Duplikate getrennt")
       .replace(/^Page (\d+) of (\d+)$/, "Seite $1 von $2")
       .replace(/^(\d+)[–-](\d+) of (\d+)$/, "$1–$2 von $3");
     if (translated === core) {
@@ -214,6 +307,10 @@ export function translateUiText(locale: AppLocale, text: string) {
         July: "Juli", August: "August", September: "September", October: "Oktober", November: "November", December: "Dezember",
       };
       translated = core.replace(/^(?:(\d{1,2})\. )?(January|February|March|April|May|June|July|August|September|October|November|December)( \d{4})?$/, (_match, day, month, year) => `${day ? `${day}. ` : ""}${months[month]}${year ?? ""}`);
+      if (translated === core) {
+        const shortMonths: Record<string, string> = { Jan: "Jan.", Feb: "Feb.", Mar: "März", Apr: "Apr.", May: "Mai", Jun: "Juni", Jul: "Juli", Aug: "Aug.", Sep: "Sept.", Oct: "Okt.", Nov: "Nov.", Dec: "Dez." };
+        translated = core.replace(/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})(.*)$/, (_match, day, month, year, rest) => `${day}. ${shortMonths[month]} ${year}${rest}`);
+      }
     }
   }
   return `${leading}${translated}${trailing}`;

@@ -30,13 +30,13 @@ export default function SplitDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale: appLocale } = useI18n();
   const [title, setTitle] = useState("");
   const [splitCount, setSplitCount] = useState(2);
   const [positions, setPositions] = useState<CustomPosition[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locale, setLocale] = useState<AppLocale>("en");
+  const [locale, setLocale] = useState<AppLocale>(appLocale);
   const currencies = Array.from(new Set(transactions.map((row) => row.currency)));
   const currency = currencies[0] ?? "CHF";
   const customTotal = positions.reduce((sum, position) => {

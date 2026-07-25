@@ -20,6 +20,8 @@ const I18nContext = createContext<I18nValue>({
 const STORAGE_KEY = "spendee-locale";
 const textSources = new WeakMap<Node, { source: string; rendered: string }>();
 const attributeSources = new WeakMap<Element, Map<string, { source: string; rendered: string }>>();
+let titleSource = "";
+let titleRendered = "";
 
 function translateDocument(locale: AppLocale) {
   const root = document.body;
@@ -58,6 +60,9 @@ export function I18nProvider({ children, locale: requestedLocale = "en" }: { chi
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, locale);
     document.documentElement.lang = locale;
+    if (!titleSource || document.title !== titleRendered) titleSource = document.title;
+    titleRendered = titleSource.split(" · ").map((part) => translateUiText(locale, part)).join(" · ");
+    document.title = titleRendered;
     translateDocument(locale);
     const observer = new MutationObserver(() => translateDocument(locale));
     observer.observe(document.body, { attributes: true, characterData: true, childList: true, subtree: true });
