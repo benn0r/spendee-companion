@@ -81,21 +81,6 @@ The container exposes port `3000`, stores its database at
 `/data/spendee.db`, and provides a health endpoint at `/api/health`. A
 `compose.example.yml` is included for a persistent deployment.
 
-## Gitea and Coolify
-
-The Gitea Actions workflow follows the same convention as the Habit Tracker and
-Love Tracker projects:
-
-1. Every branch is tested and built.
-2. Branch pushes publish
-   `git.example.invalid/benn0r/spendee:<sanitized-branch>` using the
-   `REGISTRY_TOKEN` repository secret.
-3. Obsolete branch images are removed after branch deletion or PR merge.
-
-For Coolify, deploy `git.example.invalid/benn0r/spendee:main`, expose port `3000`,
-mount a persistent volume at `/data`, and use `/api/health` as the health check.
-The SQLite database must remain on that persistent volume.
-
 ## License
 
 [MIT](LICENSE) © 2026 Spendee Contributors
