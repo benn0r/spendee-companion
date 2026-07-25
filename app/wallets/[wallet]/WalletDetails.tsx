@@ -183,7 +183,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                     <tr key={row.id}>
                       <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
                       <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                      <td>{row.categoryName ?? "—"}</td>
+                      <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
                       <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                       <td>{row.author ?? "—"}</td>
                       <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>

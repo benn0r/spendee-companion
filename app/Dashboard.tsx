@@ -279,7 +279,7 @@ export default function Dashboard() {
                     <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
                     <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                     <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                    <td>{row.categoryName ?? "—"}</td>
+                    <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
                     <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                     <td>{row.author ?? "—"}</td>
                     <td className="right"><Amount row={row} />{row.duplicateOfId && <small>matches #{row.duplicateOfId}</small>}</td>

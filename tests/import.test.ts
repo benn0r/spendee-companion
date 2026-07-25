@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
 import {
+  getCategoryDetails,
   getWalletSummaries,
   getWalletTransactions,
   importTransactions,
@@ -172,6 +173,55 @@ test("calculates active wallet totals and paginated wallet details", () => {
     startingAmount: 250,
     total: 315,
   }]);
+  db.close();
+});
+
+test("aggregates category spending by tag across wallets", () => {
+  const path = `/tmp/spendee-category-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const base: TransactionInput = {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food & Drink",
+    amount: -30,
+    currency: "CHF",
+    note: null,
+    labels: "lunch,work",
+    author: "Benjamin",
+  };
+  const cash = {
+    ...base,
+    date: "2026-04-02T11:58:51.000Z",
+    wallet: "Cash",
+    amount: -20,
+    labels: "lunch",
+  };
+  const untagged = {
+    ...base,
+    date: "2026-04-03T11:58:51.000Z",
+    wallet: "Cash",
+    amount: -10,
+    labels: null,
+  };
+  importTransactions(db, "categories.xlsx", [
+    { transaction: base, sourceRow: 2, raw: base },
+    { transaction: cash, sourceRow: 3, raw: cash },
+    { transaction: untagged, sourceRow: 4, raw: untagged },
+  ]);
+  const details = getCategoryDetails(db, "Food & Drink", 1, 10);
+  assert.equal(details.total, 3);
+  assert.deepEqual(details.wallets, [
+    { wallet: "Account", transactionCount: 1 },
+    { wallet: "Cash", transactionCount: 2 },
+  ]);
+  assert.deepEqual(details.spendingTotals, [{ currency: "CHF", amount: 60 }]);
+  assert.deepEqual(details.tags, [
+    { tag: "lunch", currency: "CHF", amount: 50, transactionCount: 2 },
+    { tag: "work", currency: "CHF", amount: 30, transactionCount: 1 },
+    { tag: "Untagged", currency: "CHF", amount: 10, transactionCount: 1 },
+  ]);
   db.close();
 });
 

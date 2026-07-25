@@ -187,6 +187,64 @@ export function setWalletStartingBalance(
   return { wallet, currency, startingAmount: amount };
 }
 
+export function getCategoryDetails(db: Db, category: string, page: number, pageSize: number) {
+  const total = (db.prepare(`
+    SELECT COUNT(*) AS count FROM transactions
+    WHERE category_name = ? AND deleted_at IS NULL
+  `).get(category) as { count: number }).count;
+  const rows = db.prepare(`
+    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
+      note, labels, author, source_file AS sourceFile, source_row AS sourceRow,
+      imported_at AS importedAt
+    FROM transactions
+    WHERE category_name = ? AND deleted_at IS NULL
+    ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
+  `).all(category, pageSize, (page - 1) * pageSize);
+  const spendRows = db.prepare(`
+    SELECT labels, amount, currency FROM transactions
+    WHERE category_name = ? AND deleted_at IS NULL AND amount < 0
+  `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
+  const tagTotals = new Map<string, { tag: string; currency: string; amount: number; transactionCount: number }>();
+  const spendingTotals = new Map<string, number>();
+  for (const row of spendRows) {
+    const spend = Math.abs(row.amount);
+    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + spend);
+    const tags = row.labels
+      ? Array.from(new Set(row.labels.split(",").map((tag) => tag.trim()).filter(Boolean)))
+      : ["Untagged"];
+    for (const tag of tags.length ? tags : ["Untagged"]) {
+      const key = `${row.currency}\u0000${tag}`;
+      const current = tagTotals.get(key) ?? {
+        tag,
+        currency: row.currency,
+        amount: 0,
+        transactionCount: 0,
+      };
+      current.amount += spend;
+      current.transactionCount += 1;
+      tagTotals.set(key, current);
+    }
+  }
+  const wallets = db.prepare(`
+    SELECT wallet, COUNT(*) AS transactionCount
+    FROM transactions WHERE category_name = ? AND deleted_at IS NULL
+    GROUP BY wallet ORDER BY wallet COLLATE NOCASE
+  `).all(category) as Array<{ wallet: string; transactionCount: number }>;
+  return {
+    category,
+    rows,
+    wallets,
+    spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
+    tags: Array.from(tagTotals.values()).sort((a, b) =>
+      a.currency.localeCompare(b.currency) || b.amount - a.amount || a.tag.localeCompare(b.tag)
+    ),
+    page,
+    pageSize,
+    total,
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
 function normalized(value: string | null): string {
   return value?.trim().normalize("NFC") ?? "";
 }
