@@ -7,6 +7,7 @@ import TopNavigation from "@/app/TopNavigation";
 import PageSizeSelect from "@/app/PageSizeSelect";
 import TransactionFilters, { emptyFilters, filterQuery, type FilterOptions, type FilterState } from "@/app/TransactionFilters";
 import CategoryIcon from "@/app/CategoryIcon";
+import { useI18n } from "@/app/I18nProvider";
 import { categoryIconIds, defaultCategoryColor, type CategoryAppearance } from "@/lib/category-appearance";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
@@ -71,17 +72,17 @@ const emptyData: CategoryData = {
 
 const emptyFilterOptions: FilterOptions = { wallets: [], types: [], categories: [], tags: [], authors: [] };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+function formatAmount(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
 }
 
-function formatMonth(value: string) {
+function formatMonth(value: string, locale: string) {
   const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
     .format(new Date(year, month - 1, 1));
 }
 
@@ -98,6 +99,7 @@ function pieGradient(segments: Array<{ amount: number }>, total: number) {
 }
 
 export default function CategoryDetails({ category }: { category: string }) {
+  const { intlLocale } = useI18n();
   const [data, setData] = useState<CategoryData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -192,14 +194,14 @@ export default function CategoryDetails({ category }: { category: string }) {
             <div>
               <p className="eyebrow">CATEGORY</p>
               <h1>{data.category || "Category"}</h1>
-              <p>{data.total.toLocaleString("en-CH")} matching {data.total === 1 ? "transaction" : "transactions"} across {data.wallets.length} {data.wallets.length === 1 ? "wallet" : "wallets"}</p>
+              <p>{data.total.toLocaleString(intlLocale)} matching {data.total === 1 ? "transaction" : "transactions"} across {data.wallets.length} {data.wallets.length === 1 ? "wallet" : "wallets"}</p>
             </div>
           </div>
           <div className="category-summary-actions">
             <div className="category-spend">
-              <small>Net category total · {data.currentMonth ? formatMonth(data.currentMonth) : "Current month"}</small>
+              <small>Net category total · {data.currentMonth ? formatMonth(data.currentMonth, intlLocale) : "Current month"}</small>
               {loading && !data.spendingTotals.length ? <strong>Loading…</strong> : data.spendingTotals.map((total) => (
-                <strong key={total.currency}>{formatAmount(total.amount, total.currency)}</strong>
+                <strong key={total.currency}>{formatAmount(total.amount, total.currency, intlLocale)}</strong>
               ))}
             </div>
             <button aria-label="Category settings" className="settings-cog-button" onClick={() => setSettingsOpen(true)} title="Category settings">⚙</button>
@@ -311,7 +313,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                 <label className="chart-month-select">
                   <span>Period</span>
                   <select value={chartMonth || data.currentMonth} onChange={(event) => setChartMonth(event.target.value)}>
-                    {data.availableMonths.map((month) => <option key={month} value={month}>{formatMonth(month)}</option>)}
+                    {data.availableMonths.map((month) => <option key={month} value={month}>{formatMonth(month, intlLocale)}</option>)}
                     <option value="all">All</option>
                   </select>
                 </label>
@@ -326,7 +328,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                     role="img"
                     style={{ background: pieGradient(group.segments, group.magnitude) }}
                   >
-                    <span>{group.currency}<b>{formatAmount(group.amount, group.currency)}</b></span>
+                    <span>{group.currency}<b>{formatAmount(group.amount, group.currency, intlLocale)}</b></span>
                   </div>
                   <div className="pie-legend">
                     {group.segments.map((segment, index) => (
@@ -334,7 +336,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                         <span style={{ background: chartColors[index % chartColors.length] }}></span>
                         <b>{segment.tag}</b>
                         <small>{group.magnitude ? ((Math.abs(segment.amount) / group.magnitude) * 100).toFixed(1) : "0.0"}%</small>
-                        <strong>{formatAmount(segment.amount, segment.currency)}</strong>
+                        <strong>{formatAmount(segment.amount, segment.currency, intlLocale)}</strong>
                       </div>
                     ))}
                   </div>
@@ -371,14 +373,14 @@ export default function CategoryDetails({ category }: { category: string }) {
                         {group.rows.map((row) => (
                           <tr key={row.id}>
                             <td>
-                              <strong>{formatDate(row.date)}</strong>
+                              <strong>{formatDate(row.date, intlLocale)}</strong>
                               {data.validUntil && dayKey(row.date) <= data.validUntil && <span className="verified-badge">✓ Verified</span>}
                             </td>
                             <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                             <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                             <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                             <td>{row.author ?? "—"}</td>
-                            <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
+                            <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency, intlLocale)}</span></td>
                           </tr>
                         ))}
                       </Fragment>

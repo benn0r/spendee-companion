@@ -9,6 +9,7 @@ import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 import CategoryIcon from "@/app/CategoryIcon";
 import type { CategoryAppearance } from "@/lib/category-appearance";
+import { useI18n } from "@/app/I18nProvider";
 
 type Row = {
   id: number;
@@ -47,15 +48,16 @@ const emptyData: WalletData = {
   total: 0,
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+function formatAmount(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
 }
 
 export default function WalletDetails({ wallet }: { wallet: string }) {
+  const { intlLocale } = useI18n();
   const [data, setData] = useState<WalletData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
             <div>
               <p className="eyebrow">WALLET</p>
               <h1>{wallet}</h1>
-              <p>{data.total.toLocaleString("en-CH")} active {data.total === 1 ? "transaction" : "transactions"}</p>
+              <p>{data.total.toLocaleString(intlLocale)} active {data.total === 1 ? "transaction" : "transactions"}</p>
             </div>
           </div>
           <div className="balance-group">
@@ -149,9 +151,9 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
             ) : data.totals.map((total) => (
               <div className="balance-entry" key={total.currency}>
                 <strong className={total.total < 0 ? "negative" : ""}>
-                  {formatAmount(total.total, total.currency)}
+                  {formatAmount(total.total, total.currency, intlLocale)}
                 </strong>
-                <span>{formatAmount(total.transactionTotal, total.currency)} from transactions</span>
+                <span>{formatAmount(total.transactionTotal, total.currency, intlLocale)} from transactions</span>
                 <label>
                   <span>Starting amount</span>
                   <div>
@@ -203,14 +205,14 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                       {group.rows.map((row) => (
                         <tr key={row.id}>
                           <td>
-                            <strong>{formatDate(row.date)}</strong>
+                            <strong>{formatDate(row.date, intlLocale)}</strong>
                             {data.validUntil && dayKey(row.date) <= data.validUntil && <span className="verified-badge">✓ Verified</span>}
                           </td>
                           <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                           <td>{row.categoryName ? <Link className="category-link category-link-with-icon" href={`/categories/${categorySlug(row.categoryName)}`}><CategoryIcon appearance={categoryAppearances[row.categoryName]} />{row.categoryName}</Link> : "—"}</td>
                           <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                           <td>{row.author ?? "—"}</td>
-                          <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
+                          <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency, intlLocale)}</span></td>
                         </tr>
                       ))}
                     </Fragment>

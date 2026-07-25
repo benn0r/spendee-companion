@@ -1,6 +1,14 @@
+import { frPdf, frUi } from "./locales/fr";
+import { itPdf, itUi } from "./locales/it";
+import { ptBrPdf, ptBrUi } from "./locales/pt-BR";
+import { translateDynamicUi } from "./i18n-dynamic";
+
 export const supportedLocales = [
   { code: "en", label: "English", intlLocale: "en-CH" },
   { code: "de", label: "Deutsch", intlLocale: "de-CH" },
+  { code: "pt-BR", label: "Português (Brasil)", intlLocale: "pt-BR" },
+  { code: "fr", label: "Français", intlLocale: "fr-CH" },
+  { code: "it", label: "Italiano", intlLocale: "it-CH" },
 ] as const;
 
 export type AppLocale = typeof supportedLocales[number]["code"];
@@ -21,7 +29,7 @@ const messages: Record<AppLocale, Record<string, string>> = {
     "split.pdf.page": "Page {page}",
   },
   de: {
-    "app.name": "Spendee-Begleiter",
+    "app.name": "Spendee Companion",
     "split.language": "Sprache",
     "split.pdf.created": "Erstellt am {date}",
     "split.pdf.total": "GESAMT",
@@ -34,10 +42,13 @@ const messages: Record<AppLocale, Record<string, string>> = {
     "split.pdf.customPosition": "Eigene Position",
     "split.pdf.page": "Seite {page}",
   },
+  "pt-BR": ptBrPdf,
+  fr: frPdf,
+  it: itPdf,
 };
 
 const germanUi: Record<string, string> = {
-  "Spendee companion": "Spendee-Begleiter",
+  "Spendee companion": "Spendee Companion",
   "Transaction archive": "Transaktionsarchiv",
   "Transactions": "Transaktionen",
   "Duplicates": "Duplikate",
@@ -69,7 +80,7 @@ const germanUi: Record<string, string> = {
   "Wallet": "Portemonnaie",
   "Type": "Typ",
   "Category": "Kategorie",
-  "Note & labels": "Notiz & Tags",
+  "Note & labels": "Notiz & Labels",
   "Author": "Autor",
   "Select": "Auswählen",
   "Loading transactions…": "Transaktionen werden geladen…",
@@ -99,16 +110,16 @@ const germanUi: Record<string, string> = {
   "All": "Alle",
   "Other": "Sonstiges",
   "Category transactions": "Kategorietransaktionen",
-  "All matching wallets, newest first": "Alle passenden Wallets, neueste zuerst",
-  "Wallet activity": "Wallet-Aktivität",
+  "All matching wallets, newest first": "Alle passenden Portemonnaies, neueste zuerst",
+  "Wallet activity": "Portemonnaie-Aktivität",
   "Active transactions, newest first": "Aktive Transaktionen, neueste zuerst",
   "Starting amount": "Startbetrag",
-  "Current wallet amount": "Aktueller Wallet-Betrag",
+  "Current wallet amount": "Aktueller Saldo",
   "SPENDING OVER TIME": "AUSGABEN IM ZEITVERLAUF",
   "Compare net category totals by month and combine categories into custom columns.": "Netto-Kategoriesummen pro Monat vergleichen und Kategorien in eigenen Spalten zusammenfassen.",
   "Table columns": "Tabellenspalten",
   "Monthly totals": "Monatssummen",
-  "Expenses plus income across all active transactions and wallets": "Ausgaben plus Einnahmen über alle aktiven Transaktionen und Wallets",
+  "Expenses plus income across all active transactions and wallets": "Ausgaben und Einnahmen aller aktiven Transaktionen und Portemonnaies",
   "Column name": "Spaltenname",
   "Monthly budget": "Monatsbudget",
   "No budget": "Kein Budget",
@@ -155,22 +166,22 @@ const germanUi: Record<string, string> = {
   "Loading report…": "Bericht wird geladen…",
   "Loading…": "Wird geladen…",
   "Loading category…": "Kategorie wird geladen…",
-  "Loading wallet…": "Wallet wird geladen…",
+  "Loading wallet…": "Portemonnaie wird geladen…",
   "Return to transactions": "Zurück zu den Transaktionen",
-  "Return to all wallets": "Zurück zu allen Wallets",
+  "Return to all wallets": "Zurück zu allen Portemonnaies",
   "No transactions in this category.": "Keine Transaktionen in dieser Kategorie.",
   "Income offsets expenses within each tag. Pie sizes use the magnitude of each resulting net amount.": "Einnahmen werden innerhalb jedes Tags mit Ausgaben verrechnet. Die Segmentgrösse entspricht dem Betrag des resultierenden Nettowerts.",
   "Choose export files": "Exportdateien auswählen",
   "Upload one or more XLSX or CSV files.": "Eine oder mehrere XLSX- oder CSV-Dateien hochladen.",
   "Drop files here": "Dateien hier ablegen",
   "XLSX and CSV exports are supported.": "XLSX- und CSV-Exporte werden unterstützt.",
-  "Batch uploads may contain multiple wallets.": "Ein Batch-Upload darf mehrere Wallets enthalten.",
-  "Each file must contain exactly one wallet. Changes and missing transactions require approval.": "Jede Datei muss genau eine Wallet enthalten. Änderungen und fehlende Transaktionen müssen freigegeben werden.",
+  "Batch uploads may contain multiple wallets.": "Ein Batch-Upload darf mehrere Portemonnaies enthalten.",
+  "Each file must contain exactly one wallet. Changes and missing transactions require approval.": "Jede Datei muss genau ein Portemonnaie enthalten. Änderungen und fehlende Transaktionen müssen freigegeben werden.",
   "Net income and spending for": "Nettoeinnahmen und -ausgaben für",
   "Remove": "Entfernen",
   "Restore this transaction to the active ledger": "Diese Transaktion im aktiven Bestand wiederherstellen",
   "Current amount": "Aktueller Betrag",
-  "WALLET": "WALLET",
+  "WALLET": "PORTEMONNAIE",
   "MONTHY": "MONATE",
   "Month": "Monat",
   "Selected categories": "Ausgewählte Kategorien",
@@ -257,16 +268,83 @@ const germanUi: Record<string, string> = {
   "Page": "Seite",
   "of": "von",
   "Close category settings": "Kategorieeinstellungen schliessen",
+  "Spendee companion · build": "Spendee Companion · Version",
+  "from transactions": "aus Transaktionen",
+  "A header-only file cannot be used for a full import because its wallet is unknown.": "Eine Datei nur mit Kopfzeile kann nicht vollständig importiert werden, weil ihr Portemonnaie unbekannt ist.",
+  "A split title is required.": "Ein Titel für die Aufteilung ist erforderlich.",
+  "Add at least one column.": "Mindestens eine Spalte hinzufügen.",
+  "All selected transactions must use the same currency.": "Alle ausgewählten Transaktionen müssen dieselbe Währung verwenden.",
+  "Budgets must be positive numbers or left empty.": "Budgets müssen positive Zahlen sein oder leer bleiben.",
+  "Currency and a valid starting amount are required.": "Währung und ein gültiger Startbetrag sind erforderlich.",
+  "Custom positions are invalid.": "Die eigenen Positionen sind ungültig.",
+  "Every column needs a name.": "Jede Spalte benötigt einen Namen.",
+  "Every column needs at least one category.": "Jede Spalte benötigt mindestens eine Kategorie.",
+  "Every custom position needs a description and valid amount.": "Jede eigene Position benötigt eine Beschreibung und einen gültigen Betrag.",
+  "Full import files must contain transactions from exactly one wallet.": "Dateien für den vollständigen Import müssen Transaktionen aus genau einem Portemonnaie enthalten.",
+  "One or more selected transactions no longer exist.": "Eine oder mehrere ausgewählte Transaktionen sind nicht mehr vorhanden.",
+  "Only .xlsx and .csv files are supported.": "Es werden nur .xlsx- und .csv-Dateien unterstützt.",
+  "Select at least one duplicate.": "Mindestens ein Duplikat auswählen.",
+  "Select at least one transaction.": "Mindestens eine Transaktion auswählen.",
+  "Select review items and a valid decision.": "Prüfeinträge und eine gültige Entscheidung auswählen.",
+  "Split count must be a positive whole number.": "Die Anzahl der Aufteilungen muss eine positive ganze Zahl sein.",
+  "Split title must be 120 characters or fewer.": "Der Titel der Aufteilung darf höchstens 120 Zeichen lang sein.",
+  "The file does not contain a readable transaction table.": "Die Datei enthält keine lesbare Transaktionstabelle.",
+  "Valid until must be a date.": "Das Verifizierungsdatum muss ein Datum sein.",
+  "Valid until must be a valid date.": "Das Verifizierungsdatum muss gültig sein.",
+  "Wallet currency not found.": "Die Währung des Portemonnaies wurde nicht gefunden.",
+  "Select a valid category color.": "Eine gültige Kategoriefarbe auswählen.",
+  "Select a valid category icon.": "Ein gültiges Kategoriesymbol auswählen.",
+  "selectedTags must be a list of tag names.": "selectedTags muss eine Liste von Tag-Namen sein.",
+  "spendingByTagEnabled must be a boolean.": "spendingByTagEnabled muss ein boolescher Wert sein.",
+  "transactionIds must contain transaction IDs.": "transactionIds muss Transaktions-IDs enthalten.",
+  "splitCount must be a number.": "splitCount muss eine Zahl sein.",
+  "validUntil must be a date or null.": "validUntil muss ein Datum oder null sein.",
+  "ids must contain duplicate IDs.": "ids muss Duplikat-IDs enthalten.",
+  "columns must contain a name and a list of categories.": "Spalten müssen einen Namen und eine Liste von Kategorien enthalten.",
 };
+
+const uiCatalogs: Record<AppLocale, Record<string, string>> = {
+  en: {},
+  de: germanUi,
+  "pt-BR": ptBrUi,
+  fr: frUi,
+  it: itUi,
+};
+
+const longMonths: Record<Exclude<AppLocale, "en">, Record<string, string>> = {
+  de: { January: "Januar", February: "Februar", March: "März", April: "April", May: "Mai", June: "Juni", July: "Juli", August: "August", September: "September", October: "Oktober", November: "November", December: "Dezember" },
+  "pt-BR": { January: "janeiro", February: "fevereiro", March: "março", April: "abril", May: "maio", June: "junho", July: "julho", August: "agosto", September: "setembro", October: "outubro", November: "novembro", December: "dezembro" },
+  fr: { January: "janvier", February: "février", March: "mars", April: "avril", May: "mai", June: "juin", July: "juillet", August: "août", September: "septembre", October: "octobre", November: "novembre", December: "décembre" },
+  it: { January: "gennaio", February: "febbraio", March: "marzo", April: "aprile", May: "maggio", June: "giugno", July: "luglio", August: "agosto", September: "settembre", October: "ottobre", November: "novembre", December: "dicembre" },
+};
+
+function translateEnglishDate(locale: Exclude<AppLocale, "en">, text: string) {
+  const months = longMonths[locale];
+  let match = text.match(/^(?:(\d{1,2})\. )?(January|February|March|April|May|June|July|August|September|October|November|December)( \d{4})?$/);
+  if (match) {
+    const day = match[1];
+    const year = match[3]?.trim();
+    if (locale === "de") return `${day ? `${day}. ` : ""}${months[match[2]]}${year ? ` ${year}` : ""}`;
+    if (locale === "pt-BR") return `${day ? `${day} de ` : ""}${months[match[2]]}${year ? ` de ${year}` : ""}`;
+    return `${day ? `${day} ` : ""}${months[match[2]]}${year ? ` ${year}` : ""}`;
+  }
+  const shortToLong: Record<string, string> = { Jan: "January", Feb: "February", Mar: "March", Apr: "April", May: "May", Jun: "June", Jul: "July", Aug: "August", Sep: "September", Oct: "October", Nov: "November", Dec: "December" };
+  match = text.match(/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})(.*)$/);
+  if (!match) return text;
+  const month = months[shortToLong[match[2]]];
+  if (locale === "de") return `${match[1]}. ${month} ${match[3]}${match[4]}`;
+  if (locale === "pt-BR") return `${match[1]} de ${month} de ${match[3]}${match[4]}`;
+  return `${match[1]} ${month} ${match[3]}${match[4]}`;
+}
 
 export function translateUiText(locale: AppLocale, text: string) {
   if (locale === "en") return text;
   const leading = text.match(/^\s*/)?.[0] ?? "";
   const trailing = text.match(/\s*$/)?.[0] ?? "";
   const core = text.trim();
-  let translated = germanUi[core];
+  let translated = uiCatalogs[locale][core];
   if (!translated) {
-    translated = core
+    translated = locale === "de" ? core
       .replace(/^(\d+) transactions?$/, "$1 Transaktionen")
       .replace(/^(\d+) wallet$/, "$1 Portemonnaie")
       .replace(/^(\d+) wallets$/, "$1 Portemonnaies")
@@ -310,20 +388,18 @@ export function translateUiText(locale: AppLocale, text: string) {
       .replace(/^Transaction verification date cleared\.$/, "Verifizierungsdatum der Transaktionen gelöscht.")
       .replace(/^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated$/, "$1 Dateien verarbeitet · $2 importiert · $3 Duplikate getrennt")
       .replace(/^Page (\d+) of (\d+)$/, "Seite $1 von $2")
-      .replace(/^(\d+)[–-](\d+) of (\d+)$/, "$1–$2 von $3");
+      .replace(/^(\d+)[–-](\d+) of (\d+)$/, "$1–$2 von $3")
+      : translateDynamicUi(locale, core);
     if (translated === core) {
-      const months: Record<string, string> = {
-        January: "Januar", February: "Februar", March: "März", April: "April", May: "Mai", June: "Juni",
-        July: "Juli", August: "August", September: "September", October: "Oktober", November: "November", December: "Dezember",
-      };
-      translated = core.replace(/^(?:(\d{1,2})\. )?(January|February|March|April|May|June|July|August|September|October|November|December)( \d{4})?$/, (_match, day, month, year) => `${day ? `${day}. ` : ""}${months[month]}${year ?? ""}`);
-      if (translated === core) {
-        const shortMonths: Record<string, string> = { Jan: "Jan.", Feb: "Feb.", Mar: "März", Apr: "Apr.", May: "Mai", Jun: "Juni", Jul: "Juli", Aug: "Aug.", Sep: "Sept.", Oct: "Okt.", Nov: "Nov.", Dec: "Dez." };
-        translated = core.replace(/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})(.*)$/, (_match, day, month, year, rest) => `${day}. ${shortMonths[month]} ${year}${rest}`);
-      }
+      translated = translateEnglishDate(locale, core);
     }
   }
   return `${leading}${translated}${trailing}`;
+}
+
+export function missingUiTranslations(locale: AppLocale) {
+  if (locale === "en") return [];
+  return Object.keys(germanUi).filter((key) => !uiCatalogs[locale][key]);
 }
 
 export function normalizeLocale(value: unknown): AppLocale {

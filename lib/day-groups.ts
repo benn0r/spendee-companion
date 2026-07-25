@@ -42,7 +42,7 @@ export function groupRowsByDay<T extends { date: string }>(rows: T[]) {
   return groups;
 }
 
-export function formatDayLabel(key: string, now = new Date()): string {
+export function formatDayLabel(key: string, now = new Date(), locale = "en-GB"): string {
   const today = dayKey(now);
   const yesterdayDate = new Date(now);
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -51,6 +51,6 @@ export function formatDayLabel(key: string, now = new Date()): string {
   if (key === yesterday) return "Yesterday";
   const [year, month, day] = key.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day, 12));
-  const monthName = new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(date);
+  const monthName = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(date);
   return `${day}. ${monthName}`;
 }

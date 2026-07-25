@@ -29,7 +29,7 @@ import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
 import { parseTransactionFilters } from "../lib/transaction-filters";
 import { createSplitPdf } from "../lib/split-pdf";
-import { intlLocale, normalizeLocale, translate, translateUiText } from "../lib/i18n";
+import { intlLocale, missingUiTranslations, normalizeLocale, translate, translateUiText } from "../lib/i18n";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -482,6 +482,11 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
   const pdf = await createSplitPdf(split as Parameters<typeof createSplitPdf>[0]);
   assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
   assert.ok(pdf.length > 1000);
+  for (const locale of ["de", "pt-BR", "fr", "it"] as const) {
+    const localizedPdf = await createSplitPdf({ ...split!, locale });
+    assert.equal(localizedPdf.subarray(0, 5).toString(), "%PDF-");
+    assert.ok(localizedPdf.length > 1000);
+  }
   assert.equal(deleteSplit(db, split!.id), true);
   assert.equal(getSplit(db, split!.id), null);
   assert.equal((db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as { count: number }).count, 0);
@@ -491,9 +496,21 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
 test("provides locale normalization, formatting metadata, and message fallback", () => {
   assert.equal(normalizeLocale("en"), "en");
   assert.equal(normalizeLocale("de"), "de");
+  assert.equal(normalizeLocale("pt-BR"), "pt-BR");
+  assert.equal(normalizeLocale("fr"), "fr");
+  assert.equal(normalizeLocale("it"), "it");
   assert.equal(normalizeLocale("unknown"), "en");
   assert.equal(intlLocale("de"), "de-CH");
   assert.equal(translate("de", "split.pdf.total"), "GESAMT");
+  assert.equal(intlLocale("pt-BR"), "pt-BR");
+  assert.equal(intlLocale("fr"), "fr-CH");
+  assert.equal(intlLocale("it"), "it-CH");
+  assert.equal(translate("pt-BR", "split.pdf.page", { page: 2 }), "Página 2");
+  assert.equal(translate("fr", "split.pdf.finalAmount"), "MONTANT PAR PART");
+  assert.equal(translate("it", "split.pdf.positions"), "Voci");
+  for (const locale of ["de", "pt-BR", "fr", "it"] as const) {
+    assert.deepEqual(missingUiTranslations(locale), [], `${locale} has missing static UI translations`);
+  }
   assert.equal(translateUiText("de", "Transactions"), "Transaktionen");
   assert.equal(translateUiText("de", "✓ Verified"), "✓ Verifiziert");
   assert.equal(translateUiText("de", "Wallets"), "Portemonnaies");
@@ -519,6 +536,34 @@ test("provides locale normalization, formatting metadata, and message fallback",
     "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF", "Select transaction 9",
     "Transactions through 2026-07-25 are marked as verified.", "0 records", "25 Jul 2026, 10:30",
   ]) assert.notEqual(translateUiText("de", phrase), phrase, `missing German UI translation: ${phrase}`);
+  const localeCases = [
+    ["pt-BR", "Transactions", "Transações"], ["pt-BR", "7 wallets", "7 carteiras"],
+    ["pt-BR", "Page 2 of 7", "Página 2 de 7"], ["pt-BR", "23. July", "23 de julho"],
+    ["fr", "Transactions", "Transactions"], ["fr", "7 wallets", "7 portefeuilles"],
+    ["fr", "Page 2 of 7", "Page 2 sur 7"], ["fr", "23. July", "23 juillet"],
+    ["it", "Transactions", "Transazioni"], ["it", "7 wallets", "7 portafogli"],
+    ["it", "Page 2 of 7", "Pagina 2 di 7"], ["it", "23. July", "23 luglio"],
+  ] as const;
+  for (const [locale, source, expected] of localeCases) {
+    assert.equal(translateUiText(locale, source), expected);
+  }
+  const dynamicPhrases = [
+    "2 categories", "3 selected transactions", "· 1 custom position", "4 active transactions",
+    "2 columns", "2 of 5 selected", "1 proposed change needs your review", "3 proposed changes need your review",
+    "2 separated duplicates", "1 duplicate deleted.", "2 pending items approved.", "1 pending item rejected.",
+    "Delete selected (2)", "Split selected (2)", "matches #42", "Position 1 description", "Position 1 amount",
+    "Remove position 1", "Remove Dragon Food", "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF",
+    "Select duplicate 3", "Select transaction 9", "Category icon 4", "CHF spending pie chart",
+    "Wallet \"Moon Purse\" appears in more than one full-import file.", "Delete \"Alpine weekend\"? This cannot be undone.",
+    "Delete 2 selected duplicates? This cannot be undone.", "Transactions through 2026-07-25 are marked as verified.",
+    "Transaction verification date cleared.", "3 files processed · 8 imported · 2 duplicates separated",
+    "Page 2 of 7", "26–50 of 140",
+  ];
+  for (const locale of ["pt-BR", "fr", "it"] as const) {
+    for (const phrase of dynamicPhrases) {
+      assert.notEqual(translateUiText(locale, phrase), phrase, `missing ${locale} dynamic translation: ${phrase}`);
+    }
+  }
   assert.equal(intlLocale("en"), "en-CH");
   assert.equal(translate("en", "split.pdf.page", { page: 3 }), "Page 3");
   assert.equal(translate("en", "future.message"), "future.message");

@@ -130,7 +130,7 @@ export default function SplitDialog({
               <span className="wallet">{row.wallet.slice(0, 1)}</span>
               <span>
                 <b>{row.note || row.categoryName || row.type}</b>
-                <small>{new Intl.DateTimeFormat("en-CH", { dateStyle: "medium" }).format(new Date(row.date))} · {row.wallet}</small>
+                <small>{new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "medium" }).format(new Date(row.date))} · {row.wallet}</small>
               </span>
               <strong>{money(row.amount, row.currency, locale)}</strong>
             </div>

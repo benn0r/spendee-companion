@@ -3,6 +3,7 @@
 import Link from "next/link";
 import TopNavigation from "@/app/TopNavigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/app/I18nProvider";
 
 type Column = { id?: number; name: string; categories: string[]; budget?: number | null };
 type Cell = Array<{ currency: string; amount: number }>;
@@ -15,14 +16,14 @@ type Report = {
 
 const emptyReport: Report = { categories: [], columns: [], months: [], configured: false };
 
-function monthLabel(value: string) {
+function monthLabel(value: string, locale: string) {
   const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
     .format(new Date(year, month - 1, 1));
 }
 
-function money(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", {
+function money(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
@@ -39,6 +40,7 @@ function budgetClass(cell: Cell, budget?: number | null) {
 }
 
 export default function MonthlyReport() {
+  const { intlLocale } = useI18n();
   const [report, setReport] = useState<Report>(emptyReport);
   const [columns, setColumns] = useState<Column[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,11 +252,11 @@ export default function MonthlyReport() {
                         </tr>
                       )}
                       <tr>
-                        <td><strong>{monthLabel(row.month)}</strong></td>
+                        <td><strong>{monthLabel(row.month, intlLocale)}</strong></td>
                         {row.cells.map((cell, index) => (
                           <td className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`} key={index}>
                             {cell.length ? cell.map((value) => (
-                              <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
+                              <strong key={value.currency}>{money(value.amount, value.currency, intlLocale)}</strong>
                             )) : <span>—</span>}
                           </td>
                         ))}

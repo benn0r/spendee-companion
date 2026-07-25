@@ -15,6 +15,7 @@ import SplitDialog from "./SplitDialog";
 import TopNavigation from "./TopNavigation";
 import PageSizeSelect from "./PageSizeSelect";
 import CategoryIcon from "./CategoryIcon";
+import { useI18n } from "./I18nProvider";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -43,27 +44,28 @@ const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pen
 const emptyPage = { rows: [], dayTotals: {}, page: 1, pages: 1, total: 0, pageSize: 25 };
 const emptyFilterOptions: FilterOptions = { wallets: [], types: [], categories: [], tags: [], authors: [] };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function Amount({ row }: { row: Row }) {
+  const { intlLocale } = useI18n();
   return (
     <span className={row.amount < 0 ? "amount expense" : "amount income"}>
-      {new Intl.NumberFormat("de-CH", { style: "currency", currency: row.currency }).format(row.amount)}
+      {new Intl.NumberFormat(intlLocale, { style: "currency", currency: row.currency }).format(row.amount)}
     </span>
   );
 }
 
-function monthLabel(value?: string) {
+function monthLabel(value: string | undefined, locale: string) {
   if (!value) return "current month";
   const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
     .format(new Date(year, month - 1, 1));
 }
 
-function compactMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", {
+function compactMoney(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
@@ -72,6 +74,7 @@ function compactMoney(amount: number, currency: string) {
 }
 
 export default function Dashboard() {
+  const { intlLocale } = useI18n();
   const [tab, setTab] = useState<"transactions" | "duplicates">("transactions");
   const [stats, setStats] = useState<Stats>(emptyStats);
   const [data, setData] = useState<PageData>(emptyPage);
@@ -292,12 +295,12 @@ export default function Dashboard() {
                         <span className={`wallet-symbol wallet-color-${index % 4}`}>{wallet.wallet.slice(0, 1)}</span>
                         <span className="wallet-card-copy">
                           <strong>{wallet.wallet}</strong>
-                          <small>{wallet.transactionCount.toLocaleString("en-CH")} {wallet.transactionCount === 1 ? "transaction" : "transactions"}</small>
+                          <small>{wallet.transactionCount.toLocaleString(intlLocale)} {wallet.transactionCount === 1 ? "transaction" : "transactions"}</small>
                         </span>
                         <span className="wallet-totals">
                           {wallet.totals.map((total) => (
                             <b className={total.total < 0 ? "negative" : ""} key={total.currency}>
-                              {new Intl.NumberFormat("de-CH", { style: "currency", currency: total.currency }).format(total.total)}
+                              {new Intl.NumberFormat(intlLocale, { style: "currency", currency: total.currency }).format(total.total)}
                             </b>
                           ))}
                         </span>
@@ -311,7 +314,7 @@ export default function Dashboard() {
             {filterOptions.categories.length > 0 && (
               <details className="dashboard-widget">
                 <summary>
-                  <span><b>Categories</b><small>Net income and spending for {monthLabel(filterOptions.currentMonth)}</small></span>
+                  <span><b>Categories</b><small>Net income and spending for {monthLabel(filterOptions.currentMonth, intlLocale)}</small></span>
                   <span className="dashboard-widget-meta">
                     <em>{filterOptions.categories.length} {filterOptions.categories.length === 1 ? "category" : "categories"}</em>
                     <i aria-hidden="true"></i>
@@ -326,7 +329,7 @@ export default function Dashboard() {
                         <span className="category-month-total">
                           {(filterOptions.categoryMonthlyTotals?.[category] ?? []).length
                             ? (filterOptions.categoryMonthlyTotals?.[category] ?? []).map((total) => (
-                              <strong key={total.currency}>{compactMoney(total.amount, total.currency)}</strong>
+                              <strong key={total.currency}>{compactMoney(total.amount, total.currency, intlLocale)}</strong>
                             ))
                             : <strong>—</strong>}
                         </span>
@@ -362,16 +365,16 @@ export default function Dashboard() {
                     )}
                   />
                   <span className={`review-kind ${item.action}`}>{item.action === "delete" ? "Missing" : item.isDeleted ? "Restore" : "Changed"}</span>
-                  <span className="review-identity"><b>{item.wallet}</b><small>{formatDate(item.date)} · {item.type}</small></span>
+                  <span className="review-identity"><b>{item.wallet}</b><small>{formatDate(item.date, intlLocale)} · {item.type}</small></span>
                   {item.action === "delete" ? (
                     <span className="review-detail">Remove <Amount row={item} /> from the active ledger</span>
                   ) : item.isDeleted ? (
                     <span className="review-detail">Restore this transaction to the active ledger</span>
                   ) : (
                     <span className="review-detail">
-                      Amount <b>{new Intl.NumberFormat("de-CH", { style: "currency", currency: item.currency }).format(item.amount)}</b>
+                      Amount <b>{new Intl.NumberFormat(intlLocale, { style: "currency", currency: item.currency }).format(item.amount)}</b>
                       <span>→</span>
-                      <b>{new Intl.NumberFormat("de-CH", { style: "currency", currency: item.proposed?.currency ?? item.currency }).format(item.proposed?.amount ?? item.amount)}</b>
+                      <b>{new Intl.NumberFormat(intlLocale, { style: "currency", currency: item.proposed?.currency ?? item.currency }).format(item.proposed?.amount ?? item.amount)}</b>
                       {item.categoryName !== item.proposed?.categoryName && <small>{item.categoryName ?? "No category"} → {item.proposed?.categoryName ?? "No category"}</small>}
                     </span>
                   )}
@@ -470,7 +473,7 @@ export default function Dashboard() {
                           </td>
                         )}
                         <td>
-                          <strong>{formatDate(row.date)}</strong>
+                          <strong>{formatDate(row.date, intlLocale)}</strong>
                           {savedValidUntil && dayKey(row.date) <= savedValidUntil && <span className="verified-badge">✓ Verified</span>}
                         </td>
                         <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
