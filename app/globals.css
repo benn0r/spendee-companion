@@ -321,7 +321,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .split-summary b { color: var(--slate); font-size: 14px; }
 .split-summary strong { color: var(--green-dark); font-size: 20px; }
 .split-error { margin: 12px 0 0; }
-.tag-chart-card, .category-wallets { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+.tag-chart-card { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }
 .tag-config { margin-bottom: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfc; }
 .tag-config-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .tag-config-head > div:first-child { display: flex; flex-direction: column; gap: 2px; }
@@ -349,12 +349,6 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .pie-legend strong { color: var(--slate); font-size: 9px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chart-note { margin: 4px 0 0; color: #8d979f; font-size: 8px; }
 .chart-empty { padding: 40px; color: var(--muted); text-align: center; font-size: 11px; }
-.category-wallets > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
-.category-wallets a { padding: 7px 9px; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 9px; color: var(--slate); text-decoration: none; }
-.category-wallets a:hover { border-color: #b9ddd1; }
-.category-wallets a .wallet { width: 25px; height: 25px; margin-right: 5px; }
-.category-wallets a b { font-size: 10px; }
-.category-wallets a small { margin-left: 5px; padding: 2px 5px; border-radius: 99px; color: var(--muted); background: #f0f3f5; font-size: 8px; }
 .monthy-settings-dialog { width: min(860px, 100%); }
 .monthy-settings-body { margin-top: 18px; }
 .report-config { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }

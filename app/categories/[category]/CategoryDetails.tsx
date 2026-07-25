@@ -282,21 +282,6 @@ export default function CategoryDetails({ category }: { category: string }) {
               <p className="chart-note">Income offsets expenses within each tag. Pie sizes use the magnitude of each resulting net amount.</p>
             </section>}
 
-            <section className="category-wallets">
-              <div className="section-heading">
-                <div><h2>Wallets</h2><p>Where these transactions occurred</p></div>
-              </div>
-              <div>
-                {data.wallets.map((wallet) => (
-                  <Link href={`/wallets/${encodeURIComponent(wallet.wallet)}`} key={wallet.wallet}>
-                    <span className="wallet">{wallet.wallet.slice(0, 1)}</span>
-                    <b>{wallet.wallet}</b>
-                    <small>{wallet.transactionCount}</small>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
             <section className="ledger">
               <div className="ledger-head">
                 <div><h2>Category transactions</h2><p>All matching wallets, newest first</p></div>
