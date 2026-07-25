@@ -64,6 +64,8 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   const [startingAmounts, setStartingAmounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(25);
   const [categoryAppearances, setCategoryAppearances] = useState<Record<string, CategoryAppearance>>({});
 
@@ -99,12 +101,12 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   async function saveStartingAmount(currency: string) {
     const amount = Number(startingAmounts[currency]);
     if (!Number.isFinite(amount)) {
-      setError("Enter a valid starting amount.");
+      setSettingsError("Enter a valid starting amount.");
       return;
     }
     setSaving(currency);
     setSaved(null);
-    setError(null);
+    setSettingsError(null);
     try {
       const response = await fetch(`/api/wallets/${encodeURIComponent(wallet)}`, {
         method: "PUT",
@@ -116,7 +118,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
       await load(data.page);
       setSaved(currency);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not save the starting amount.");
+      setSettingsError(reason instanceof Error ? reason.message : "Could not save the starting amount.");
     } finally {
       setSaving(null);
     }
@@ -135,8 +137,8 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
       </header>
 
       <div className="workspace wallet-page">
-        <section className="wallet-hero">
-          <div className="wallet-hero-title">
+        <section className="category-hero wallet-detail-hero">
+          <div className="category-title">
             <span className="wallet-symbol wallet-color-0">{wallet.slice(0, 1)}</span>
             <div>
               <p className="eyebrow">WALLET</p>
@@ -144,44 +146,68 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
               <p>{data.total.toLocaleString(intlLocale)} active {data.total === 1 ? "transaction" : "transactions"}</p>
             </div>
           </div>
-          <div className="balance-group">
-            <small>Current amount</small>
-            {loading && !data.totals.length ? (
-              <strong>Loading…</strong>
-            ) : data.totals.map((total) => (
-              <div className="balance-entry" key={total.currency}>
-                <strong className={total.total < 0 ? "negative" : ""}>
+          <div className="category-summary-actions">
+            <div className="category-spend wallet-balance-summary">
+              <small>Current amount</small>
+              {loading && !data.totals.length ? <strong>Loading…</strong> : data.totals.map((total) => (
+                <strong className={total.total < 0 ? "negative" : ""} key={total.currency}>
                   {formatAmount(total.total, total.currency, intlLocale)}
                 </strong>
-                <span>{formatAmount(total.transactionTotal, total.currency, intlLocale)} from transactions</span>
-                <label>
-                  <span>Starting amount</span>
-                  <div>
-                    <input
-                      aria-label={`Starting amount in ${total.currency}`}
-                      inputMode="decimal"
-                      type="number"
-                      step="0.01"
-                      value={startingAmounts[total.currency] ?? ""}
-                      onChange={(event) => setStartingAmounts((current) => ({
-                        ...current,
-                        [total.currency]: event.target.value,
-                      }))}
-                    />
-                    <b>{total.currency}</b>
-                    <button
-                      disabled={saving === total.currency}
-                      onClick={() => void saveStartingAmount(total.currency)}
-                      type="button"
-                    >
-                      {saving === total.currency ? "Saving…" : saved === total.currency ? "Saved" : "Save"}
-                    </button>
-                  </div>
-                </label>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button aria-label="Wallet settings" className="settings-cog-button" onClick={() => setSettingsOpen(true)} title="Wallet settings">⚙</button>
           </div>
         </section>
+
+        {settingsOpen && (
+          <div className="dialog-backdrop" role="presentation" onMouseDown={() => setSettingsOpen(false)}>
+            <section
+              aria-labelledby="wallet-settings-title"
+              aria-modal="true"
+              className="category-settings-dialog wallet-settings-dialog"
+              role="dialog"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className="dialog-head">
+                <div>
+                  <p className="eyebrow">WALLET</p>
+                  <h2 id="wallet-settings-title">Wallet settings</h2>
+                  <span>Set the starting amount for each currency.</span>
+                </div>
+                <button aria-label="Close settings" onClick={() => setSettingsOpen(false)}>×</button>
+              </div>
+              <div className="wallet-starting-settings">
+                <div className="wallet-settings-heading">
+                  <b>Starting amounts</b>
+                  <span>Starting amounts are added to the imported transaction total.</span>
+                </div>
+                {data.totals.map((total) => (
+                  <label className="wallet-starting-row" key={total.currency}>
+                    <span>Starting amount</span>
+                    <div>
+                      <input
+                        aria-label={`Starting amount in ${total.currency}`}
+                        inputMode="decimal"
+                        type="number"
+                        step="0.01"
+                        value={startingAmounts[total.currency] ?? ""}
+                        onChange={(event) => setStartingAmounts((current) => ({ ...current, [total.currency]: event.target.value }))}
+                      />
+                      <b>{total.currency}</b>
+                      <button disabled={saving === total.currency} onClick={() => void saveStartingAmount(total.currency)} type="button">
+                        {saving === total.currency ? "Saving…" : saved === total.currency ? "Saved" : "Save"}
+                      </button>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {settingsError && <p className="dialog-message error">{settingsError}</p>}
+              <div className="dialog-actions">
+                <button className="cancel" onClick={() => setSettingsOpen(false)}>Close</button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {error ? (
           <section className="wallet-error">

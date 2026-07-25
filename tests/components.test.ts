@@ -10,6 +10,7 @@ import TransactionFilters, { emptyFilters } from "../app/TransactionFilters";
 import Dashboard from "../app/Dashboard";
 import MonthlyReport from "../app/monthly/MonthlyReport";
 import SplitsView from "../app/splits/SplitsView";
+import WalletDetails from "../app/wallets/[wallet]/WalletDetails";
 
 test("shared UI components render accessible fantasy-data states", () => {
   const icon = renderToStaticMarkup(React.createElement(CategoryIcon, {
@@ -69,4 +70,9 @@ test("filters and top-level client views have stable server-rendered shells", ()
   assert.match(renderToStaticMarkup(React.createElement(Dashboard)), /Transaction history/);
   assert.match(renderToStaticMarkup(React.createElement(MonthlyReport)), /Monthly totals/);
   assert.match(renderToStaticMarkup(React.createElement(SplitsView)), /Past splits/);
+  const wallet = renderToStaticMarkup(React.createElement(WalletDetails, { wallet: "Moon Purse" }));
+  assert.match(wallet, /category-hero wallet-detail-hero/);
+  assert.match(wallet, /aria-label="Wallet settings"/);
+  assert.match(wallet, /Current amount/);
+  assert.doesNotMatch(wallet, /Starting amount/);
 });
