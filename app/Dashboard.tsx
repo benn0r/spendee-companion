@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import DayHeader from "./DayHeader";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -19,7 +21,7 @@ type Row = {
   sourceFile: string;
   sourceRow: number;
 };
-type PageData = { rows: Row[]; page: number; pages: number; total: number; pageSize: number };
+type PageData = { rows: Row[]; dayTotals: DayTotals; page: number; pages: number; total: number; pageSize: number };
 type ReviewItem = Row & { action: "update" | "delete"; transactionId: number; isDeleted: number; proposed: (Row & { fingerprint: string; identityKey: string }) | null };
 type ImportResult = { summary: { total: number; imported: number; duplicates: number; changes: number; deletions: number; files: number; failed: number } };
 type WalletSummary = {
@@ -29,7 +31,7 @@ type WalletSummary = {
 };
 
 const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pending: 0 };
-const emptyPage = { rows: [], page: 1, pages: 1, total: 0, pageSize: 25 };
+const emptyPage = { rows: [], dayTotals: {}, page: 1, pages: 1, total: 0, pageSize: 25 };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -274,16 +276,21 @@ export default function Dashboard() {
                   <tr><td colSpan={7} className="empty">Loading transactions…</td></tr>
                 ) : data.rows.length === 0 ? (
                   <tr><td colSpan={7} className="empty">{tab === "transactions" ? "Import an XLSX or CSV export to begin." : "No duplicates have been found."}</td></tr>
-                ) : data.rows.map((row) => (
-                  <tr key={row.id}>
-                    <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
-                    <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
-                    <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                    <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
-                    <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
-                    <td>{row.author ?? "—"}</td>
-                    <td className="right"><Amount row={row} />{row.duplicateOfId && <small>matches #{row.duplicateOfId}</small>}</td>
-                  </tr>
+                ) : groupRowsByDay(data.rows).map((group) => (
+                  <Fragment key={group.key}>
+                    <DayHeader colSpan={7} day={group.key} totals={data.dayTotals[group.key] ?? []} />
+                    {group.rows.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                        <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
+                        <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
+                        <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
+                        <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
+                        <td>{row.author ?? "—"}</td>
+                        <td className="right"><Amount row={row} />{row.duplicateOfId && <small>matches #{row.duplicateOfId}</small>}</td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

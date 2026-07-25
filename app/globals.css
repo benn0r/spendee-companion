@@ -120,6 +120,14 @@ table { width: 100%; min-width: 1080px; border-collapse: collapse; }
 th { padding: 11px 14px; color: #87919a; background: #f9fbfc; font-size: 9px; letter-spacing: .08em; text-align: left; text-transform: uppercase; white-space: nowrap; }
 td { padding: 11px 14px; border-top: 1px solid #eef1f3; color: #51616d; font-size: 11px; vertical-align: middle; }
 tbody tr:hover { background: #fbfdfd; }
+.day-header, .day-header:hover { background: #f2f6f7; }
+.day-header td { padding: 8px 14px; border-top: 1px solid #dfe6e9; }
+.day-header td, .day-header span { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.day-header strong { color: var(--slate); font-size: 10px; letter-spacing: .01em; }
+.day-header span { justify-content: flex-end; }
+.day-header b { font-size: 9px; font-variant-numeric: tabular-nums; }
+.day-header b.negative { color: var(--coral); }
+.day-header b.positive { color: var(--green-dark); }
 td strong, td small { display: block; }
 td strong { color: var(--slate); font-weight: 600; }
 td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

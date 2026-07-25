@@ -13,6 +13,7 @@ import {
 } from "../lib/db";
 import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
+import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -236,6 +237,19 @@ test("aggregates category spending by tag across wallets", () => {
     { tag: "work", currency: "CHF", amount: 30, transactionCount: 1 },
   ]);
   db.close();
+});
+
+test("groups complete daily totals in the Zurich timezone and formats day labels", () => {
+  const totals = calculateDayTotals([
+    { date: "2026-07-24T22:30:00.000Z", amount: -25, currency: "CHF" },
+    { date: "2026-07-25T08:00:00.000Z", amount: 100, currency: "CHF" },
+    { date: "2026-07-23T08:00:00.000Z", amount: -12, currency: "CHF" },
+  ]);
+  assert.deepEqual(totals["2026-07-25"], [{ currency: "CHF", total: 75 }]);
+  const now = new Date("2026-07-25T10:00:00.000Z");
+  assert.equal(formatDayLabel("2026-07-25", now), "Today");
+  assert.equal(formatDayLabel("2026-07-24", now), "Yesterday");
+  assert.equal(formatDayLabel("2026-07-23", now), "23. July");
 });
 
 test("parses quoted CSV exports with the same transaction schema", async () => {

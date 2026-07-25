@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import DayHeader from "@/app/DayHeader";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
   id: number;
@@ -21,6 +23,7 @@ type Row = {
 type CategoryData = {
   category: string;
   rows: Row[];
+  dayTotals: DayTotals;
   wallets: Array<{ wallet: string; transactionCount: number }>;
   spendingTotals: Array<{ currency: string; amount: number }>;
   availableTags: string[];
@@ -36,6 +39,7 @@ type CategoryData = {
 const emptyData: CategoryData = {
   category: "",
   rows: [],
+  dayTotals: {},
   wallets: [],
   spendingTotals: [],
   availableTags: [],
@@ -246,15 +250,20 @@ export default function CategoryDetails({ category }: { category: string }) {
                   <tbody>
                     {loading ? (
                       <tr><td colSpan={6} className="empty">Loading category…</td></tr>
-                    ) : data.rows.map((row) => (
-                      <tr key={row.id}>
-                        <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
-                        <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
-                        <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                        <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
-                        <td>{row.author ?? "—"}</td>
-                        <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
-                      </tr>
+                    ) : groupRowsByDay(data.rows).map((group) => (
+                      <Fragment key={group.key}>
+                        <DayHeader colSpan={6} day={group.key} totals={data.dayTotals[group.key] ?? []} />
+                        {group.rows.map((row) => (
+                          <tr key={row.id}>
+                            <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                            <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
+                            <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
+                            <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
+                            <td>{row.author ?? "—"}</td>
+                            <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
+                          </tr>
+                        ))}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

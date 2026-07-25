@@ -35,6 +35,8 @@ exports.
 - Links every category to a cross-wallet detail page with paginated matching
   transactions and a configurable spending-by-tag pie chart. Unselected and
   untagged spending is grouped into `Other`.
+- Groups transaction tables by day with `Today`, `Yesterday`, or calendar-date
+  headers and complete daily totals for the current view.
 - Paginates both lists on the server and stores data in a WAL-mode SQLite
   database.
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/db";
+import { calculateDayTotals } from "@/lib/day-groups";
 
 export const runtime = "nodejs";
 
@@ -15,5 +16,15 @@ export async function GET(request: Request) {
       imported_at AS importedAt
     FROM transactions WHERE deleted_at IS NULL ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
   `).all(pageSize, (page - 1) * pageSize);
-  return NextResponse.json({ rows, page, pageSize, total, pages: Math.max(1, Math.ceil(total / pageSize)) });
+  const dayRows = db.prepare(`
+    SELECT date, amount, currency FROM transactions WHERE deleted_at IS NULL
+  `).all() as Array<{ date: string; amount: number; currency: string }>;
+  return NextResponse.json({
+    rows,
+    dayTotals: calculateDayTotals(dayRows),
+    page,
+    pageSize,
+    total,
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+  });
 }

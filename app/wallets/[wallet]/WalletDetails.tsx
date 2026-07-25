@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import DayHeader from "@/app/DayHeader";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
   id: number;
@@ -21,6 +23,7 @@ type Row = {
 type WalletData = {
   wallet: string;
   rows: Row[];
+  dayTotals: DayTotals;
   totals: Array<{ currency: string; transactionTotal: number; startingAmount: number; total: number }>;
   page: number;
   pages: number;
@@ -31,6 +34,7 @@ type WalletData = {
 const emptyData: WalletData = {
   wallet: "",
   rows: [],
+  dayTotals: {},
   totals: [],
   page: 1,
   pages: 1,
@@ -179,15 +183,20 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                 <tbody>
                   {loading ? (
                     <tr><td colSpan={6} className="empty">Loading wallet…</td></tr>
-                  ) : data.rows.map((row) => (
-                    <tr key={row.id}>
-                      <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
-                      <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                      <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
-                      <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
-                      <td>{row.author ?? "—"}</td>
-                      <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
-                    </tr>
+                  ) : groupRowsByDay(data.rows).map((group) => (
+                    <Fragment key={group.key}>
+                      <DayHeader colSpan={6} day={group.key} totals={data.dayTotals[group.key] ?? []} />
+                      {group.rows.map((row) => (
+                        <tr key={row.id}>
+                          <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                          <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
+                          <td>{row.categoryName ? <Link className="category-link" href={`/categories/${encodeURIComponent(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
+                          <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
+                          <td>{row.author ?? "—"}</td>
+                          <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>
+                        </tr>
+                      ))}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

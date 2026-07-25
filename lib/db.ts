@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { TransactionInput } from "./types";
+import { calculateDayTotals } from "./day-groups";
 
 type Db = Database.Database;
 let singleton: Db | undefined;
@@ -161,10 +162,15 @@ export function getWalletTransactions(db: Db, wallet: string, page: number, page
     startingAmount: number;
     total: number;
   }>;
+  const dayRows = db.prepare(`
+    SELECT date, amount, currency FROM transactions
+    WHERE wallet = ? AND deleted_at IS NULL
+  `).all(wallet) as Array<{ date: string; amount: number; currency: string }>;
   return {
     wallet,
     rows,
     totals,
+    dayTotals: calculateDayTotals(dayRows),
     page,
     pageSize,
     total,
@@ -209,6 +215,10 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     SELECT labels, amount, currency FROM transactions
     WHERE category_name = ? AND deleted_at IS NULL AND amount < 0
   `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
+  const dayRows = db.prepare(`
+    SELECT date, amount, currency FROM transactions
+    WHERE category_name = ? AND deleted_at IS NULL
+  `).all(category) as Array<{ date: string; amount: number; currency: string }>;
   const tagFrequency = new Map<string, number>();
   const parsedSpendRows = spendRows.map((row) => {
     const tags = row.labels
@@ -256,6 +266,7 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
   return {
     category,
     rows,
+    dayTotals: calculateDayTotals(dayRows),
     wallets,
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
     availableTags,
