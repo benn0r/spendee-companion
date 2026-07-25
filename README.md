@@ -99,7 +99,7 @@ The container exposes port `3000`, stores its database at
 Connect an MCP client to:
 
 ```text
-https://spendee.example.invalid/mcp
+https://your-spendee.example.com/mcp
 ```
 
 The endpoint uses stateless Streamable HTTP with JSON responses. It only
