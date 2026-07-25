@@ -215,10 +215,19 @@ export default function Dashboard() {
     <main>
       <header className="topbar">
         <div className="topbar-inner">
-          <div className="brand">
+          <Link
+            className="brand brand-link"
+            href="/"
+            onClick={() => {
+              setTab("transactions");
+              setSplitMode(false);
+              setSplitRows([]);
+              setSelectedDuplicates([]);
+            }}
+          >
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
-          </div>
+          </Link>
           <div className="topbar-actions">
             <TopNavigation
               active={tab}
