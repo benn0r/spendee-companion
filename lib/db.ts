@@ -128,6 +128,7 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
+  ensureColumn(db, "split_records", "title", "TEXT");
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
   ).all() as Array<{ id: number; date: string; wallet: string; type: string }>;
@@ -570,10 +571,14 @@ export type CustomSplitPosition = { description: string; amount: number };
 
 export function createSplit(
   db: Db,
+  title: string,
   transactionIds: number[],
   customPositions: CustomSplitPosition[],
   splitCount: number,
 ) {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) throw new Error("Enter a title for the split.");
+  if (normalizedTitle.length > 120) throw new Error("Split title must be 120 characters or fewer.");
   const ids = Array.from(new Set(transactionIds.filter(Number.isInteger)));
   if (!ids.length) throw new Error("Select at least one transaction.");
   if (!Number.isInteger(splitCount) || splitCount < 1) {
@@ -612,9 +617,9 @@ export function createSplit(
   const splitAmount = totalAmount / splitCount;
   return db.transaction(() => {
     const record = db.prepare(`
-      INSERT INTO split_records (split_count, total_amount, split_amount, currency)
-      VALUES (?, ?, ?, ?)
-    `).run(splitCount, totalAmount, splitAmount, rows[0].currency);
+      INSERT INTO split_records (title, split_count, total_amount, split_amount, currency)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(normalizedTitle, splitCount, totalAmount, splitAmount, rows[0].currency);
     const splitId = Number(record.lastInsertRowid);
     const insert = db.prepare(`
       INSERT INTO split_entries (
@@ -641,11 +646,13 @@ export function createSplit(
 
 export function getSplit(db: Db, id: number) {
   const split = db.prepare(`
-    SELECT id, split_count AS splitCount, total_amount AS totalAmount,
+    SELECT id, COALESCE(NULLIF(TRIM(title), ''), 'Split #' || id) AS title,
+      split_count AS splitCount, total_amount AS totalAmount,
       split_amount AS splitAmount, currency, created_at AS createdAt
     FROM split_records WHERE id = ?
   `).get(id) as {
     id: number;
+    title: string;
     splitCount: number;
     totalAmount: number;
     splitAmount: number;
@@ -663,7 +670,8 @@ export function getSplit(db: Db, id: number) {
 
 export function getSplits(db: Db) {
   return db.prepare(`
-    SELECT s.id, s.split_count AS splitCount, s.total_amount AS totalAmount,
+    SELECT s.id, COALESCE(NULLIF(TRIM(s.title), ''), 'Split #' || s.id) AS title,
+      s.split_count AS splitCount, s.total_amount AS totalAmount,
       s.split_amount AS splitAmount, s.currency, s.created_at AS createdAt,
       COUNT(e.id) AS entryCount,
       SUM(CASE WHEN e.kind = 'transaction' THEN 1 ELSE 0 END) AS transactionCount,

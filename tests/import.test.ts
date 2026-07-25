@@ -432,13 +432,20 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
   ]);
   const ids = (db.prepare("SELECT id FROM transactions ORDER BY id").all() as Array<{ id: number }>)
     .map((row) => row.id);
-  const split = createSplit(db, ids, [{ description: "Refund", amount: 10 }], 2);
+  const split = createSplit(db, "Mountain weekend", ids, [{ description: "Refund", amount: 10 }], 2);
   assert.ok(split);
+  assert.equal(split?.title, "Mountain weekend");
   assert.equal(split?.totalAmount, -50);
   assert.equal(split?.splitAmount, -25);
   assert.equal(split?.splitCount, 2);
   assert.equal(split?.entries.length, 3);
-  assert.equal((getSplits(db)[0] as { customCount: number }).customCount, 1);
+  assert.deepEqual(
+    getSplits(db).map((item) => ({
+      title: (item as { title: string }).title,
+      customCount: (item as { customCount: number }).customCount,
+    })),
+    [{ title: "Mountain weekend", customCount: 1 }],
+  );
   const pdf = await createSplitPdf(split as Parameters<typeof createSplitPdf>[0]);
   assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
   assert.ok(pdf.length > 1000);

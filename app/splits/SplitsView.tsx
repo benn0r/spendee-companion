@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type SplitSummary = {
   id: number;
+  title: string;
   splitCount: number;
   totalAmount: number;
   splitAmount: number;
@@ -38,7 +39,7 @@ export default function SplitsView() {
   useEffect(() => { void load(); }, [load]);
 
   async function remove(split: SplitSummary) {
-    if (!window.confirm(`Delete split #${split.id}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${split.title}"? This cannot be undone.`)) return;
     setDeleting(split.id);
     try {
       const response = await fetch(`/api/splits/${split.id}`, { method: "DELETE" });
@@ -85,7 +86,7 @@ export default function SplitsView() {
               {splits.map((split) => (
                 <article className="split-history-card" key={split.id}>
                   <div className="split-card-head">
-                    <div><span>Split #{split.id}</span><small>{new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(split.createdAt))}</small></div>
+                    <div><span>{split.title}</span><small>{new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(split.createdAt))}</small></div>
                     <b>÷ {split.splitCount}</b>
                   </div>
                   <div className="split-card-values">

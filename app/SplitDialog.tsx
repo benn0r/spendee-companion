@@ -28,6 +28,7 @@ export default function SplitDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const [title, setTitle] = useState("");
   const [splitCount, setSplitCount] = useState(2);
   const [positions, setPositions] = useState<CustomPosition[]>([]);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,7 @@ export default function SplitDialog({
     setSaving(true);
     setError(null);
     try {
+      if (!title.trim()) throw new Error("Enter a title for the split.");
       if (currencies.length !== 1) throw new Error("Selected transactions must use one currency.");
       const customPositions = positions.map((position) => ({
         description: position.description.trim(),
@@ -60,6 +62,7 @@ export default function SplitDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          title: title.trim(),
           transactionIds: transactions.map((row) => row.id),
           customPositions,
           splitCount,
@@ -94,6 +97,17 @@ export default function SplitDialog({
         </div>
 
         {currencies.length > 1 && <div className="notice error">Select transactions in one currency only.</div>}
+
+        <label className="split-title-field">
+          <span>Split title</span>
+          <input
+            autoFocus
+            maxLength={120}
+            placeholder="e.g. Weekend cabin"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
 
         <div className="split-entry-list">
           {transactions.map((row) => (
@@ -162,7 +176,7 @@ export default function SplitDialog({
         {error && <div className="notice error split-error">{error}</div>}
         <div className="dialog-actions">
           <button className="cancel" disabled={saving} onClick={onClose}>Cancel</button>
-          <button className="save" disabled={saving || currencies.length !== 1} onClick={() => void save()}>
+          <button className="save" disabled={saving || currencies.length !== 1 || !title.trim()} onClick={() => void save()}>
             {saving ? "Saving…" : "Save split"}
           </button>
         </div>

@@ -10,10 +10,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json() as {
+      title?: unknown;
       transactionIds?: unknown;
       customPositions?: unknown;
       splitCount?: unknown;
     };
+    if (typeof body.title !== "string" || !body.title.trim()) {
+      return NextResponse.json({ error: "A split title is required." }, { status: 400 });
+    }
     if (!Array.isArray(body.transactionIds) ||
       !body.transactionIds.every((id) => typeof id === "number" && Number.isInteger(id))) {
       return NextResponse.json({ error: "transactionIds must contain transaction IDs." }, { status: 400 });
@@ -30,6 +34,7 @@ export async function POST(request: Request) {
     }
     const split = createSplit(
       getDatabase(),
+      body.title,
       body.transactionIds,
       body.customPositions as Array<{ description: string; amount: number }>,
       body.splitCount,

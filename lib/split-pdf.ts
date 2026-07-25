@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
 
 type SplitPdfData = {
   id: number;
+  title: string;
   splitCount: number;
   totalAmount: number;
   splitAmount: number;
@@ -28,7 +29,7 @@ function money(amount: number, currency: string) {
 export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const document = new PDFDocument({ size: "A4", margin: 48, bufferPages: true, info: {
-      Title: `Split #${split.id}`,
+      Title: split.title,
       Author: "Spendee companion",
     } });
     const chunks: Buffer[] = [];
@@ -43,15 +44,15 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
     const right = 547;
 
     document.fillColor(green).font("Helvetica-Bold").fontSize(10).text("SPENDEE COMPANION");
-    document.moveDown(0.35);
-    document.fillColor(slate).fontSize(24).text(`Split #${split.id}`);
     document.moveDown(0.2);
+    document.fillColor(slate).fontSize(24).text(split.title);
+    document.moveDown(0.1);
     document.fillColor(muted).font("Helvetica").fontSize(9)
       .text(`Created ${new Intl.DateTimeFormat("en-CH", { dateStyle: "long", timeStyle: "short" }).format(new Date(split.createdAt))}`);
-    document.moveDown(1.4);
+    document.moveDown(1);
 
     const summaryTop = document.y;
-    document.roundedRect(48, summaryTop, 499, 74, 8).fill("#f4faf8");
+    document.roundedRect(48, summaryTop, 499, 62, 8).fill("#f4faf8");
     const summaries = [
       ["TOTAL", money(split.totalAmount, split.currency)],
       ["SPLIT HOW MANY TIMES", String(split.splitCount)],
@@ -59,50 +60,56 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
     ];
     summaries.forEach(([label, value], index) => {
       const x = 64 + index * 160;
-      document.fillColor(muted).font("Helvetica-Bold").fontSize(7).text(label, x, summaryTop + 17, { width: 145 });
-      document.fillColor(slate).fontSize(14).text(value, x, summaryTop + 35, { width: 145 });
+      document.fillColor(muted).font("Helvetica-Bold").fontSize(7).text(label, x, summaryTop + 13, { width: 145 });
+      document.fillColor(slate).fontSize(14).text(value, x, summaryTop + 26, { width: 145 });
     });
-    document.y = summaryTop + 96;
+    document.y = summaryTop + 80;
 
     document.fillColor(slate).font("Helvetica-Bold").fontSize(13)
       .text("Positions", 48, document.y, { width: 499, align: "left" });
-    document.moveDown(0.5);
+    document.moveDown(0.35);
+    const tableHeaderY = document.y;
     document.fillColor(muted).fontSize(7)
-      .text("DESCRIPTION", 48, document.y, { width: 300 })
-      .text("AMOUNT", 400, document.y, { width: 147, align: "right" });
-    document.moveDown(0.55);
+      .text("DATE", 48, tableHeaderY, { width: 70, lineBreak: false })
+      .text("DESCRIPTION", 126, tableHeaderY, { width: 260, lineBreak: false })
+      .text("AMOUNT", 400, tableHeaderY, { width: 147, align: "right", lineBreak: false });
+    document.y = tableHeaderY + 12;
     document.strokeColor(line).moveTo(48, document.y).lineTo(right, document.y).stroke();
-    document.moveDown(0.45);
+    document.y += 7;
 
     for (const entry of split.entries) {
       if (document.y > 735) {
         document.addPage();
-        document.fillColor(slate).font("Helvetica-Bold").fontSize(13).text(`Split #${split.id} - Positions`);
-        document.moveDown(0.7);
+        document.fillColor(slate).font("Helvetica-Bold").fontSize(13).text(`${split.title} - Positions`);
+        document.moveDown(0.5);
       }
       const y = document.y;
+      const formattedDate = entry.date
+        ? new Intl.DateTimeFormat("en-CH", { dateStyle: "medium" }).format(new Date(entry.date))
+        : "-";
+      document.fillColor(muted).font("Helvetica").fontSize(8)
+        .text(formattedDate, 48, y + 1, { width: 70 });
       document.fillColor(slate).font("Helvetica-Bold").fontSize(9)
-        .text(entry.description, 48, y, { width: 300 });
+        .text(entry.description, 126, y, { width: 260 });
       const details = entry.kind === "custom"
         ? "Custom position"
         : [
-            entry.date ? new Intl.DateTimeFormat("en-CH", { dateStyle: "medium" }).format(new Date(entry.date)) : null,
             entry.wallet,
             entry.categoryName,
           ].filter(Boolean).join("  |  ");
-      document.fillColor(muted).font("Helvetica").fontSize(7).text(details, 48, y + 14, { width: 330 });
+      document.fillColor(muted).font("Helvetica").fontSize(7).text(details, 126, y + 12, { width: 260 });
       document.fillColor(slate).font("Helvetica-Bold").fontSize(9)
-        .text(money(entry.amount, split.currency), 400, y + 2, { width: 147, align: "right" });
-      document.y = y + 35;
+        .text(money(entry.amount, split.currency), 400, y + 1, { width: 147, align: "right" });
+      document.y = y + 27;
       document.strokeColor(line).moveTo(48, document.y).lineTo(right, document.y).stroke();
-      document.moveDown(0.5);
+      document.moveDown(0.25);
     }
 
     const pageRange = document.bufferedPageRange();
     for (let index = pageRange.start; index < pageRange.start + pageRange.count; index += 1) {
       document.switchToPage(index);
       document.fillColor(muted).font("Helvetica").fontSize(7)
-        .text(`Spendee companion  |  Split #${split.id}  |  Page ${index + 1}`, 48, 785, {
+        .text(`Spendee companion  |  ${split.title}  |  Page ${index + 1}`, 48, 785, {
           width: 499,
           align: "center",
           lineBreak: false,

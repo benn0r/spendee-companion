@@ -241,6 +241,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .dialog-actions .save { border: 1px solid var(--green); color: white; background: var(--green); }
 .dialog-actions button:disabled { opacity: .6; cursor: wait; }
 .split-dialog { width: min(760px, 100%); max-height: calc(100vh - 40px); padding: 20px; border-radius: 14px; background: white; box-shadow: 0 24px 70px #1e2c3766; overflow: auto; }
+.split-title-field { margin-top: 16px; display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.split-title-field input { height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; outline: 0; color: var(--slate); font-size: 11px; text-transform: none; letter-spacing: normal; }
+.split-title-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
 .split-entry-list { max-height: 240px; margin-top: 18px; border: 1px solid var(--line); border-radius: 10px; overflow: auto; }
 .split-entry { min-height: 54px; padding: 9px 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; border-top: 1px solid #eef1f3; }
 .split-entry:first-child { border-top: 0; }
