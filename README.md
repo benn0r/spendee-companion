@@ -1,14 +1,14 @@
 # Spendee
 
+> [!IMPORTANT]
+> **This entire repository—including the application, design, tests, documentation, and deployment setup—was made with AI.**
+
 A private, self-hosted companion for Spendee transaction exports. Upload one or
 more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse
 transactions with server-side pagination, and safely reconcile complete wallet
 exports.
 
 ![Spendee desktop interface with fictional wallets and transactions](docs/screenshots/spendee-desktop.png)
-
-> The screenshots use entirely fictional demo data. No personal export data is
-> included in this repository.
 
 <details>
   <summary>Mobile layout</summary>
@@ -32,7 +32,8 @@ exports.
   approval queue; the ledger is never changed or pruned automatically.
 - Lets the user approve or reject proposed changes and deletions in batches.
 - Shows the current transaction-derived total for every wallet on the homepage,
-  with a dedicated paginated activity page for each wallet.
+  with a dedicated paginated activity page for each wallet. Collapsed dashboard
+  directories provide quick access to every wallet and category.
 - Supports a persisted starting amount per wallet and currency; wallet totals
   combine that starting amount with all active transactions.
 - Links every category to a cross-wallet detail page with paginated matching
@@ -110,4 +111,4 @@ delete data.
 
 ## License
 
-[MIT](LICENSE) © 2026 Spendee Contributors
+[MIT](LICENSE)
