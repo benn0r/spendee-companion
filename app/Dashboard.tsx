@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
@@ -21,6 +22,7 @@ type Row = {
 type PageData = { rows: Row[]; page: number; pages: number; total: number; pageSize: number };
 type ReviewItem = Row & { action: "update" | "delete"; transactionId: number; isDeleted: number; proposed: (Row & { fingerprint: string; identityKey: string }) | null };
 type ImportResult = { summary: { total: number; imported: number; duplicates: number; changes: number; deletions: number; files: number; failed: number } };
+type WalletSummary = { wallet: string; transactionCount: number; totals: Array<{ currency: string; total: number }> };
 
 const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pending: 0 };
 const emptyPage = { rows: [], page: 1, pages: 1, total: 0, pageSize: 25 };
@@ -46,6 +48,7 @@ export default function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [fullImport, setFullImport] = useState(false);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
   const [reviewing, setReviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -54,15 +57,18 @@ export default function Dashboard() {
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
     try {
-      const [statsResponse, pageResponse, reviewResponse] = await Promise.all([
+      const [statsResponse, pageResponse, reviewResponse, walletsResponse] = await Promise.all([
         fetch("/api/stats", { cache: "no-store" }),
         fetch(`/api/${targetTab}?page=${page}&pageSize=25`, { cache: "no-store" }),
         fetch("/api/reconciliation", { cache: "no-store" }),
+        fetch("/api/wallets", { cache: "no-store" }),
       ]);
       setStats(await statsResponse.json());
       setData(await pageResponse.json());
       const reviewData = await reviewResponse.json();
       setReviews(reviewData.rows);
+      const walletData = await walletsResponse.json();
+      setWallets(walletData.wallets);
       setSelectedReviews([]);
     } finally {
       setLoading(false);
@@ -143,6 +149,34 @@ export default function Dashboard() {
         </section>
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
+
+        {wallets.length > 0 && (
+          <section className="wallet-overview" aria-labelledby="wallet-overview-title">
+            <div className="section-heading">
+              <div><h2 id="wallet-overview-title">Wallet totals</h2><p>Current balance from active transactions</p></div>
+              <span>{wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}</span>
+            </div>
+            <div className="wallet-grid">
+              {wallets.map((wallet, index) => (
+                <Link className="wallet-card" href={`/wallets/${encodeURIComponent(wallet.wallet)}`} key={wallet.wallet}>
+                  <span className={`wallet-symbol wallet-color-${index % 4}`}>{wallet.wallet.slice(0, 1)}</span>
+                  <span className="wallet-card-copy">
+                    <strong>{wallet.wallet}</strong>
+                    <small>{wallet.transactionCount.toLocaleString("en-CH")} {wallet.transactionCount === 1 ? "transaction" : "transactions"}</small>
+                  </span>
+                  <span className="wallet-totals">
+                    {wallet.totals.map((total) => (
+                      <b className={total.total < 0 ? "negative" : ""} key={total.currency}>
+                        {new Intl.NumberFormat("de-CH", { style: "currency", currency: total.currency }).format(total.total)}
+                      </b>
+                    ))}
+                  </span>
+                  <span className="wallet-arrow">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="overview-grid">
           <div
@@ -239,7 +273,7 @@ export default function Dashboard() {
                 ) : data.rows.map((row) => (
                   <tr key={row.id}>
                     <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
-                    <td><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</td>
+                    <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                     <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                     <td>{row.categoryName ?? "—"}</td>
                     <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>

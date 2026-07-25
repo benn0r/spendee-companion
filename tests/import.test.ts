@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
-import { openDatabase, importTransactions, reviewReconciliation } from "../lib/db";
+import {
+  getWalletSummaries,
+  getWalletTransactions,
+  importTransactions,
+  openDatabase,
+  reviewReconciliation,
+} from "../lib/db";
 import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 
@@ -118,6 +124,39 @@ test("keeps only proposals from the newest full wallet snapshot", () => {
     (db.prepare("SELECT COUNT(*) count FROM reconciliation_items WHERE status = 'rejected'").get() as { count: number }).count,
     2,
   );
+  db.close();
+});
+
+test("calculates active wallet totals and paginated wallet details", () => {
+  const path = `/tmp/spendee-wallet-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const base: TransactionInput = {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Daily cash",
+    type: "Income",
+    categoryName: "Salary",
+    amount: 100,
+    currency: "CHF",
+    note: null,
+    labels: null,
+    author: "Benjamin",
+  };
+  const expense = { ...base, date: "2026-04-02T11:58:51.000Z", type: "Expense", amount: -35 };
+  importTransactions(db, "wallet.xlsx", [
+    { transaction: base, sourceRow: 2, raw: base },
+    { transaction: expense, sourceRow: 3, raw: expense },
+  ]);
+  assert.deepEqual(getWalletSummaries(db), [{
+    wallet: "Daily cash",
+    transactionCount: 2,
+    currency: "CHF",
+    total: 65,
+  }]);
+  const details = getWalletTransactions(db, "Daily cash", 1, 10);
+  assert.equal(details.total, 2);
+  assert.deepEqual(details.totals, [{ currency: "CHF", total: 65 }]);
+  assert.equal(details.rows.length, 2);
   db.close();
 });
 

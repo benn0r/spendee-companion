@@ -100,6 +100,52 @@ export function getDatabase(): Db {
   return singleton;
 }
 
+export type WalletSummary = {
+  wallet: string;
+  transactionCount: number;
+  currency: string;
+  total: number;
+};
+
+export function getWalletSummaries(db: Db): WalletSummary[] {
+  return db.prepare(`
+    SELECT wallet, COUNT(*) AS transactionCount, currency, COALESCE(SUM(amount), 0) AS total
+    FROM transactions
+    WHERE deleted_at IS NULL
+    GROUP BY wallet, currency
+    ORDER BY wallet COLLATE NOCASE, currency COLLATE NOCASE
+  `).all() as WalletSummary[];
+}
+
+export function getWalletTransactions(db: Db, wallet: string, page: number, pageSize: number) {
+  const total = (db.prepare(
+    "SELECT COUNT(*) AS count FROM transactions WHERE wallet = ? AND deleted_at IS NULL",
+  ).get(wallet) as { count: number }).count;
+  const rows = db.prepare(`
+    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
+      note, labels, author, source_file AS sourceFile, source_row AS sourceRow,
+      imported_at AS importedAt
+    FROM transactions
+    WHERE wallet = ? AND deleted_at IS NULL
+    ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
+  `).all(wallet, pageSize, (page - 1) * pageSize);
+  const totals = db.prepare(`
+    SELECT currency, COALESCE(SUM(amount), 0) AS total
+    FROM transactions
+    WHERE wallet = ? AND deleted_at IS NULL
+    GROUP BY currency ORDER BY currency COLLATE NOCASE
+  `).all(wallet) as Array<{ currency: string; total: number }>;
+  return {
+    wallet,
+    rows,
+    totals,
+    page,
+    pageSize,
+    total,
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
 function normalized(value: string | null): string {
   return value?.trim().normalize("NFC") ?? "";
 }

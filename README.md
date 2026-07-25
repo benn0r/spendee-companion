@@ -28,6 +28,8 @@ exports.
   transactions and transactions missing from the new export are placed in an
   approval queue; the ledger is never changed or pruned automatically.
 - Lets the user approve or reject proposed changes and deletions in batches.
+- Shows the current transaction-derived total for every wallet on the homepage,
+  with a dedicated paginated activity page for each wallet.
 - Paginates both lists on the server and stores data in a WAL-mode SQLite
   database.
 
