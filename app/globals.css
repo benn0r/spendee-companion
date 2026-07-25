@@ -128,6 +128,8 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .filter-multi[open] summary { border-color: #9bdac5; }
 .filter-multi > div { position: absolute; top: calc(100% + 5px); left: 0; z-index: 6; width: max-content; min-width: 180px; max-width: 280px; max-height: 240px; padding: 6px; border: 1px solid var(--line); border-radius: 9px; background: white; box-shadow: 0 10px 30px #34455422; overflow: auto; }
 .filter-multi > div > span { display: block; padding: 9px; color: var(--muted); font-size: 9px; }
+.filter-search { position: sticky; top: 0; z-index: 1; width: 100%; margin-bottom: 4px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; outline: 0; color: var(--slate); background: white; font-size: 9px; }
+.filter-search:focus { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-soft); }
 .filter-multi label { padding: 6px 7px; display: flex; align-items: center; gap: 7px; border-radius: 6px; color: var(--slate); cursor: pointer; font-size: 9px; }
 .filter-multi label:hover { background: var(--green-soft); }
 .filter-multi input { width: 13px; height: 13px; margin: 0; accent-color: var(--green); }
