@@ -164,12 +164,12 @@ export default function CategoryDetails({ category }: { category: string }) {
         body: JSON.stringify({ selectedTags, spendingByTagEnabled, iconId, color: categoryColor }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Could not save tag selection.");
+      if (!response.ok) throw new Error(result.error ?? "Could not save label selection.");
       await load(data.page);
       setTagMessage("Category settings saved.");
       setSettingsOpen(false);
     } catch (reason) {
-      setTagMessage(reason instanceof Error ? reason.message : "Could not save tag selection.");
+      setTagMessage(reason instanceof Error ? reason.message : "Could not save label selection.");
     } finally {
       setSavingTags(false);
     }
@@ -257,7 +257,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                 </div>
               </div>
               <label className="setting-toggle">
-                <span><b>Spending by tag</b><small>Include expenses and income to show the net amount for each tag.</small></span>
+                <span><b>Spending by label</b><small>Include expenses and income to show the net amount for each label.</small></span>
                 <input
                   checked={spendingByTagEnabled}
                   onChange={(event) => setSpendingByTagEnabled(event.target.checked)}
@@ -267,7 +267,7 @@ export default function CategoryDetails({ category }: { category: string }) {
               {spendingByTagEnabled && (
                 <div className="dialog-tag-settings">
                   <div className="tag-config-head">
-                    <div><b>Tags in the chart</b><span>{selectedTags.length} of {data.availableTags.length} selected</span></div>
+                    <div><b>Labels in the chart</b><span>{selectedTags.length} of {data.availableTags.length} selected</span></div>
                     <div>
                       <button type="button" onClick={() => setSelectedTags(data.availableTags)}>Select all</button>
                       <button type="button" onClick={() => setSelectedTags([])}>Clear</button>
@@ -309,7 +309,7 @@ export default function CategoryDetails({ category }: { category: string }) {
           <>
             {data.spendingByTagEnabled && <section className="tag-chart-card">
               <div className="section-heading">
-                <div><h2>Spending by tag</h2><p>Net expenses and income; selected tags are shown separately and everything else is Other</p></div>
+                <div><h2>Spending by label</h2><p>Net expenses and income; selected labels are shown separately and everything else is Other</p></div>
                 <label className="chart-month-select">
                   <span>Period</span>
                   <select value={chartMonth || data.currentMonth} onChange={(event) => setChartMonth(event.target.value)}>
@@ -342,7 +342,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                   </div>
                 </div>
               ))}
-              <p className="chart-note">Income offsets expenses within each tag. Pie sizes use the magnitude of each resulting net amount.</p>
+              <p className="chart-note">Income offsets expenses within each label. Pie sizes use the magnitude of each resulting net amount.</p>
             </section>}
 
             <section className="ledger">

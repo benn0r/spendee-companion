@@ -147,7 +147,7 @@ export default function TransactionFilters({
         </label>
         <MultiFilter label="Wallets" options={options.wallets} selected={value.wallets} onChange={(wallets) => update({ wallets })} />
         {!hideCategories && <MultiFilter searchable label="Categories" options={options.categories} selected={value.categories} onChange={(categories) => update({ categories })} />}
-        <MultiFilter searchable label="Tags" options={options.tags} selected={value.tags} onChange={(tags) => update({ tags })} />
+        <MultiFilter searchable label="Labels" options={options.tags} selected={value.tags} onChange={(tags) => update({ tags })} />
       </div>
       <div className="filter-amount-row">
         <select

@@ -51,6 +51,7 @@ test("filters and top-level client views have stable server-rendered shells", ()
   }));
   assert.match(filters, /Moon Purse/);
   assert.match(filters, /Categories/);
+  assert.match(filters, /Labels/);
   assert.match(filters, /Clear/);
   assert.doesNotMatch(filters, /Authors|Types/);
 

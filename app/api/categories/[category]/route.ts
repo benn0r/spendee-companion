@@ -40,7 +40,7 @@ export async function PUT(
     }
     const body = await request.json() as { selectedTags?: unknown; spendingByTagEnabled?: unknown; iconId?: unknown; color?: unknown };
     if (!Array.isArray(body.selectedTags) || !body.selectedTags.every((tag) => typeof tag === "string")) {
-      return NextResponse.json({ error: "selectedTags must be a list of tag names." }, { status: 400 });
+      return NextResponse.json({ error: "Labels must be a list of label names." }, { status: 400 });
     }
     if (typeof body.spendingByTagEnabled !== "boolean") {
       return NextResponse.json({ error: "spendingByTagEnabled must be a boolean." }, { status: 400 });
@@ -56,7 +56,7 @@ export async function PUT(
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save tag selection." },
+      { error: error instanceof Error ? error.message : "Could not save label selection." },
       { status: 400 },
     );
   }

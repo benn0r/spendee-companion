@@ -529,6 +529,7 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");
   for (const phrase of [
     "Search wallets…", "No matches", "Current month", "Saved", "Actions", "Missing", "Restore", "Changed",
+    "Spending by label", "Labels in the chart", "Search labels…",
     "Import an XLSX or CSV export to begin.", "No duplicates have been found.", "Expense", "Income", "New column",
     "Category settings saved.", "Could not load this wallet.", "Could not save split.", "Enter a title for the split.",
     "3 active transactions", "2 of 5 selected", "4 proposed changes need your review", "3 separated duplicates",
@@ -536,6 +537,7 @@ test("provides locale normalization, formatting metadata, and message fallback",
     "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF", "Select transaction 9",
     "Transactions through 2026-07-25 are marked as verified.", "0 records", "25 Jul 2026, 10:30",
   ]) assert.notEqual(translateUiText("de", phrase), phrase, `missing German UI translation: ${phrase}`);
+  assert.equal(translateUiText("de", "Labels"), "Labels");
   const localeCases = [
     ["pt-BR", "Transactions", "Transações"], ["pt-BR", "7 wallets", "7 carteiras"],
     ["pt-BR", "Page 2 of 7", "Página 2 de 7"], ["pt-BR", "23. July", "23 de julho"],
