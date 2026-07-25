@@ -44,6 +44,7 @@ main { min-height: 100vh; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .top-navigation { display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f4f6; }
 .top-navigation a, .top-navigation button { padding: 7px 10px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.top-navigation a > span, .top-navigation button > span { margin-left: 4px; padding: 1px 5px; border-radius: 99px; color: var(--muted); background: #e1e6e9; font-size: 8px; }
 .top-navigation a:hover, .top-navigation button:hover, .top-navigation .active { color: var(--green-dark); background: white; box-shadow: 0 1px 4px #34455414; }
 .top-upload:hover, .page-import-button:hover, .dropzone button:hover { background: var(--green-dark); }
 .top-upload:disabled, .page-import-button:disabled, .dropzone button:disabled { opacity: .6; cursor: wait; }

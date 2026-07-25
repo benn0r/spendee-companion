@@ -231,6 +231,7 @@ export default function Dashboard() {
           <div className="topbar-actions">
             <TopNavigation
               active={tab}
+              duplicateCount={stats.duplicates}
               onTransactions={() => { setTab("transactions"); history.replaceState(null, "", "/"); }}
               onDuplicates={() => { setTab("duplicates"); setSplitMode(false); setSplitRows([]); history.replaceState(null, "", "/?view=duplicates"); }}
             />
@@ -256,7 +257,7 @@ export default function Dashboard() {
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
 
-        {wallets.length > 0 && (
+        {tab === "transactions" && wallets.length > 0 && (
           <section className="wallet-overview" aria-labelledby="wallet-overview-title">
             <div className="section-heading">
               <div><h2 id="wallet-overview-title">Wallets</h2></div>
@@ -369,17 +370,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <TransactionFilters
-            active={Boolean(activeFilterQuery)}
-            onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
-            onChange={setDraftFilters}
-            onClear={() => {
-              setDraftFilters(emptyFilters);
-              setActiveFilterQuery("");
-            }}
-            options={filterOptions}
-            value={draftFilters}
-          />
+          {tab === "transactions" && (
+            <TransactionFilters
+              active={Boolean(activeFilterQuery)}
+              onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
+              onChange={setDraftFilters}
+              onClear={() => {
+                setDraftFilters(emptyFilters);
+                setActiveFilterQuery("");
+              }}
+              options={filterOptions}
+              value={draftFilters}
+            />
+          )}
 
           <div className="table-wrap">
             <table>

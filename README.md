@@ -50,6 +50,7 @@ exports.
   splits can be reviewed, deleted, and downloaded as an A4 PDF.
 - Paginates transaction, duplicate, wallet, and category lists on the server and
   stores data in a WAL-mode SQLite database.
+- Exposes the same data through a read-only MCP Streamable HTTP endpoint.
 
 Each uploaded file represents one wallet when **Full import** is enabled. A
 full-import batch may contain multiple files, but the same wallet may only
@@ -92,6 +93,20 @@ docker run --rm -p 3000:3000 -v spendee-data:/data spendee
 The container exposes port `3000`, stores its database at
 `/data/spendee.db`, and provides a health endpoint at `/api/health`. A
 `compose.example.yml` is included for a persistent deployment.
+
+## Read-only MCP server
+
+Connect an MCP client to:
+
+```text
+https://spendee.example.invalid/mcp
+```
+
+The endpoint uses stateless Streamable HTTP with JSON responses. It only
+registers read tools: overview and filter options, filtered/paginated
+transactions, duplicates, wallets, category details, monthly categories,
+splits, and pending reconciliation items. It cannot import, update, approve, or
+delete data.
 
 ## License
 

@@ -1,16 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function TopNavigation({
   active,
   onTransactions,
   onDuplicates,
+  duplicateCount,
 }: {
   active?: "transactions" | "duplicates" | "splits" | "monthly";
   onTransactions?: () => void;
   onDuplicates?: () => void;
+  duplicateCount?: number;
 }) {
+  const [count, setCount] = useState(duplicateCount ?? 0);
+  useEffect(() => {
+    if (duplicateCount !== undefined) {
+      setCount(duplicateCount);
+      return;
+    }
+    void fetch("/api/stats", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((stats: { duplicates?: number }) => setCount(stats.duplicates ?? 0));
+  }, [duplicateCount]);
   return (
     <nav aria-label="Primary navigation" className="top-navigation">
       {onTransactions ? (
@@ -19,12 +32,12 @@ export default function TopNavigation({
         <Link href="/">Transactions</Link>
       )}
       {onDuplicates ? (
-        <button className={active === "duplicates" ? "active" : ""} onClick={onDuplicates}>Duplicates</button>
+        <button className={active === "duplicates" ? "active" : ""} onClick={onDuplicates}>Duplicates <span>{count}</span></button>
       ) : (
-        <Link href="/?view=duplicates">Duplicates</Link>
+        <Link href="/?view=duplicates">Duplicates <span>{count}</span></Link>
       )}
       <Link className={active === "splits" ? "active" : ""} href="/splits">Splits</Link>
-      <Link className={active === "monthly" ? "active" : ""} href="/monthly">Monthly</Link>
+      <Link className={active === "monthly" ? "active" : ""} href="/monthly">Monthly categories</Link>
     </nav>
   );
 }

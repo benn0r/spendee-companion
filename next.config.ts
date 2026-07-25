@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       { source: "/", headers: [noStalePage] },
       { source: "/monthly", headers: [noStalePage] },
       { source: "/splits", headers: [noStalePage] },
+      { source: "/mcp", headers: [noStalePage] },
       { source: "/wallets/:path*", headers: [noStalePage] },
       { source: "/categories/:path*", headers: [noStalePage] },
     ];
