@@ -11,6 +11,7 @@ import TransactionFilters, {
   type FilterOptions,
   type FilterState,
 } from "./TransactionFilters";
+import SplitDialog from "./SplitDialog";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -68,6 +69,9 @@ export default function Dashboard() {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const [activeFilterQuery, setActiveFilterQuery] = useState("");
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitRows, setSplitRows] = useState<Row[]>([]);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
@@ -166,7 +170,10 @@ export default function Dashboard() {
             <h1>Transactions</h1>
             <p>Import and review your Spendee exports in one place.</p>
           </div>
-          <Link className="back-home" href="/monthly">Monthly categories →</Link>
+          <div className="page-links">
+            <Link className="back-home" href="/splits">Past splits</Link>
+            <Link className="back-home" href="/monthly">Monthly categories →</Link>
+          </div>
         </section>
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
@@ -246,9 +253,21 @@ export default function Dashboard() {
               <h2>Transaction history</h2>
               <p>All imported records, newest first</p>
             </div>
-            <div className="tabs">
-              <button className={tab === "transactions" ? "active" : ""} onClick={() => setTab("transactions")}>Transactions <span>{stats.transactions}</span></button>
-              <button className={tab === "duplicates" ? "active" : ""} onClick={() => setTab("duplicates")}>Duplicates <span>{stats.duplicates}</span></button>
+            <div className="ledger-tools">
+              {tab === "transactions" && (
+                splitMode ? (
+                  <div className="split-mode-actions">
+                    <button className="cancel-split" onClick={() => { setSplitMode(false); setSplitRows([]); }}>Cancel</button>
+                    <button className="start-split" disabled={!splitRows.length} onClick={() => setSplitDialogOpen(true)}>
+                      Split selected{splitRows.length ? ` (${splitRows.length})` : ""}
+                    </button>
+                  </div>
+                ) : <button className="split-button" onClick={() => setSplitMode(true)}>Split transactions</button>
+              )}
+              <div className="tabs">
+                <button className={tab === "transactions" ? "active" : ""} onClick={() => { setTab("transactions"); setSplitMode(false); setSplitRows([]); }}>Transactions <span>{stats.transactions}</span></button>
+                <button className={tab === "duplicates" ? "active" : ""} onClick={() => { setTab("duplicates"); setSplitMode(false); setSplitRows([]); }}>Duplicates <span>{stats.duplicates}</span></button>
+              </div>
             </div>
           </div>
 
@@ -266,17 +285,31 @@ export default function Dashboard() {
 
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Date</th><th>Wallet</th><th>Type</th><th>Category</th><th>Note & labels</th><th>Author</th><th className="right">Amount</th></tr></thead>
+              <thead><tr>{splitMode && <th className="select-column">Select</th>}<th>Date</th><th>Wallet</th><th>Type</th><th>Category</th><th>Note & labels</th><th>Author</th><th className="right">Amount</th></tr></thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="empty">Loading transactions…</td></tr>
+                  <tr><td colSpan={splitMode ? 8 : 7} className="empty">Loading transactions…</td></tr>
                 ) : data.rows.length === 0 ? (
-                  <tr><td colSpan={7} className="empty">{tab === "transactions" ? "Import an XLSX or CSV export to begin." : "No duplicates have been found."}</td></tr>
+                  <tr><td colSpan={splitMode ? 8 : 7} className="empty">{tab === "transactions" ? "Import an XLSX or CSV export to begin." : "No duplicates have been found."}</td></tr>
                 ) : groupRowsByDay(data.rows).map((group) => (
                   <Fragment key={group.key}>
-                    <DayHeader colSpan={7} day={group.key} totals={data.dayTotals[group.key] ?? []} />
+                    <DayHeader colSpan={splitMode ? 8 : 7} day={group.key} totals={data.dayTotals[group.key] ?? []} />
                     {group.rows.map((row) => (
                       <tr key={row.id}>
+                        {splitMode && (
+                          <td className="select-column">
+                            <input
+                              aria-label={`Select transaction ${row.id}`}
+                              checked={splitRows.some((item) => item.id === row.id)}
+                              type="checkbox"
+                              onChange={(event) => setSplitRows((current) =>
+                                event.target.checked
+                                  ? [...current, row]
+                                  : current.filter((item) => item.id !== row.id)
+                              )}
+                            />
+                          </td>
+                        )}
                         <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
                         <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                         <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
@@ -301,6 +334,9 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+      {splitDialogOpen && (
+        <SplitDialog transactions={splitRows} onClose={() => setSplitDialogOpen(false)} />
+      )}
     </main>
   );
 }

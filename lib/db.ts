@@ -104,6 +104,27 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       position INTEGER NOT NULL,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS split_records (
+      id INTEGER PRIMARY KEY,
+      split_count INTEGER NOT NULL CHECK(split_count > 0),
+      total_amount REAL NOT NULL,
+      split_amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS split_entries (
+      id INTEGER PRIMARY KEY,
+      split_id INTEGER NOT NULL REFERENCES split_records(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL CHECK(kind IN ('transaction', 'custom')),
+      transaction_id INTEGER,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      date TEXT,
+      wallet TEXT,
+      category_name TEXT,
+      snapshot_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS split_entries_split_idx ON split_entries(split_id, id);
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
@@ -543,6 +564,119 @@ export function getTransactionFilterOptions(db: Db) {
     tags: Array.from(tagSet).sort((a, b) => a.localeCompare(b)),
     authors: distinct("author"),
   };
+}
+
+export type CustomSplitPosition = { description: string; amount: number };
+
+export function createSplit(
+  db: Db,
+  transactionIds: number[],
+  customPositions: CustomSplitPosition[],
+  splitCount: number,
+) {
+  const ids = Array.from(new Set(transactionIds.filter(Number.isInteger)));
+  if (!ids.length) throw new Error("Select at least one transaction.");
+  if (!Number.isInteger(splitCount) || splitCount < 1) {
+    throw new Error("Split count must be a positive whole number.");
+  }
+  const rows = db.prepare(`
+    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
+      note, labels, author, source_file AS sourceFile, source_row AS sourceRow
+    FROM transactions WHERE id IN (${ids.map(() => "?").join(", ")})
+  `).all(...ids) as Array<{
+    id: number;
+    date: string;
+    wallet: string;
+    type: string;
+    categoryName: string | null;
+    amount: number;
+    currency: string;
+    note: string | null;
+    labels: string | null;
+    author: string | null;
+    sourceFile: string;
+    sourceRow: number;
+  }>;
+  if (rows.length !== ids.length) throw new Error("One or more selected transactions no longer exist.");
+  const currencies = new Set(rows.map((row) => row.currency));
+  if (currencies.size !== 1) throw new Error("All selected transactions must use the same currency.");
+  const positions = customPositions.map((position) => ({
+    description: position.description.trim(),
+    amount: Number(position.amount),
+  }));
+  if (positions.some((position) => !position.description || !Number.isFinite(position.amount))) {
+    throw new Error("Every custom position needs a description and valid amount.");
+  }
+  const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0) +
+    positions.reduce((sum, position) => sum + position.amount, 0);
+  const splitAmount = totalAmount / splitCount;
+  return db.transaction(() => {
+    const record = db.prepare(`
+      INSERT INTO split_records (split_count, total_amount, split_amount, currency)
+      VALUES (?, ?, ?, ?)
+    `).run(splitCount, totalAmount, splitAmount, rows[0].currency);
+    const splitId = Number(record.lastInsertRowid);
+    const insert = db.prepare(`
+      INSERT INTO split_entries (
+        split_id, kind, transaction_id, description, amount, date, wallet,
+        category_name, snapshot_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const row of rows.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)) {
+      insert.run(
+        splitId, "transaction", row.id,
+        row.note || row.categoryName || row.type,
+        row.amount, row.date, row.wallet, row.categoryName, JSON.stringify(row),
+      );
+    }
+    for (const position of positions) {
+      insert.run(
+        splitId, "custom", null, position.description, position.amount,
+        null, null, null, JSON.stringify(position),
+      );
+    }
+    return getSplit(db, splitId);
+  })();
+}
+
+export function getSplit(db: Db, id: number) {
+  const split = db.prepare(`
+    SELECT id, split_count AS splitCount, total_amount AS totalAmount,
+      split_amount AS splitAmount, currency, created_at AS createdAt
+    FROM split_records WHERE id = ?
+  `).get(id) as {
+    id: number;
+    splitCount: number;
+    totalAmount: number;
+    splitAmount: number;
+    currency: string;
+    createdAt: string;
+  } | undefined;
+  if (!split) return null;
+  const entries = db.prepare(`
+    SELECT id, kind, transaction_id AS transactionId, description, amount,
+      date, wallet, category_name AS categoryName
+    FROM split_entries WHERE split_id = ? ORDER BY id
+  `).all(id);
+  return { ...split, entries };
+}
+
+export function getSplits(db: Db) {
+  return db.prepare(`
+    SELECT s.id, s.split_count AS splitCount, s.total_amount AS totalAmount,
+      s.split_amount AS splitAmount, s.currency, s.created_at AS createdAt,
+      COUNT(e.id) AS entryCount,
+      SUM(CASE WHEN e.kind = 'transaction' THEN 1 ELSE 0 END) AS transactionCount,
+      SUM(CASE WHEN e.kind = 'custom' THEN 1 ELSE 0 END) AS customCount
+    FROM split_records s
+    LEFT JOIN split_entries e ON e.split_id = s.id
+    GROUP BY s.id ORDER BY s.created_at DESC, s.id DESC
+  `).all();
+}
+
+export function deleteSplit(db: Db, id: number) {
+  const result = db.prepare("DELETE FROM split_records WHERE id = ?").run(id);
+  return result.changes > 0;
 }
 
 function normalized(value: string | null): string {

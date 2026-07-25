@@ -3,6 +3,8 @@ import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
 import {
   getCategoryDetails,
+  createSplit,
+  deleteSplit,
   getFilteredTransactionPage,
   getTransactionFilterOptions,
   getWalletSummaries,
@@ -13,6 +15,8 @@ import {
   resolveCategory,
   setCategoryTags,
   getMonthlyReport,
+  getSplit,
+  getSplits,
   setMonthlyReportColumns,
   setWalletStartingBalance,
 } from "../lib/db";
@@ -21,6 +25,7 @@ import type { TransactionInput } from "../lib/types";
 import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
 import { parseTransactionFilters } from "../lib/transaction-filters";
+import { createSplitPdf } from "../lib/split-pdf";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -402,6 +407,44 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     tags: ["food", "work"],
     authors: ["Anna", "Benjamin"],
   });
+  db.close();
+});
+
+test("persists split snapshots, custom positions, totals, deletion, and a valid PDF", async () => {
+  const path = `/tmp/spendee-splits-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const base: TransactionInput = {
+    date: "2026-04-01T10:00:00.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Groceries",
+    amount: -40,
+    currency: "CHF",
+    note: "Weekly shop",
+    labels: null,
+    author: "Benjamin",
+  };
+  const second = { ...base, date: "2026-04-02T10:00:00.000Z", amount: -20, note: "Bakery" };
+  importTransactions(db, "split.xlsx", [
+    { transaction: base, sourceRow: 2, raw: base },
+    { transaction: second, sourceRow: 3, raw: second },
+  ]);
+  const ids = (db.prepare("SELECT id FROM transactions ORDER BY id").all() as Array<{ id: number }>)
+    .map((row) => row.id);
+  const split = createSplit(db, ids, [{ description: "Refund", amount: 10 }], 2);
+  assert.ok(split);
+  assert.equal(split?.totalAmount, -50);
+  assert.equal(split?.splitAmount, -25);
+  assert.equal(split?.splitCount, 2);
+  assert.equal(split?.entries.length, 3);
+  assert.equal((getSplits(db)[0] as { customCount: number }).customCount, 1);
+  const pdf = await createSplitPdf(split as Parameters<typeof createSplitPdf>[0]);
+  assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
+  assert.ok(pdf.length > 1000);
+  assert.equal(deleteSplit(db, split!.id), true);
+  assert.equal(getSplit(db, split!.id), null);
+  assert.equal((db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as { count: number }).count, 0);
   db.close();
 });
 

@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", headers: [noStalePage] },
       { source: "/monthly", headers: [noStalePage] },
+      { source: "/splits", headers: [noStalePage] },
       { source: "/wallets/:path*", headers: [noStalePage] },
       { source: "/categories/:path*", headers: [noStalePage] },
     ];
