@@ -183,6 +183,27 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .category-spend { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .category-spend small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
 .category-spend strong { color: var(--coral); font-size: 24px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.category-settings-button { margin-top: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--slate); background: white; cursor: pointer; font-size: 9px; font-weight: 600; }
+.category-settings-button:hover { border-color: #b9ddd1; color: var(--green-dark); }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 20; padding: 20px; display: grid; place-items: center; background: #26354099; backdrop-filter: blur(3px); }
+.category-settings-dialog { width: min(620px, 100%); max-height: calc(100vh - 40px); padding: 20px; border-radius: 14px; background: white; box-shadow: 0 24px 70px #1e2c3766; overflow: auto; }
+.dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.dialog-head h2 { margin: 0; color: var(--slate); font-size: 18px; }
+.dialog-head span { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
+.dialog-head > button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: white; cursor: pointer; font-size: 17px; }
+.setting-toggle { margin-top: 18px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfc; cursor: pointer; }
+.setting-toggle span { display: flex; flex-direction: column; gap: 4px; }
+.setting-toggle b { color: var(--slate); font-size: 11px; }
+.setting-toggle small { color: var(--muted); font-size: 9px; }
+.setting-toggle input { width: 34px; height: 18px; accent-color: var(--green); cursor: pointer; }
+.dialog-tag-settings { margin-top: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; }
+.dialog-tag-settings button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--slate); background: white; cursor: pointer; font-size: 8px; font-weight: 600; }
+.dialog-message { color: var(--green-dark); font-size: 9px; }
+.dialog-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px; }
+.dialog-actions button { padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 600; }
+.dialog-actions .cancel { border: 1px solid var(--line); color: var(--slate); background: white; }
+.dialog-actions .save { border: 1px solid var(--green); color: white; background: var(--green); }
+.dialog-actions button:disabled { opacity: .6; cursor: wait; }
 .tag-chart-card, .category-wallets { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }
 .tag-config { margin-bottom: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfc; }
 .tag-config-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }

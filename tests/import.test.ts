@@ -211,34 +211,43 @@ test("aggregates category spending by tag across wallets", () => {
     amount: -10,
     labels: null,
   };
+  const refund = {
+    ...base,
+    date: "2026-04-04T11:58:51.000Z",
+    type: "Income",
+    amount: 10,
+    labels: "lunch",
+  };
   importTransactions(db, "categories.xlsx", [
     { transaction: base, sourceRow: 2, raw: base },
     { transaction: cash, sourceRow: 3, raw: cash },
     { transaction: untagged, sourceRow: 4, raw: untagged },
+    { transaction: refund, sourceRow: 5, raw: refund },
   ]);
   const details = getCategoryDetails(db, "Food & Drink", 1, 10);
-  assert.equal(details.total, 3);
+  assert.equal(details.total, 4);
   assert.deepEqual(details.wallets, [
-    { wallet: "Account", transactionCount: 1 },
+    { wallet: "Account", transactionCount: 2 },
     { wallet: "Cash", transactionCount: 2 },
   ]);
-  assert.deepEqual(details.spendingTotals, [{ currency: "CHF", amount: 60 }]);
+  assert.deepEqual(details.spendingTotals, [{ currency: "CHF", amount: -50 }]);
   assert.deepEqual(details.availableTags, ["lunch", "work"]);
   assert.deepEqual(details.selectedTags, ["lunch", "work"]);
   assert.equal(details.tagConfigSaved, false);
   assert.deepEqual(details.segments, [
-    { tag: "lunch", currency: "CHF", amount: 35, transactionCount: 2 },
-    { tag: "work", currency: "CHF", amount: 15, transactionCount: 1 },
-    { tag: "Other", currency: "CHF", amount: 10, transactionCount: 1 },
+    { tag: "Other", currency: "CHF", amount: -10, transactionCount: 1 },
+    { tag: "work", currency: "CHF", amount: -15, transactionCount: 1 },
+    { tag: "lunch", currency: "CHF", amount: -25, transactionCount: 3 },
   ]);
-  assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), 60);
-  setCategoryTags(db, "Food & Drink", ["work"]);
+  assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), -50);
+  setCategoryTags(db, "Food & Drink", ["work"], false);
   const configured = getCategoryDetails(db, "Food & Drink", 1, 10);
   assert.deepEqual(configured.selectedTags, ["work"]);
   assert.equal(configured.tagConfigSaved, true);
+  assert.equal(configured.spendingByTagEnabled, false);
   assert.deepEqual(configured.segments, [
-    { tag: "Other", currency: "CHF", amount: 30, transactionCount: 2 },
-    { tag: "work", currency: "CHF", amount: 30, transactionCount: 1 },
+    { tag: "Other", currency: "CHF", amount: -20, transactionCount: 3 },
+    { tag: "work", currency: "CHF", amount: -30, transactionCount: 1 },
   ]);
   db.close();
 });

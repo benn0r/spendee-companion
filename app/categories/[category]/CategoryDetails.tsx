@@ -28,6 +28,7 @@ type CategoryData = {
   spendingTotals: Array<{ currency: string; amount: number }>;
   availableTags: string[];
   selectedTags: string[];
+  spendingByTagEnabled: boolean;
   tagConfigSaved: boolean;
   segments: Array<{ tag: string; currency: string; amount: number; transactionCount: number }>;
   page: number;
@@ -44,6 +45,7 @@ const emptyData: CategoryData = {
   spendingTotals: [],
   availableTags: [],
   selectedTags: [],
+  spendingByTagEnabled: true,
   tagConfigSaved: false,
   segments: [],
   page: 1,
@@ -66,7 +68,7 @@ function pieGradient(segments: Array<{ amount: number }>, total: number) {
   let cursor = 0;
   const stops = segments.map((segment, index) => {
     const start = cursor;
-    cursor += total ? (segment.amount / total) * 100 : 0;
+    cursor += total ? (Math.abs(segment.amount) / total) * 100 : 0;
     return `${chartColors[index % chartColors.length]} ${start}% ${cursor}%`;
   });
   return `conic-gradient(${stops.join(", ")})`;
@@ -79,6 +81,8 @@ export default function CategoryDetails({ category }: { category: string }) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [savingTags, setSavingTags] = useState(false);
   const [tagMessage, setTagMessage] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [spendingByTagEnabled, setSpendingByTagEnabled] = useState(true);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -92,6 +96,7 @@ export default function CategoryDetails({ category }: { category: string }) {
       if (!response.ok) throw new Error(result.error ?? "Could not load this category.");
       setData(result);
       setSelectedTags(result.selectedTags);
+      setSpendingByTagEnabled(result.spendingByTagEnabled);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load this category.");
     } finally {
@@ -106,6 +111,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     return {
       ...total,
       segments,
+      magnitude: segments.reduce((sum, segment) => sum + Math.abs(segment.amount), 0),
     };
   }), [data.spendingTotals, data.segments]);
 
@@ -116,12 +122,13 @@ export default function CategoryDetails({ category }: { category: string }) {
       const response = await fetch(`/api/categories/${category}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedTags }),
+        body: JSON.stringify({ selectedTags, spendingByTagEnabled }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not save tag selection.");
       await load(data.page);
-      setTagMessage("Tag selection saved.");
+      setTagMessage("Category settings saved.");
+      setSettingsOpen(false);
     } catch (reason) {
       setTagMessage(reason instanceof Error ? reason.message : "Could not save tag selection.");
     } finally {
@@ -152,12 +159,74 @@ export default function CategoryDetails({ category }: { category: string }) {
             </div>
           </div>
           <div className="category-spend">
-            <small>Total spent</small>
+            <small>Net category total</small>
             {loading && !data.spendingTotals.length ? <strong>Loading…</strong> : data.spendingTotals.map((total) => (
               <strong key={total.currency}>{formatAmount(total.amount, total.currency)}</strong>
             ))}
+            <button className="category-settings-button" onClick={() => setSettingsOpen(true)}>Category settings</button>
           </div>
         </section>
+
+        {settingsOpen && (
+          <div className="dialog-backdrop" role="presentation" onMouseDown={() => setSettingsOpen(false)}>
+            <section
+              aria-labelledby="category-settings-title"
+              aria-modal="true"
+              className="category-settings-dialog"
+              role="dialog"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className="dialog-head">
+                <div>
+                  <p className="eyebrow">CATEGORY</p>
+                  <h2 id="category-settings-title">Category settings</h2>
+                  <span>Choose which insights are shown for {data.category}.</span>
+                </div>
+                <button aria-label="Close settings" onClick={() => setSettingsOpen(false)}>×</button>
+              </div>
+              <label className="setting-toggle">
+                <span><b>Spending by tag</b><small>Include expenses and income to show the net amount for each tag.</small></span>
+                <input
+                  checked={spendingByTagEnabled}
+                  onChange={(event) => setSpendingByTagEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+              </label>
+              {spendingByTagEnabled && (
+                <div className="dialog-tag-settings">
+                  <div className="tag-config-head">
+                    <div><b>Tags in the chart</b><span>{selectedTags.length} of {data.availableTags.length} selected</span></div>
+                    <div>
+                      <button type="button" onClick={() => setSelectedTags(data.availableTags)}>Select all</button>
+                      <button type="button" onClick={() => setSelectedTags([])}>Clear</button>
+                    </div>
+                  </div>
+                  <div className="tag-options">
+                    {data.availableTags.map((tag) => (
+                      <label key={tag}>
+                        <input
+                          checked={selectedTags.includes(tag)}
+                          onChange={(event) => setSelectedTags((current) =>
+                            event.target.checked ? [...current, tag] : current.filter((item) => item !== tag)
+                          )}
+                          type="checkbox"
+                        />
+                        <span>{tag}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tagMessage && <p className="dialog-message">{tagMessage}</p>}
+              <div className="dialog-actions">
+                <button className="cancel" onClick={() => setSettingsOpen(false)}>Cancel</button>
+                <button className="save" disabled={savingTags} onClick={() => void saveTagSelection()}>
+                  {savingTags ? "Saving…" : "Save settings"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {error ? (
           <section className="wallet-error">
@@ -166,47 +235,19 @@ export default function CategoryDetails({ category }: { category: string }) {
           </section>
         ) : (
           <>
-            <section className="tag-chart-card">
+            {data.spendingByTagEnabled && <section className="tag-chart-card">
               <div className="section-heading">
-                <div><h2>Spending by tag</h2><p>Selected tags are shown separately; everything else is grouped as Other</p></div>
-              </div>
-              <div className="tag-config">
-                <div className="tag-config-head">
-                  <div><b>Tags in this chart</b><span>{selectedTags.length} of {data.availableTags.length} selected</span></div>
-                  <div>
-                    <button type="button" onClick={() => setSelectedTags(data.availableTags)}>Select all</button>
-                    <button type="button" onClick={() => setSelectedTags([])}>Clear</button>
-                    <button className="save-tags" disabled={savingTags} type="button" onClick={() => void saveTagSelection()}>
-                      {savingTags ? "Saving…" : "Save selection"}
-                    </button>
-                  </div>
-                </div>
-                <div className="tag-options">
-                  {data.availableTags.map((tag) => (
-                    <label key={tag}>
-                      <input
-                        checked={selectedTags.includes(tag)}
-                        onChange={(event) => setSelectedTags((current) =>
-                          event.target.checked ? [...current, tag] : current.filter((item) => item !== tag)
-                        )}
-                        type="checkbox"
-                      />
-                      <span>{tag}</span>
-                    </label>
-                  ))}
-                </div>
-                {!data.tagConfigSaved && <p>Top tags are selected by default. Save a selection to customize this category.</p>}
-                {tagMessage && <p>{tagMessage}</p>}
+                <div><h2>Spending by tag</h2><p>Net expenses and income; selected tags are shown separately and everything else is Other</p></div>
               </div>
               {chartGroups.length === 0 && !loading ? (
-                <div className="chart-empty">No expense transactions in this category.</div>
+                <div className="chart-empty">No transactions in this category.</div>
               ) : chartGroups.map((group) => (
                 <div className="pie-chart-group" key={group.currency}>
                   <div
                     aria-label={`${group.currency} spending pie chart`}
                     className="pie-chart"
                     role="img"
-                    style={{ background: pieGradient(group.segments, group.amount) }}
+                    style={{ background: pieGradient(group.segments, group.magnitude) }}
                   >
                     <span>{group.currency}<b>{formatAmount(group.amount, group.currency)}</b></span>
                   </div>
@@ -215,15 +256,15 @@ export default function CategoryDetails({ category }: { category: string }) {
                       <div key={`${segment.currency}-${segment.tag}`}>
                         <span style={{ background: chartColors[index % chartColors.length] }}></span>
                         <b>{segment.tag}</b>
-                        <small>{group.amount ? ((segment.amount / group.amount) * 100).toFixed(1) : "0.0"}%</small>
+                        <small>{group.magnitude ? ((Math.abs(segment.amount) / group.magnitude) * 100).toFixed(1) : "0.0"}%</small>
                         <strong>{formatAmount(segment.amount, segment.currency)}</strong>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-              <p className="chart-note">When a transaction has multiple selected tags, its amount is split evenly between them so the pie always equals total spending.</p>
-            </section>
+              <p className="chart-note">Income offsets expenses within each tag. Pie sizes use the magnitude of each resulting net amount.</p>
+            </section>}
 
             <section className="category-wallets">
               <div className="section-heading">

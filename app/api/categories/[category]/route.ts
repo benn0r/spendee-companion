@@ -34,11 +34,16 @@ export async function PUT(
     if (!category) {
       return NextResponse.json({ error: "Category not found." }, { status: 404 });
     }
-    const body = await request.json() as { selectedTags?: unknown };
+    const body = await request.json() as { selectedTags?: unknown; spendingByTagEnabled?: unknown };
     if (!Array.isArray(body.selectedTags) || !body.selectedTags.every((tag) => typeof tag === "string")) {
       return NextResponse.json({ error: "selectedTags must be a list of tag names." }, { status: 400 });
     }
-    return NextResponse.json(setCategoryTags(db, category, body.selectedTags));
+    if (typeof body.spendingByTagEnabled !== "boolean") {
+      return NextResponse.json({ error: "spendingByTagEnabled must be a boolean." }, { status: 400 });
+    }
+    return NextResponse.json(
+      setCategoryTags(db, category, body.selectedTags, body.spendingByTagEnabled),
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not save tag selection." },

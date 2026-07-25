@@ -104,6 +104,7 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
   ).all() as Array<{ id: number; date: string; wallet: string; type: string }>;
@@ -221,7 +222,7 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
   `).all(category, pageSize, (page - 1) * pageSize);
   const spendRows = db.prepare(`
     SELECT labels, amount, currency FROM transactions
-    WHERE category_name = ? AND deleted_at IS NULL AND amount < 0
+    WHERE category_name = ? AND deleted_at IS NULL
   `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
   const dayRows = db.prepare(`
     SELECT date, amount, currency FROM transactions
@@ -239,8 +240,8 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([tag]) => tag);
   const savedConfig = db.prepare(
-    "SELECT selected_tags_json AS selectedTagsJson FROM category_tag_config WHERE category = ?",
-  ).get(category) as { selectedTagsJson: string } | undefined;
+    "SELECT selected_tags_json AS selectedTagsJson, enabled FROM category_tag_config WHERE category = ?",
+  ).get(category) as { selectedTagsJson: string; enabled: number } | undefined;
   const selectedTags = savedConfig
     ? (JSON.parse(savedConfig.selectedTagsJson) as string[]).filter((tag) => availableTags.includes(tag))
     : availableTags.slice(0, 6);
@@ -248,11 +249,10 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
   const segmentTotals = new Map<string, { tag: string; currency: string; amount: number; transactionCount: number }>();
   const spendingTotals = new Map<string, number>();
   for (const row of parsedSpendRows) {
-    const spend = Math.abs(row.amount);
-    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + spend);
+    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + row.amount);
     const matched = row.tags.filter((tag) => selectedSet.has(tag));
     const destinations = matched.length ? matched : ["Other"];
-    const allocatedSpend = spend / destinations.length;
+    const allocatedSpend = row.amount / destinations.length;
     for (const tag of destinations) {
       const key = `${row.currency}\u0000${tag}`;
       const current = segmentTotals.get(key) ?? {
@@ -279,8 +279,9 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
     availableTags,
     selectedTags,
+    spendingByTagEnabled: savedConfig?.enabled !== 0,
     tagConfigSaved: Boolean(savedConfig),
-    segments: Array.from(segmentTotals.values()).sort((a, b) =>
+    segments: Array.from(segmentTotals.values()).filter((segment) => Math.abs(segment.amount) > 0.000001).sort((a, b) =>
       a.currency.localeCompare(b.currency) || b.amount - a.amount || a.tag.localeCompare(b.tag)
     ),
     page,
@@ -306,7 +307,12 @@ export function resolveCategory(db: Db, identifier: string): string | null {
   return categories.find((category) => categorySlug(category) === identifier) ?? null;
 }
 
-export function setCategoryTags(db: Db, category: string, selectedTags: string[]) {
+export function setCategoryTags(
+  db: Db,
+  category: string,
+  selectedTags: string[],
+  enabled = true,
+) {
   const exists = db.prepare(`
     SELECT 1 FROM transactions
     WHERE category_name = ? AND deleted_at IS NULL LIMIT 1
@@ -316,12 +322,13 @@ export function setCategoryTags(db: Db, category: string, selectedTags: string[]
     selectedTags.map((tag) => tag.trim()).filter(Boolean),
   )).sort((a, b) => a.localeCompare(b));
   db.prepare(`
-    INSERT INTO category_tag_config (category, selected_tags_json)
-    VALUES (?, ?)
+    INSERT INTO category_tag_config (category, selected_tags_json, enabled)
+    VALUES (?, ?, ?)
     ON CONFLICT(category) DO UPDATE
-    SET selected_tags_json = excluded.selected_tags_json, updated_at = CURRENT_TIMESTAMP
-  `).run(category, JSON.stringify(normalizedTags));
-  return { category, selectedTags: normalizedTags };
+    SET selected_tags_json = excluded.selected_tags_json, enabled = excluded.enabled,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(category, JSON.stringify(normalizedTags), enabled ? 1 : 0);
+  return { category, selectedTags: normalizedTags, spendingByTagEnabled: enabled };
 }
 
 export type MonthlyReportColumn = {
