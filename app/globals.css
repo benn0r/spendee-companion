@@ -251,6 +251,10 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .report-column-head input:focus { border-color: var(--green); }
 .report-column-head button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: white; cursor: pointer; font-size: 17px; }
 .report-column-head button:disabled { opacity: .35; cursor: not-allowed; }
+.report-budget { margin-top: 9px; display: flex; align-items: center; gap: 9px; }
+.report-budget span { color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.report-budget input { width: 120px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; outline: 0; color: var(--slate); background: white; font-size: 10px; }
+.report-budget input:focus { border-color: var(--green); }
 .report-category-options { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
 .report-category-options label { padding: 5px 7px; display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); background: white; cursor: pointer; font-size: 8px; }
 .report-category-options label:has(input:checked) { border-color: #8cdcc2; color: #087b59; background: var(--green-soft); }
@@ -272,6 +276,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .category-tooltip:hover .category-tooltip-content, .category-tooltip:focus .category-tooltip-content { opacity: 1; transform: translateY(0); }
 .monthly-value strong { display: block; color: var(--slate); font-size: 10px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .monthly-value span { color: #adb5bb; }
+.monthly-value.budget-ok { background: #e9f8f1; }
+.monthly-value.budget-warning { background: #fff5d9; }
+.monthly-value.budget-over { background: #ffebeb; }
 
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: 1fr; }

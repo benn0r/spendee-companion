@@ -18,7 +18,9 @@ export async function PUT(request: Request) {
       typeof column === "object" && column !== null &&
       typeof (column as { name?: unknown }).name === "string" &&
       Array.isArray((column as { categories?: unknown }).categories) &&
-      (column as { categories: unknown[] }).categories.every((category) => typeof category === "string")
+      (column as { categories: unknown[] }).categories.every((category) => typeof category === "string") &&
+      ((column as { budget?: unknown }).budget == null ||
+        typeof (column as { budget?: unknown }).budget === "number")
     )) {
       return NextResponse.json(
         { error: "columns must contain a name and a list of categories." },
@@ -27,7 +29,7 @@ export async function PUT(request: Request) {
     }
     setMonthlyReportColumns(
       getDatabase(),
-      body.columns as Array<{ name: string; categories: string[] }>,
+      body.columns as Array<{ name: string; categories: string[]; budget?: number | null }>,
     );
     return NextResponse.json(getMonthlyReport(getDatabase()));
   } catch (error) {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-type Column = { id?: number; name: string; categories: string[] };
+type Column = { id?: number; name: string; categories: string[]; budget?: number | null };
 type Cell = Array<{ currency: string; amount: number }>;
 type Report = {
   categories: string[];
@@ -27,6 +27,14 @@ function money(amount: number, currency: string) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function budgetClass(cell: Cell, budget?: number | null) {
+  if (budget == null) return "";
+  const spend = cell.reduce((total, value) => total + Math.max(0, -value.amount), 0);
+  if (spend <= budget) return "budget-ok";
+  if (spend <= budget * 1.2) return "budget-warning";
+  return "budget-over";
 }
 
 export default function MonthlyReport() {
@@ -129,6 +137,19 @@ export default function MonthlyReport() {
                       onClick={() => setColumns((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                     >×</button>
                   </div>
+                  <label className="report-budget">
+                    <span>Monthly budget</span>
+                    <input
+                      min="1"
+                      placeholder="No budget"
+                      step="1"
+                      type="number"
+                      value={column.budget ?? ""}
+                      onChange={(event) => updateColumn(index, {
+                        budget: event.target.value === "" ? null : Number(event.target.value),
+                      })}
+                    />
+                  </label>
                   <div className="report-category-options">
                     {report.categories.map((category) => (
                       <label key={category}>
@@ -150,7 +171,7 @@ export default function MonthlyReport() {
             </div>
             <button
               className="add-report-column"
-              onClick={() => setColumns((current) => [...current, { name: "New column", categories: [] }])}
+              onClick={() => setColumns((current) => [...current, { name: "New column", categories: [], budget: null }])}
             >＋ Add column</button>
           </section>
         )}
@@ -194,7 +215,7 @@ export default function MonthlyReport() {
                   <tr key={row.month}>
                     <td><strong>{monthLabel(row.month)}</strong></td>
                     {row.cells.map((cell, index) => (
-                      <td className="right monthly-value" key={index}>
+                      <td className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`} key={index}>
                         {cell.length ? cell.map((value) => (
                           <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
                         )) : <span>—</span>}

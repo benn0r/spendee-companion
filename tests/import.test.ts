@@ -302,14 +302,14 @@ test("builds and persists merged monthly category columns", () => {
   assert.equal(defaults.configured, false);
 
   setMonthlyReportColumns(db, [
-    { name: "Food", categories: ["Groceries", "Restaurants"] },
-    { name: "Bills", categories: ["Utilities"] },
+    { name: "Food", categories: ["Groceries", "Restaurants"], budget: 75 },
+    { name: "Bills", categories: ["Utilities"], budget: null },
   ]);
   const report = getMonthlyReport(db);
   assert.equal(report.configured, true);
-  assert.deepEqual(report.columns.map(({ name, categories }) => ({ name, categories })), [
-    { name: "Food", categories: ["Groceries", "Restaurants"] },
-    { name: "Bills", categories: ["Utilities"] },
+  assert.deepEqual(report.columns.map(({ name, categories, budget }) => ({ name, categories, budget })), [
+    { name: "Food", categories: ["Groceries", "Restaurants"], budget: 75 },
+    { name: "Bills", categories: ["Utilities"], budget: null },
   ]);
   assert.deepEqual(report.months, [
     {

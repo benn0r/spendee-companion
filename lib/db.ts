@@ -100,11 +100,13 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       categories_json TEXT NOT NULL,
+      budget REAL,
       position INTEGER NOT NULL,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn(db, "monthly_report_columns", "budget", "REAL");
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
   ).all() as Array<{ id: number; date: string; wallet: string; type: string }>;
@@ -335,6 +337,7 @@ export type MonthlyReportColumn = {
   id?: number;
   name: string;
   categories: string[];
+  budget?: number | null;
 };
 
 export function getMonthlyReport(db: Db) {
@@ -345,18 +348,19 @@ export function getMonthlyReport(db: Db) {
     ORDER BY category_name COLLATE NOCASE
   `).all() as Array<{ category: string }>).map((row) => row.category);
   const savedRows = db.prepare(`
-    SELECT id, name, categories_json AS categoriesJson
+    SELECT id, name, categories_json AS categoriesJson, budget
     FROM monthly_report_columns ORDER BY position, id
-  `).all() as Array<{ id: number; name: string; categoriesJson: string }>;
+  `).all() as Array<{ id: number; name: string; categoriesJson: string; budget: number | null }>;
   const columns: MonthlyReportColumn[] = savedRows.length
     ? savedRows.map((row) => ({
         id: row.id,
         name: row.name,
+        budget: row.budget,
         categories: (JSON.parse(row.categoriesJson) as string[]).filter((category) =>
           categories.includes(category),
         ),
       }))
-    : categories.map((category) => ({ name: category, categories: [category] }));
+    : categories.map((category) => ({ name: category, categories: [category], budget: null }));
   const transactions = db.prepare(`
     SELECT SUBSTR(date, 1, 7) AS month, category_name AS category,
       currency, SUM(amount) AS amount
@@ -405,6 +409,7 @@ export function setMonthlyReportColumns(db: Db, columns: MonthlyReportColumn[]) 
   `).all() as Array<{ category: string }>).map((row) => row.category));
   const normalizedColumns = columns.map((column) => ({
     name: column.name.trim(),
+    budget: column.budget == null ? null : Number(column.budget),
     categories: Array.from(new Set(column.categories.map((category) => category.trim())))
       .filter((category) => available.has(category)),
   }));
@@ -415,14 +420,19 @@ export function setMonthlyReportColumns(db: Db, columns: MonthlyReportColumn[]) 
   if (normalizedColumns.some((column) => !column.categories.length)) {
     throw new Error("Every column needs at least one category.");
   }
+  if (normalizedColumns.some((column) =>
+    column.budget !== null && (!Number.isFinite(column.budget) || column.budget <= 0)
+  )) {
+    throw new Error("Budgets must be positive numbers or left empty.");
+  }
   db.transaction(() => {
     db.prepare("DELETE FROM monthly_report_columns").run();
     const insert = db.prepare(`
-      INSERT INTO monthly_report_columns (name, categories_json, position)
-      VALUES (?, ?, ?)
+      INSERT INTO monthly_report_columns (name, categories_json, budget, position)
+      VALUES (?, ?, ?, ?)
     `);
     normalizedColumns.forEach((column, position) => {
-      insert.run(column.name, JSON.stringify(column.categories), position);
+      insert.run(column.name, JSON.stringify(column.categories), column.budget, position);
     });
   })();
   return { columns: normalizedColumns };
