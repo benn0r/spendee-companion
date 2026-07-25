@@ -319,6 +319,10 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .split-title-field { margin-top: 16px; display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
 .split-title-field input { height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; outline: 0; color: var(--slate); font-size: 11px; text-transform: none; letter-spacing: normal; }
 .split-title-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.split-language-field { margin-top: 10px; display: grid; grid-template-columns: 110px minmax(150px, 220px) 1fr; align-items: center; gap: 9px; }
+.split-language-field > span { color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.split-language-field select { height: 36px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; outline: 0; color: var(--slate); background: white; font-size: 10px; }
+.split-language-field small { color: var(--muted); font-size: 8px; line-height: 1.4; }
 .split-entry-list { max-height: 240px; margin-top: 18px; border: 1px solid var(--line); border-radius: 10px; overflow: auto; }
 .split-entry { min-height: 54px; padding: 9px 12px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; border-top: 1px solid #eef1f3; }
 .split-entry:first-child { border-top: 0; }
@@ -519,6 +523,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
   .review-item { grid-template-columns: auto 64px 1fr; }
   .review-detail { grid-column: 2 / -1; padding-bottom: 4px; }
   .split-controls { align-items: stretch; flex-direction: column; }
+  .split-language-field { grid-template-columns: 1fr; }
   .split-summary { justify-content: space-between; }
   .custom-position { grid-template-columns: 1fr 90px auto 30px; }
   .split-history-grid { grid-template-columns: 1fr; }

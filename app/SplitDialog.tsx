@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "./I18nProvider";
+import { intlLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
 
 type SelectedTransaction = {
   id: number;
@@ -16,8 +18,8 @@ type SelectedTransaction = {
 
 type CustomPosition = { description: string; amount: string };
 
-function money(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+function money(amount: number, currency: string, locale: AppLocale) {
+  return new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency }).format(amount);
 }
 
 export default function SplitDialog({
@@ -28,11 +30,13 @@ export default function SplitDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [splitCount, setSplitCount] = useState(2);
   const [positions, setPositions] = useState<CustomPosition[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locale, setLocale] = useState<AppLocale>("en");
   const currencies = Array.from(new Set(transactions.map((row) => row.currency)));
   const currency = currencies[0] ?? "CHF";
   const customTotal = positions.reduce((sum, position) => {
@@ -66,6 +70,7 @@ export default function SplitDialog({
           transactionIds: transactions.map((row) => row.id),
           customPositions,
           splitCount,
+          locale,
         }),
       });
       const result = await response.json();
@@ -109,6 +114,16 @@ export default function SplitDialog({
           />
         </label>
 
+        <label className="split-language-field">
+          <span>{t("split.language")}</span>
+          <select value={locale} onChange={(event) => setLocale(event.target.value as AppLocale)}>
+            {supportedLocales.map((language) => (
+              <option key={language.code} value={language.code}>{language.label}</option>
+            ))}
+          </select>
+          <small>The saved PDF uses this language and its date and number formats.</small>
+        </label>
+
         <div className="split-entry-list">
           {transactions.map((row) => (
             <div className="split-entry" key={row.id}>
@@ -117,7 +132,7 @@ export default function SplitDialog({
                 <b>{row.note || row.categoryName || row.type}</b>
                 <small>{new Intl.DateTimeFormat("en-CH", { dateStyle: "medium" }).format(new Date(row.date))} · {row.wallet}</small>
               </span>
-              <strong>{money(row.amount, row.currency)}</strong>
+              <strong>{money(row.amount, row.currency, locale)}</strong>
             </div>
           ))}
         </div>
@@ -168,8 +183,8 @@ export default function SplitDialog({
             />
           </label>
           <div className="split-summary">
-            <span><small>Total amount</small><b>{money(total, currency)}</b></span>
-            <span><small>Final split amount</small><strong>{money(finalAmount, currency)}</strong></span>
+            <span><small>Total amount</small><b>{money(total, currency, locale)}</b></span>
+            <span><small>Final split amount</small><strong>{money(finalAmount, currency, locale)}</strong></span>
           </div>
         </div>
 

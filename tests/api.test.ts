@@ -125,9 +125,10 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const splits = await import("../app/api/splits/route");
     assert.equal((await splits.POST(jsonRequest("http://test", "POST", { title: "", transactionIds: [], customPositions: [], splitCount: 2 }))).status, 400);
     const created = await body(await splits.POST(jsonRequest("http://test", "POST", {
-      title: "Airship voyage", transactionIds: ids, customPositions: [{ description: "Potion rebate", amount: 5 }], splitCount: 2,
+      title: "Airship voyage", transactionIds: ids, customPositions: [{ description: "Potion rebate", amount: 5 }], splitCount: 2, locale: "en",
     })));
     assert.equal(created.title, "Airship voyage");
+    assert.equal(created.locale, "en");
     assert.equal((await body(await splits.GET())).splits.length, 1);
 
     const single = await import("../app/api/splits/[id]/route");

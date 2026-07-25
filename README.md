@@ -49,6 +49,10 @@ exports.
   with additional positive or negative custom positions and live totals.
 - Persists split snapshots independently from the transaction ledger. Saved
   splits can be reviewed, deleted, and downloaded as an A4 PDF.
+- Provides an English-first i18n message and formatting layer across the app.
+  Each split persists its selected language so its PDF copy, dates, and numbers
+  render through the matching locale catalog. Additional translations can be
+  added without changing the split schema or PDF layout.
 - Paginates transaction, duplicate, wallet, and category lists on the server and
   stores data in a WAL-mode SQLite database.
 - Exposes the same data through a read-only MCP Streamable HTTP endpoint.

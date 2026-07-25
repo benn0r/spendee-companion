@@ -29,6 +29,7 @@ import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
 import { parseTransactionFilters } from "../lib/transaction-filters";
 import { createSplitPdf } from "../lib/split-pdf";
+import { intlLocale, normalizeLocale, translate } from "../lib/i18n";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -469,6 +470,7 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
   assert.equal(split?.totalAmount, -50);
   assert.equal(split?.splitAmount, -25);
   assert.equal(split?.splitCount, 2);
+  assert.equal(split?.locale, "en");
   assert.equal(split?.entries.length, 3);
   assert.deepEqual(
     getSplits(db).map((item) => ({
@@ -484,6 +486,14 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
   assert.equal(getSplit(db, split!.id), null);
   assert.equal((db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as { count: number }).count, 0);
   db.close();
+});
+
+test("provides locale normalization, formatting metadata, and message fallback", () => {
+  assert.equal(normalizeLocale("en"), "en");
+  assert.equal(normalizeLocale("unknown"), "en");
+  assert.equal(intlLocale("en"), "en-CH");
+  assert.equal(translate("en", "split.pdf.page", { page: 3 }), "Page 3");
+  assert.equal(translate("en", "future.message"), "future.message");
 });
 
 test("parses quoted CSV exports with the same transaction schema", async () => {

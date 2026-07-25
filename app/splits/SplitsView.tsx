@@ -3,6 +3,7 @@
 import Link from "next/link";
 import TopNavigation from "@/app/TopNavigation";
 import { useCallback, useEffect, useState } from "react";
+import { intlLocale, normalizeLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
 
 type SplitSummary = {
   id: number;
@@ -15,11 +16,14 @@ type SplitSummary = {
   entryCount: number;
   transactionCount: number;
   customCount: number;
+  locale: AppLocale;
 };
 
-function money(amount: number, currency: string) {
-  return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+function money(amount: number, currency: string, locale: AppLocale) {
+  return new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency }).format(amount);
 }
+
+const languageLabel = (locale: AppLocale) => supportedLocales.find((item) => item.code === locale)?.label ?? locale;
 
 export default function SplitsView() {
   const [splits, setSplits] = useState<SplitSummary[]>([]);
@@ -87,12 +91,12 @@ export default function SplitsView() {
               {splits.map((split) => (
                 <article className="split-history-card" key={split.id}>
                   <div className="split-card-head">
-                    <div><span>{split.title}</span><small>{new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(split.createdAt))}</small></div>
+                    <div><span>{split.title}</span><small>{new Intl.DateTimeFormat(intlLocale(normalizeLocale(split.locale)), { dateStyle: "medium", timeStyle: "short" }).format(new Date(split.createdAt))} · {languageLabel(normalizeLocale(split.locale))}</small></div>
                     <b>÷ {split.splitCount}</b>
                   </div>
                   <div className="split-card-values">
-                    <span><small>Total</small><b>{money(split.totalAmount, split.currency)}</b></span>
-                    <span><small>Split amount</small><strong>{money(split.splitAmount, split.currency)}</strong></span>
+                    <span><small>Total</small><b>{money(split.totalAmount, split.currency, normalizeLocale(split.locale))}</b></span>
+                    <span><small>Split amount</small><strong>{money(split.splitAmount, split.currency, normalizeLocale(split.locale))}</strong></span>
                   </div>
                   <p>{split.transactionCount} {split.transactionCount === 1 ? "transaction" : "transactions"}{split.customCount ? ` · ${split.customCount} custom ${split.customCount === 1 ? "position" : "positions"}` : ""}</p>
                   <div className="split-card-actions">

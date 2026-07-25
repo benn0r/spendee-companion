@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { I18nProvider } from "./I18nProvider";
 
 export const metadata: Metadata = {
   title: "Spendee companion",
@@ -11,7 +12,7 @@ const BUILD_NUMBER = (process.env.NEXT_PUBLIC_APP_VERSION || "dev").slice(0, 7);
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}<footer className="site-footer">Spendee companion · build {BUILD_NUMBER}</footer></body>
+      <body><I18nProvider locale="en">{children}</I18nProvider><footer className="site-footer">Spendee companion · build {BUILD_NUMBER}</footer></body>
     </html>
   );
 }

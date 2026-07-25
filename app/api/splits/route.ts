@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSplit, getDatabase, getSplits } from "@/lib/db";
+import { normalizeLocale } from "@/lib/i18n";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
       transactionIds?: unknown;
       customPositions?: unknown;
       splitCount?: unknown;
+      locale?: unknown;
     };
     if (typeof body.title !== "string" || !body.title.trim()) {
       return NextResponse.json({ error: "A split title is required." }, { status: 400 });
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
       body.transactionIds,
       body.customPositions as Array<{ description: string; amount: number }>,
       body.splitCount,
+      normalizeLocale(body.locale),
     );
     return NextResponse.json(split, { status: 201 });
   } catch (error) {

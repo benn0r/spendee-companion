@@ -5,6 +5,7 @@ import { dirname } from "node:path";
 import type { TransactionInput } from "./types";
 import { calculateDayTotals } from "./day-groups";
 import { categorySlug } from "./category-slug";
+import { normalizeLocale, type AppLocale } from "./i18n";
 
 type Db = Database.Database;
 let singleton: Db | undefined;
@@ -147,6 +148,7 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
   ensureColumn(db, "category_tag_config", "color", "TEXT");
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
   ensureColumn(db, "split_records", "title", "TEXT");
+  ensureColumn(db, "split_records", "locale", "TEXT NOT NULL DEFAULT 'en'");
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
   ).all() as Array<{ id: number; date: string; wallet: string; type: string }>;
@@ -690,6 +692,7 @@ export function createSplit(
   transactionIds: number[],
   customPositions: CustomSplitPosition[],
   splitCount: number,
+  requestedLocale: AppLocale = "en",
 ) {
   const normalizedTitle = title.trim();
   if (!normalizedTitle) throw new Error("Enter a title for the split.");
@@ -730,11 +733,12 @@ export function createSplit(
   const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0) +
     positions.reduce((sum, position) => sum + position.amount, 0);
   const splitAmount = totalAmount / splitCount;
+  const locale = normalizeLocale(requestedLocale);
   return db.transaction(() => {
     const record = db.prepare(`
-      INSERT INTO split_records (title, split_count, total_amount, split_amount, currency)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(normalizedTitle, splitCount, totalAmount, splitAmount, rows[0].currency);
+      INSERT INTO split_records (title, split_count, total_amount, split_amount, currency, locale)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(normalizedTitle, splitCount, totalAmount, splitAmount, rows[0].currency, locale);
     const splitId = Number(record.lastInsertRowid);
     const insert = db.prepare(`
       INSERT INTO split_entries (
@@ -763,7 +767,7 @@ export function getSplit(db: Db, id: number) {
   const split = db.prepare(`
     SELECT id, COALESCE(NULLIF(TRIM(title), ''), 'Split #' || id) AS title,
       split_count AS splitCount, total_amount AS totalAmount,
-      split_amount AS splitAmount, currency, created_at AS createdAt
+      split_amount AS splitAmount, currency, locale, created_at AS createdAt
     FROM split_records WHERE id = ?
   `).get(id) as {
     id: number;
@@ -772,6 +776,7 @@ export function getSplit(db: Db, id: number) {
     totalAmount: number;
     splitAmount: number;
     currency: string;
+    locale: AppLocale;
     createdAt: string;
   } | undefined;
   if (!split) return null;
@@ -787,7 +792,7 @@ export function getSplits(db: Db) {
   return db.prepare(`
     SELECT s.id, COALESCE(NULLIF(TRIM(s.title), ''), 'Split #' || s.id) AS title,
       s.split_count AS splitCount, s.total_amount AS totalAmount,
-      s.split_amount AS splitAmount, s.currency, s.created_at AS createdAt,
+      s.split_amount AS splitAmount, s.currency, s.locale, s.created_at AS createdAt,
       COUNT(e.id) AS entryCount,
       SUM(CASE WHEN e.kind = 'transaction' THEN 1 ELSE 0 END) AS transactionCount,
       SUM(CASE WHEN e.kind = 'custom' THEN 1 ELSE 0 END) AS customCount
