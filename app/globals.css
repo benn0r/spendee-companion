@@ -36,6 +36,11 @@ main { min-height: 100vh; }
 .full-import.compact { margin: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: white; }
 .full-import.compact span { display: flex; flex-direction: column; gap: 1px; }
 .full-import.compact small { color: var(--muted); font-size: 8px; }
+.import-dialog { width: min(680px, 100%); padding: 20px; border-radius: 14px; background: white; box-shadow: 0 24px 70px #1e2c3766; }
+.import-dropzone { margin-top: 18px; }
+.import-full-option { width: 100%; margin-top: 12px; padding: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 9px; background: #fbfcfd; }
+.import-full-option span { display: flex; flex-direction: column; gap: 3px; }
+.import-full-option small { color: var(--muted); font-size: 9px; line-height: 1.4; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .top-navigation { display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f4f6; }
 .top-navigation a, .top-navigation button { padding: 7px 10px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }

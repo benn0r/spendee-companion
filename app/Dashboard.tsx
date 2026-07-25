@@ -79,6 +79,8 @@ export default function Dashboard() {
   const [selectedDuplicates, setSelectedDuplicates] = useState<number[]>([]);
   const [deletingDuplicates, setDeletingDuplicates] = useState(false);
   const [pageSize, setPageSize] = useState(25);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [draggingImport, setDraggingImport] = useState(false);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
@@ -155,6 +157,7 @@ export default function Dashboard() {
         tone: result.summary.failed ? "error" : "success",
         text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated${result.summary.changes || result.summary.deletions ? ` · ${result.summary.changes + result.summary.deletions} awaiting approval` : ""}${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
       });
+      setImportDialogOpen(false);
       await load(tab, 1);
     } catch (error) {
       setMessage({ tone: "error", text: error instanceof Error ? error.message : "Import failed." });
@@ -235,14 +238,9 @@ export default function Dashboard() {
           </div>
           {tab === "transactions" && (
             <div className="transaction-import-controls">
-              <label className="full-import compact">
-                <input checked={fullImport} type="checkbox" onChange={(event) => setFullImport(event.target.checked)} />
-                <span><b>Full import</b><small>One file per wallet</small></span>
-              </label>
-              <button className="page-import-button" disabled={uploading} onClick={() => inputRef.current?.click()}>
+              <button className="page-import-button" disabled={uploading} onClick={() => setImportDialogOpen(true)}>
                 <span>＋</span>{uploading ? "Importing…" : "Import files"}
               </button>
-              <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
             </div>
           )}
         </section>
@@ -437,6 +435,52 @@ export default function Dashboard() {
       </div>
       {splitDialogOpen && (
         <SplitDialog transactions={splitRows} onClose={() => setSplitDialogOpen(false)} />
+      )}
+      {importDialogOpen && (
+        <div className="dialog-backdrop" role="presentation" onMouseDown={() => !uploading && setImportDialogOpen(false)}>
+          <section
+            aria-labelledby="import-dialog-title"
+            aria-modal="true"
+            className="import-dialog"
+            role="dialog"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="dialog-head">
+              <div>
+                <p className="eyebrow">IMPORT TRANSACTIONS</p>
+                <h2 id="import-dialog-title">Choose export files</h2>
+                <span>Upload one or more XLSX or CSV files.</span>
+              </div>
+              <button aria-label="Close import" disabled={uploading} onClick={() => setImportDialogOpen(false)}>×</button>
+            </div>
+            <div
+              className={`dropzone import-dropzone ${draggingImport ? "dragging" : ""}`}
+              onDragEnter={(event) => { event.preventDefault(); setDraggingImport(true); }}
+              onDragLeave={(event) => { event.preventDefault(); setDraggingImport(false); }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDraggingImport(false);
+                if (event.dataTransfer.files.length) void upload(event.dataTransfer.files);
+              }}
+            >
+              <div className="upload-icon">⇧</div>
+              <div className="upload-copy">
+                <h2>Drop files here</h2>
+                <p>XLSX and CSV exports are supported.</p>
+                <span>Batch uploads may contain multiple wallets.</span>
+              </div>
+              <button disabled={uploading} onClick={() => inputRef.current?.click()}>
+                {uploading ? "Importing…" : "Choose files"}
+              </button>
+              <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
+            </div>
+            <label className="full-import import-full-option">
+              <input checked={fullImport} disabled={uploading} type="checkbox" onChange={(event) => setFullImport(event.target.checked)} />
+              <span><b>Full import</b><small>Each file must contain exactly one wallet. Changes and missing transactions require approval.</small></span>
+            </label>
+          </section>
+        </div>
       )}
     </main>
   );
