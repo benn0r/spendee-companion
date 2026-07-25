@@ -147,7 +147,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .pagination div { display: flex; align-items: center; gap: 10px; }
 .pagination button { width: 29px; height: 29px; border: 1px solid var(--line); border-radius: 7px; color: var(--slate); background: white; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
-footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
+.site-footer { padding: 12px 18px; border-top: 1px solid var(--line); color: #98a1a9; background: white; font-size: 8px; letter-spacing: .4px; line-height: 1; text-align: center; }
 .back-home { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--slate); background: white; font-size: 11px; font-weight: 600; text-decoration: none; }
 .back-home:hover { border-color: #b9ddd1; color: var(--green-dark); }
 .wallet-page { padding-top: 24px; }

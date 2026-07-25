@@ -112,7 +112,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
         <div className="topbar-inner">
           <Link className="brand brand-link" href="/">
             <span className="brandmark">S</span>
-            <div><strong>Spendee</strong><small>Import companion</small></div>
+            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </Link>
           <Link className="back-home" href="/">← All wallets</Link>
         </div>
@@ -212,7 +212,6 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
           </section>
         )}
       </div>
-      <footer>Spendee archive · Your data stays in your SQLite database.</footer>
     </main>
   );
 }

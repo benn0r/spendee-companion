@@ -134,7 +134,7 @@ export default function Dashboard() {
         <div className="topbar-inner">
           <div className="brand">
             <span className="brandmark">S</span>
-            <div><strong>Spendee</strong><small>Import companion</small></div>
+            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </div>
           <button className="top-upload" disabled={uploading} onClick={() => inputRef.current?.click()}>
             <span>＋</span>{uploading ? "Importing…" : "Import files"}
@@ -150,7 +150,6 @@ export default function Dashboard() {
             <h1>Transactions</h1>
             <p>Import and review your Spendee exports in one place.</p>
           </div>
-          <div className="database-status"><span></span> SQLite connected</div>
         </section>
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
@@ -158,7 +157,7 @@ export default function Dashboard() {
         {wallets.length > 0 && (
           <section className="wallet-overview" aria-labelledby="wallet-overview-title">
             <div className="section-heading">
-              <div><h2 id="wallet-overview-title">Wallet totals</h2><p>Current balance from active transactions</p></div>
+              <div><h2 id="wallet-overview-title">Wallets</h2></div>
               <span>{wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}</span>
             </div>
             <div className="wallet-grid">
@@ -273,7 +272,6 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
-      <footer>Spendee archive · Your data stays in your SQLite database.</footer>
     </main>
   );
 }
