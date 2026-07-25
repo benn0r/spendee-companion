@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 
 type Column = { id?: number; name: string; categories: string[]; budget?: number | null };
 type Cell = Array<{ currency: string; amount: number }>;
@@ -211,18 +211,29 @@ export default function MonthlyReport() {
                   <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>Loading report…</td></tr>
                 ) : report.months.length === 0 ? (
                   <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>No categorized transactions yet.</td></tr>
-                ) : report.months.map((row) => (
-                  <tr key={row.month}>
-                    <td><strong>{monthLabel(row.month)}</strong></td>
-                    {row.cells.map((cell, index) => (
-                      <td className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`} key={index}>
-                        {cell.length ? cell.map((value) => (
-                          <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
-                        )) : <span>—</span>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                ) : report.months.map((row, rowIndex) => {
+                  const year = row.month.slice(0, 4);
+                  const previousYear = report.months[rowIndex - 1]?.month.slice(0, 4);
+                  return (
+                    <Fragment key={row.month}>
+                      {year !== previousYear && (
+                        <tr className="monthly-year-row">
+                          <td colSpan={report.columns.length + 1}><strong>{year}</strong></td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td><strong>{monthLabel(row.month)}</strong></td>
+                        {row.cells.map((cell, index) => (
+                          <td className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`} key={index}>
+                            {cell.length ? cell.map((value) => (
+                              <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
+                            )) : <span>—</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

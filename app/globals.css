@@ -279,6 +279,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .monthly-value.budget-ok { background: #e9f8f1; }
 .monthly-value.budget-warning { background: #fff5d9; }
 .monthly-value.budget-over { background: #ffebeb; }
+.monthly-year-row, .monthly-year-row:hover { background: #eef3f5; }
+.monthly-year-row td:first-child { position: static; padding: 8px; border-top: 1px solid #dce4e8; background: #eef3f5; text-align: left; }
+.monthly-year-row strong { color: var(--slate); font-size: 10px; letter-spacing: .08em; }
 
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: 1fr; }
