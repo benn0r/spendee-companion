@@ -55,6 +55,22 @@ function Amount({ row }: { row: Row }) {
   );
 }
 
+function monthLabel(value?: string) {
+  if (!value) return "current month";
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+    .format(new Date(year, month - 1, 1));
+}
+
+function compactMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("de-CH", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function Dashboard() {
   const [tab, setTab] = useState<"transactions" | "duplicates">("transactions");
   const [stats, setStats] = useState<Stats>(emptyStats);
@@ -295,7 +311,7 @@ export default function Dashboard() {
             {filterOptions.categories.length > 0 && (
               <details className="dashboard-widget">
                 <summary>
-                  <span><b>Categories</b><small>Browse transactions across all wallets</small></span>
+                  <span><b>Categories</b><small>Net income and spending for {monthLabel(filterOptions.currentMonth)}</small></span>
                   <span className="dashboard-widget-meta">
                     <em>{filterOptions.categories.length} {filterOptions.categories.length === 1 ? "category" : "categories"}</em>
                     <i aria-hidden="true"></i>
@@ -307,6 +323,13 @@ export default function Dashboard() {
                       <Link href={`/categories/${categorySlug(category)}`} key={category}>
                         <CategoryIcon appearance={filterOptions.categoryAppearances?.[category]} />
                         <b>{category}</b>
+                        <span className="category-month-total">
+                          {(filterOptions.categoryMonthlyTotals?.[category] ?? []).length
+                            ? (filterOptions.categoryMonthlyTotals?.[category] ?? []).map((total) => (
+                              <strong key={total.currency}>{compactMoney(total.amount, total.currency)}</strong>
+                            ))
+                            : <strong>—</strong>}
+                        </span>
                         <i aria-hidden="true">→</i>
                       </Link>
                     ))}

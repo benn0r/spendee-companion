@@ -9,6 +9,17 @@ import { categorySlug } from "./category-slug";
 type Db = Database.Database;
 let singleton: Db | undefined;
 
+function currentMonthKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+}
+
 export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spendee.db"): Db {
   mkdirSync(dirname(filename), { recursive: true });
   const db = new Database(filename);
@@ -271,6 +282,7 @@ export function getCategoryDetails(
   page: number,
   pageSize: number,
   filters?: TransactionFilters,
+  chartMonth?: string | null,
 ) {
   const appliedFilters = filters ?? {
     wallets: [], types: [], categories: [], tags: [], authors: [],
@@ -291,15 +303,15 @@ export function getCategoryDetails(
     ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
   `).all(...params, pageSize, (page - 1) * pageSize);
   const spendRows = db.prepare(`
-    SELECT labels, amount, currency FROM transactions
+    SELECT date, labels, amount, currency FROM transactions
     WHERE category_name = ? AND deleted_at IS NULL
-  `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
+  `).all(category) as Array<{ date: string; labels: string | null; amount: number; currency: string }>;
   const dayRows = db.prepare(`
     SELECT date, amount, currency FROM transactions
     ${where}
   `).all(...params) as Array<{ date: string; amount: number; currency: string }>;
   const tagFrequency = new Map<string, number>();
-  const parsedSpendRows = spendRows.map((row) => {
+  const parsedAllSpendRows = spendRows.map((row) => {
     const tags = row.labels
       ? Array.from(new Set(row.labels.split(",").map((tag) => tag.trim()).filter(Boolean)))
       : [];
@@ -316,10 +328,22 @@ export function getCategoryDetails(
     ? (JSON.parse(savedConfig.selectedTagsJson) as string[]).filter((tag) => availableTags.includes(tag))
     : availableTags.slice(0, 6);
   const selectedSet = new Set(selectedTags);
+  const currentMonth = currentMonthKey();
+  const selectedChartMonth = chartMonth === undefined ? currentMonth : chartMonth;
+  const parsedSpendRows = selectedChartMonth === null
+    ? parsedAllSpendRows
+    : parsedAllSpendRows.filter((row) => row.date.slice(0, 7) === selectedChartMonth);
   const segmentTotals = new Map<string, { tag: string; currency: string; amount: number; transactionCount: number }>();
   const spendingTotals = new Map<string, number>();
+  const chartTotals = new Map<string, number>();
+  for (const row of parsedAllSpendRows) {
+    if (!spendingTotals.has(row.currency)) spendingTotals.set(row.currency, 0);
+    if (row.date.slice(0, 7) === currentMonth) {
+      spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + row.amount);
+    }
+  }
   for (const row of parsedSpendRows) {
-    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + row.amount);
+    chartTotals.set(row.currency, (chartTotals.get(row.currency) ?? 0) + row.amount);
     const matched = row.tags.filter((tag) => selectedSet.has(tag));
     const destinations = matched.length ? matched : ["Other"];
     const allocatedSpend = row.amount / destinations.length;
@@ -348,6 +372,10 @@ export function getCategoryDetails(
     dayTotals: calculateDayTotals(dayRows),
     wallets,
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
+    chartTotals: Array.from(chartTotals, ([currency, amount]) => ({ currency, amount })),
+    currentMonth,
+    chartMonth: selectedChartMonth,
+    availableMonths: Array.from(new Set([currentMonth, ...spendRows.map((row) => row.date.slice(0, 7))])).sort().reverse(),
     availableTags,
     selectedTags,
     spendingByTagEnabled: savedConfig?.enabled !== 0,
@@ -612,6 +640,21 @@ export function getTransactionFilterOptions(db: Db) {
   for (const row of labelRows) {
     row.labels.split(",").map((tag) => tag.trim()).filter(Boolean).forEach((tag) => tagSet.add(tag));
   }
+  const currentMonth = currentMonthKey();
+  const categoryMonthlyTotals = new Map<string, Array<{ currency: string; amount: number }>>();
+  const monthlyRows = db.prepare(`
+    SELECT category_name AS category, currency,
+      SUM(CASE WHEN SUBSTR(date, 1, 7) = ? THEN amount ELSE 0 END) AS amount
+    FROM transactions
+    WHERE deleted_at IS NULL AND category_name IS NOT NULL
+    GROUP BY category_name, currency
+    ORDER BY category_name COLLATE NOCASE, currency COLLATE NOCASE
+  `).all(currentMonth) as Array<{ category: string; currency: string; amount: number }>;
+  for (const row of monthlyRows) {
+    const totals = categoryMonthlyTotals.get(row.category) ?? [];
+    totals.push({ currency: row.currency, amount: row.amount });
+    categoryMonthlyTotals.set(row.category, totals);
+  }
   return {
     wallets: distinct("wallet"),
     types: distinct("type"),
@@ -625,6 +668,8 @@ export function getTransactionFilterOptions(db: Db) {
       row.category,
       { iconId: row.iconId, color: row.color },
     ])),
+    categoryMonthlyTotals: Object.fromEntries(categoryMonthlyTotals),
+    currentMonth,
   };
 }
 

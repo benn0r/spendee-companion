@@ -75,12 +75,14 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .dashboard-widget[open] > summary { border-bottom: 1px solid var(--line); }
 .dashboard-widget-content { padding: 14px; }
 .category-directory { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.category-directory a { min-width: 0; padding: 10px 11px; display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; color: inherit; text-decoration: none; }
+.category-directory a { min-width: 0; padding: 10px 11px; display: grid; grid-template-columns: 25px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; color: inherit; text-decoration: none; }
 .category-directory a:hover { border-color: #b9ddd1; background: #fbfdfc; }
 .category-icon { width: 25px; height: 25px; flex: 0 0 25px; display: grid; place-items: center; border-radius: 7px; color: white; font-size: 10px; font-weight: 700; }
 .category-icon img { width: 22px; height: 22px; display: block; }
 .category-icon b { color: white; font-size: 10px; }
 .category-directory b { overflow: hidden; color: var(--slate); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.category-month-total { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.category-month-total strong { color: var(--slate); font-size: 9px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .category-directory i { color: #a1abb3; font-size: 12px; font-style: normal; }
 .section-heading { margin-bottom: 13px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .section-heading h2 { margin: 0; color: var(--slate); font-size: 15px; }
@@ -371,6 +373,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .pie-legend strong { color: var(--slate); font-size: 9px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chart-note { margin: 4px 0 0; color: #8d979f; font-size: 8px; }
 .chart-empty { padding: 40px; color: var(--muted); text-align: center; font-size: 11px; }
+.chart-month-select { display: flex; align-items: center; gap: 7px; }
+.chart-month-select span { color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.chart-month-select select { height: 33px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; outline: 0; color: var(--slate); background: white; font-size: 9px; }
 .monthy-settings-dialog { width: min(860px, 100%); }
 .monthy-settings-body { margin-top: 18px; }
 .report-config { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }

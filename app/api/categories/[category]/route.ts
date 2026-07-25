@@ -18,7 +18,12 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const pageSize = Math.min(100, Math.max(10, Number(searchParams.get("pageSize")) || 25));
-  const result = getCategoryDetails(db, category, page, pageSize, parseTransactionFilters(searchParams));
+  const requestedMonth = searchParams.get("month");
+  if (requestedMonth && requestedMonth !== "all" && !/^\d{4}-\d{2}$/.test(requestedMonth)) {
+    return NextResponse.json({ error: "Select a valid month." }, { status: 400 });
+  }
+  const chartMonth = requestedMonth === "all" ? null : requestedMonth ?? undefined;
+  const result = getCategoryDetails(db, category, page, pageSize, parseTransactionFilters(searchParams), chartMonth);
   return NextResponse.json(result);
 }
 

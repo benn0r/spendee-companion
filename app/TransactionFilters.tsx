@@ -10,6 +10,8 @@ export type FilterOptions = {
   tags: string[];
   authors: string[];
   categoryAppearances?: Record<string, CategoryAppearance>;
+  categoryMonthlyTotals?: Record<string, Array<{ currency: string; amount: number }>>;
+  currentMonth?: string;
 };
 
 export type FilterState = {

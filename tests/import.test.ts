@@ -251,13 +251,14 @@ test("aggregates category spending by tag across wallets", () => {
     { transaction: untagged, sourceRow: 4, raw: untagged },
     { transaction: refund, sourceRow: 5, raw: refund },
   ]);
-  const details = getCategoryDetails(db, "Food & Drink", 1, 10);
+  const details = getCategoryDetails(db, "Food & Drink", 1, 10, undefined, "2026-04");
   assert.equal(details.total, 4);
   assert.deepEqual(details.wallets, [
     { wallet: "Account", transactionCount: 2 },
     { wallet: "Cash", transactionCount: 2 },
   ]);
-  assert.deepEqual(details.spendingTotals, [{ currency: "CHF", amount: -50 }]);
+  assert.equal(details.chartMonth, "2026-04");
+  assert.deepEqual(details.chartTotals, [{ currency: "CHF", amount: -50 }]);
   assert.deepEqual(details.availableTags, ["lunch", "work"]);
   assert.deepEqual(details.selectedTags, ["lunch", "work"]);
   assert.equal(details.tagConfigSaved, false);
@@ -268,7 +269,7 @@ test("aggregates category spending by tag across wallets", () => {
   ]);
   assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), -50);
   setCategoryTags(db, "Food & Drink", ["work"], false, 3, "#12c48b");
-  const configured = getCategoryDetails(db, "Food & Drink", 1, 10);
+  const configured = getCategoryDetails(db, "Food & Drink", 1, 10, undefined, "2026-04");
   assert.deepEqual(configured.selectedTags, ["work"]);
   assert.equal(configured.tagConfigSaved, true);
   assert.equal(configured.spendingByTagEnabled, false);
@@ -420,7 +421,15 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
   assert.equal(page.total, 1);
   assert.equal((page.rows[0] as { amount: number }).amount, -45);
   assert.deepEqual(Object.keys(page.dayTotals), ["2026-04-01"]);
-  assert.deepEqual(getTransactionFilterOptions(db), {
+  const filterOptions = getTransactionFilterOptions(db);
+  assert.deepEqual({
+    wallets: filterOptions.wallets,
+    types: filterOptions.types,
+    categories: filterOptions.categories,
+    tags: filterOptions.tags,
+    authors: filterOptions.authors,
+    categoryAppearances: filterOptions.categoryAppearances,
+  }, {
     wallets: ["Account", "Cash"],
     types: ["Expense", "Income"],
     categories: ["Food & Drink", "Salary"],
@@ -428,6 +437,7 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     authors: ["Anna", "Benjamin"],
     categoryAppearances: {},
   });
+  assert.match(filterOptions.currentMonth, /^\d{4}-\d{2}$/);
   db.close();
 });
 

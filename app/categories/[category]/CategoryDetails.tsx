@@ -30,6 +30,10 @@ type CategoryData = {
   validUntil: string | null;
   wallets: Array<{ wallet: string; transactionCount: number }>;
   spendingTotals: Array<{ currency: string; amount: number }>;
+  chartTotals: Array<{ currency: string; amount: number }>;
+  currentMonth: string;
+  chartMonth: string | null;
+  availableMonths: string[];
   availableTags: string[];
   selectedTags: string[];
   spendingByTagEnabled: boolean;
@@ -49,6 +53,10 @@ const emptyData: CategoryData = {
   validUntil: null,
   wallets: [],
   spendingTotals: [],
+  chartTotals: [],
+  currentMonth: "",
+  chartMonth: "",
+  availableMonths: [],
   availableTags: [],
   selectedTags: [],
   spendingByTagEnabled: true,
@@ -69,6 +77,12 @@ function formatDate(value: string) {
 
 function formatAmount(amount: number, currency: string) {
   return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
+}
+
+function formatMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+    .format(new Date(year, month - 1, 1));
 }
 
 const chartColors = ["#12c48b", "#1eadcf", "#feb100", "#f964a0", "#7c6ee6", "#fb6666", "#53a653", "#8f6b4f", "#344554"];
@@ -98,13 +112,14 @@ export default function CategoryDetails({ category }: { category: string }) {
   const [activeFilterQuery, setActiveFilterQuery] = useState("");
   const [iconId, setIconId] = useState<number | null>(null);
   const [categoryColor, setCategoryColor] = useState(defaultCategoryColor);
+  const [chartMonth, setChartMonth] = useState("");
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(
-        `/api/categories/${category}?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}`,
+        `/api/categories/${category}?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}${chartMonth ? `&month=${encodeURIComponent(chartMonth)}` : ""}`,
         { cache: "no-store" },
       );
       const result = await response.json();
@@ -119,7 +134,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     } finally {
       setLoading(false);
     }
-  }, [activeFilterQuery, category, pageSize]);
+  }, [activeFilterQuery, category, pageSize, chartMonth]);
 
   useEffect(() => { void load(1); }, [load]);
   useEffect(() => {
@@ -128,14 +143,14 @@ export default function CategoryDetails({ category }: { category: string }) {
       .then((options: FilterOptions) => setFilterOptions(options));
   }, []);
 
-  const chartGroups = useMemo(() => data.spendingTotals.map((total) => {
+  const chartGroups = useMemo(() => data.chartTotals.map((total) => {
     const segments = data.segments.filter((segment) => segment.currency === total.currency);
     return {
       ...total,
       segments,
       magnitude: segments.reduce((sum, segment) => sum + Math.abs(segment.amount), 0),
     };
-  }), [data.spendingTotals, data.segments]);
+  }), [data.chartTotals, data.segments]);
 
   async function saveTagSelection() {
     setSavingTags(true);
@@ -182,7 +197,7 @@ export default function CategoryDetails({ category }: { category: string }) {
           </div>
           <div className="category-summary-actions">
             <div className="category-spend">
-              <small>Net category total</small>
+              <small>Net category total · {data.currentMonth ? formatMonth(data.currentMonth) : "Current month"}</small>
               {loading && !data.spendingTotals.length ? <strong>Loading…</strong> : data.spendingTotals.map((total) => (
                 <strong key={total.currency}>{formatAmount(total.amount, total.currency)}</strong>
               ))}
@@ -293,6 +308,13 @@ export default function CategoryDetails({ category }: { category: string }) {
             {data.spendingByTagEnabled && <section className="tag-chart-card">
               <div className="section-heading">
                 <div><h2>Spending by tag</h2><p>Net expenses and income; selected tags are shown separately and everything else is Other</p></div>
+                <label className="chart-month-select">
+                  <span>Period</span>
+                  <select value={chartMonth || data.currentMonth} onChange={(event) => setChartMonth(event.target.value)}>
+                    {data.availableMonths.map((month) => <option key={month} value={month}>{formatMonth(month)}</option>)}
+                    <option value="all">All</option>
+                  </select>
+                </label>
               </div>
               {chartGroups.length === 0 && !loading ? (
                 <div className="chart-empty">No transactions in this category.</div>
