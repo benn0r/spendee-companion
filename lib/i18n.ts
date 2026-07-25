@@ -246,6 +246,16 @@ const germanUi: Record<string, string> = {
   "records": "Datensätze",
   "position": "Position",
   "positions": "Positionen",
+  "wallet": "Portemonnaie",
+  "wallets": "Portemonnaies",
+  "category": "Kategorie",
+  "categories": "Kategorien",
+  "transaction": "Transaktion",
+  "transactions": "Transaktionen",
+  "split": "Aufteilung",
+  "splits": "Aufteilungen",
+  "Page": "Seite",
+  "of": "von",
   "Close category settings": "Kategorieeinstellungen schliessen",
 };
 

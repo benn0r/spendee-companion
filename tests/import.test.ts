@@ -502,6 +502,10 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(translateUiText("de", "2 transactions"), "2 Transaktionen");
   assert.equal(translateUiText("de", "1 custom position"), "1 eigene Position");
   assert.equal(translateUiText("de", "4 splits"), "4 Aufteilungen");
+  assert.equal(translateUiText("de", " wallets"), " Portemonnaies");
+  assert.equal(translateUiText("de", " categories"), " Kategorien");
+  assert.equal(translateUiText("de", "Page "), "Seite ");
+  assert.equal(translateUiText("de", " of "), " von ");
   assert.equal(translateUiText("de", "＋ Add position"), "＋ Position hinzufügen");
   assert.equal(translateUiText("de", "Page 2 of 7"), "Seite 2 von 7");
   assert.equal(translateUiText("de", "23. July"), "23. Juli");
