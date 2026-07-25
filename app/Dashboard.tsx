@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [data, setData] = useState<PageData>(emptyPage);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [fullImport, setFullImport] = useState(false);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
@@ -142,7 +143,7 @@ export default function Dashboard() {
     setUploading(true);
     setMessage(null);
     const form = new FormData();
-    form.set("fullImport", "false");
+    form.set("fullImport", fullImport ? "true" : "false");
     Array.from(files).forEach((file) => form.append("files", file));
     try {
       const response = await fetch("/api/import", { method: "POST", body: form });
@@ -219,11 +220,7 @@ export default function Dashboard() {
               onTransactions={() => { setTab("transactions"); history.replaceState(null, "", "/"); }}
               onDuplicates={() => { setTab("duplicates"); setSplitMode(false); setSplitRows([]); history.replaceState(null, "", "/?view=duplicates"); }}
             />
-            <button className="top-upload" disabled={uploading} onClick={() => inputRef.current?.click()}>
-              <span>＋</span>{uploading ? "Importing…" : "Import files"}
-            </button>
           </div>
-          <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
         </div>
       </header>
 
@@ -234,6 +231,18 @@ export default function Dashboard() {
             <h1>{tab === "transactions" ? "Transactions" : "Duplicates"}</h1>
             <p>{tab === "transactions" ? "Import and review your Spendee exports in one place." : "Review and remove repeated import records."}</p>
           </div>
+          {tab === "transactions" && (
+            <div className="transaction-import-controls">
+              <label className="full-import compact">
+                <input checked={fullImport} type="checkbox" onChange={(event) => setFullImport(event.target.checked)} />
+                <span><b>Full import</b><small>One file per wallet</small></span>
+              </label>
+              <button className="page-import-button" disabled={uploading} onClick={() => inputRef.current?.click()}>
+                <span>＋</span>{uploading ? "Importing…" : "Import files"}
+              </button>
+              <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
+            </div>
+          )}
         </section>
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}

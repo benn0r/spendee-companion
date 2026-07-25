@@ -27,15 +27,21 @@ main { min-height: 100vh; }
 .brand div { display: flex; flex-direction: column; gap: 1px; }
 .brand strong { color: var(--slate); font-size: 15px; }
 .brand small { color: var(--muted); font-size: 10px; }
-.top-upload, .dropzone button { border: 0; border-radius: 9px; color: white; background: var(--green); cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px #12c48b22; }
+.top-upload, .page-import-button, .dropzone button { border: 0; border-radius: 9px; color: white; background: var(--green); cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px #12c48b22; }
 .top-upload { padding: 10px 15px; font-size: 13px; }
 .top-upload span { margin-right: 5px; font-size: 16px; }
+.transaction-import-controls { display: flex; align-items: center; gap: 10px; }
+.page-import-button { padding: 10px 15px; font-size: 12px; white-space: nowrap; }
+.page-import-button span { margin-right: 5px; font-size: 15px; }
+.full-import.compact { margin: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.full-import.compact span { display: flex; flex-direction: column; gap: 1px; }
+.full-import.compact small { color: var(--muted); font-size: 8px; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .top-navigation { display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f4f6; }
 .top-navigation a, .top-navigation button { padding: 7px 10px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .top-navigation a:hover, .top-navigation button:hover, .top-navigation .active { color: var(--green-dark); background: white; box-shadow: 0 1px 4px #34455414; }
-.top-upload:hover, .dropzone button:hover { background: var(--green-dark); }
-.top-upload:disabled, .dropzone button:disabled { opacity: .6; cursor: wait; }
+.top-upload:hover, .page-import-button:hover, .dropzone button:hover { background: var(--green-dark); }
+.top-upload:disabled, .page-import-button:disabled, .dropzone button:disabled { opacity: .6; cursor: wait; }
 .workspace { max-width: 1440px; margin: auto; padding: 30px 32px 56px; }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .eyebrow { margin: 0 0 7px; color: var(--green-dark); font-size: 10px; font-weight: 700; letter-spacing: .13em; }
@@ -406,6 +412,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
   .top-upload { font-size: 0; }
   .top-upload span { font-size: 18px; }
   .page-heading { align-items: flex-start; }
+  .transaction-import-controls { width: 100%; align-items: stretch; flex-direction: column; }
+  .full-import.compact { width: 100%; }
+  .page-import-button { width: 100%; }
   .page-links { align-items: stretch; flex-direction: column; }
   .wallet-grid { grid-template-columns: 1fr; }
   .wallet-hero { align-items: flex-start; flex-direction: column; }
