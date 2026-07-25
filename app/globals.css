@@ -30,6 +30,10 @@ main { min-height: 100vh; }
 .top-upload, .dropzone button { border: 0; border-radius: 9px; color: white; background: var(--green); cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px #12c48b22; }
 .top-upload { padding: 10px 15px; font-size: 13px; }
 .top-upload span { margin-right: 5px; font-size: 16px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.top-navigation { display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f4f6; }
+.top-navigation a, .top-navigation button { padding: 7px 10px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.top-navigation a:hover, .top-navigation button:hover, .top-navigation .active { color: var(--green-dark); background: white; box-shadow: 0 1px 4px #34455414; }
 .top-upload:hover, .dropzone button:hover { background: var(--green-dark); }
 .top-upload:disabled, .dropzone button:disabled { opacity: .6; cursor: wait; }
 .workspace { max-width: 1440px; margin: auto; padding: 30px 32px 56px; }
@@ -129,6 +133,11 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .split-button:hover { border-color: #a7dac9; color: var(--green-dark); }
 .start-split { border: 1px solid var(--green); color: white; background: var(--green); }
 .start-split:disabled { opacity: .5; cursor: not-allowed; }
+.delete-selected, .delete-row { border: 1px solid #f0bcbc; border-radius: 7px; color: #b54343; background: white; cursor: pointer; font-size: 9px; font-weight: 600; }
+.delete-selected { height: 33px; padding: 0 10px; }
+.delete-row { padding: 6px 8px; }
+.delete-selected:hover, .delete-row:hover { border-color: #df8f8f; background: #fff5f5; }
+.delete-selected:disabled, .delete-row:disabled { opacity: .45; cursor: not-allowed; }
 .select-column { width: 48px; text-align: center; }
 .select-column input { width: 15px; height: 15px; accent-color: var(--green); }
 .transaction-filters { padding: 12px 14px; border-bottom: 1px solid var(--line); background: #fbfcfd; }
@@ -386,6 +395,12 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 
 @media (max-width: 640px) {
   .topbar-inner, .workspace { padding-left: 16px; padding-right: 16px; }
+  .topbar { height: auto; }
+  .topbar-inner { min-height: 68px; padding-top: 9px; padding-bottom: 9px; gap: 9px; flex-wrap: wrap; }
+  .topbar-actions { width: 100%; align-items: stretch; }
+  .top-navigation { flex: 1; overflow-x: auto; }
+  .top-navigation a, .top-navigation button { flex: 1; padding-left: 7px; padding-right: 7px; text-align: center; }
+  .top-upload { padding-left: 11px; padding-right: 11px; }
   .top-upload { padding: 9px 11px; }
   .top-upload span { margin: 0; }
   .top-upload { font-size: 0; }

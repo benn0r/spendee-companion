@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import DayHeader from "@/app/DayHeader";
+import TopNavigation from "@/app/TopNavigation";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 
@@ -115,7 +116,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </Link>
-          <Link className="back-home" href="/">← All wallets</Link>
+          <TopNavigation />
         </div>
       </header>
 

@@ -12,6 +12,7 @@ import TransactionFilters, {
   type FilterState,
 } from "./TransactionFilters";
 import SplitDialog from "./SplitDialog";
+import TopNavigation from "./TopNavigation";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -73,6 +74,8 @@ export default function Dashboard() {
   const [validUntil, setValidUntil] = useState("");
   const [savedValidUntil, setSavedValidUntil] = useState("");
   const [savingValidUntil, setSavingValidUntil] = useState(false);
+  const [selectedDuplicates, setSelectedDuplicates] = useState<number[]>([]);
+  const [deletingDuplicates, setDeletingDuplicates] = useState(false);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
@@ -90,12 +93,16 @@ export default function Dashboard() {
       const walletData = await walletsResponse.json();
       setWallets(walletData.wallets);
       setSelectedReviews([]);
+      setSelectedDuplicates([]);
     } finally {
       setLoading(false);
     }
   }, [tab, activeFilterQuery]);
 
   useEffect(() => { void load(tab, 1); }, [tab, load]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "duplicates") setTab("duplicates");
+  }, []);
   useEffect(() => {
     void fetch("/api/filter-options", { cache: "no-store" })
       .then((response) => response.json())
@@ -177,6 +184,27 @@ export default function Dashboard() {
     }
   }
 
+  async function removeDuplicates(ids: number[]) {
+    if (!ids.length || !window.confirm(`Delete ${ids.length} selected ${ids.length === 1 ? "duplicate" : "duplicates"}? This cannot be undone.`)) return;
+    setDeletingDuplicates(true);
+    try {
+      const response = await fetch("/api/duplicates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const result = await response.json() as { deleted?: number; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not delete duplicates.");
+      setMessage({ tone: "success", text: `${result.deleted ?? 0} ${result.deleted === 1 ? "duplicate" : "duplicates"} deleted.` });
+      const targetPage = ids.length >= data.rows.length && data.page > 1 ? data.page - 1 : data.page;
+      await load("duplicates", targetPage);
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Could not delete duplicates." });
+    } finally {
+      setDeletingDuplicates(false);
+    }
+  }
+
   return (
     <main>
       <header className="topbar">
@@ -185,9 +213,16 @@ export default function Dashboard() {
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </div>
-          <button className="top-upload" disabled={uploading} onClick={() => inputRef.current?.click()}>
-            <span>＋</span>{uploading ? "Importing…" : "Import files"}
-          </button>
+          <div className="topbar-actions">
+            <TopNavigation
+              active={tab}
+              onTransactions={() => { setTab("transactions"); history.replaceState(null, "", "/"); }}
+              onDuplicates={() => { setTab("duplicates"); setSplitMode(false); setSplitRows([]); history.replaceState(null, "", "/?view=duplicates"); }}
+            />
+            <button className="top-upload" disabled={uploading} onClick={() => inputRef.current?.click()}>
+              <span>＋</span>{uploading ? "Importing…" : "Import files"}
+            </button>
+          </div>
           <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
         </div>
       </header>
@@ -196,12 +231,8 @@ export default function Dashboard() {
         <section className="page-heading">
           <div>
             <p className="eyebrow">TRANSACTION ARCHIVE</p>
-            <h1>Transactions</h1>
-            <p>Import and review your Spendee exports in one place.</p>
-          </div>
-          <div className="page-links">
-            <Link className="back-home" href="/splits">Past splits</Link>
-            <Link className="back-home" href="/monthly">Monthly categories →</Link>
+            <h1>{tab === "transactions" ? "Transactions" : "Duplicates"}</h1>
+            <p>{tab === "transactions" ? "Import and review your Spendee exports in one place." : "Review and remove repeated import records."}</p>
           </div>
         </section>
 
@@ -279,8 +310,8 @@ export default function Dashboard() {
         <section className="ledger">
           <div className="ledger-head">
             <div>
-              <h2>Transaction history</h2>
-              <p>All imported records, newest first</p>
+              <h2>{tab === "transactions" ? "Transaction history" : "Duplicate records"}</h2>
+              <p>{tab === "transactions" ? "All imported records, newest first" : `${stats.duplicates} separated ${stats.duplicates === 1 ? "duplicate" : "duplicates"}`}</p>
             </div>
             <div className="ledger-tools">
               {tab === "transactions" && (
@@ -312,10 +343,11 @@ export default function Dashboard() {
                   </div>
                 ) : <button className="split-button" onClick={() => setSplitMode(true)}>Split transactions</button>
               )}
-              <div className="tabs">
-                <button className={tab === "transactions" ? "active" : ""} onClick={() => { setTab("transactions"); setSplitMode(false); setSplitRows([]); }}>Transactions <span>{stats.transactions}</span></button>
-                <button className={tab === "duplicates" ? "active" : ""} onClick={() => { setTab("duplicates"); setSplitMode(false); setSplitRows([]); }}>Duplicates <span>{stats.duplicates}</span></button>
-              </div>
+              {tab === "duplicates" && (
+                <button className="delete-selected" disabled={!selectedDuplicates.length || deletingDuplicates} onClick={() => void removeDuplicates(selectedDuplicates)}>
+                  {deletingDuplicates ? "Deleting…" : `Delete selected${selectedDuplicates.length ? ` (${selectedDuplicates.length})` : ""}`}
+                </button>
+              )}
             </div>
           </div>
 
@@ -333,28 +365,31 @@ export default function Dashboard() {
 
           <div className="table-wrap">
             <table>
-              <thead><tr>{splitMode && <th className="select-column">Select</th>}<th>Date</th><th>Wallet</th><th>Type</th><th>Category</th><th>Note & labels</th><th>Author</th><th className="right">Amount</th></tr></thead>
+              <thead><tr>
+                {(splitMode || tab === "duplicates") && <th className="select-column">
+                  {tab === "duplicates" ? <input aria-label="Select all duplicates on this page" checked={data.rows.length > 0 && data.rows.every((row) => selectedDuplicates.includes(row.id))} type="checkbox" onChange={(event) => setSelectedDuplicates(event.target.checked ? data.rows.map((row) => row.id) : [])} /> : "Select"}
+                </th>}
+                <th>Date</th><th>Wallet</th><th>Type</th><th>Category</th><th>Note & labels</th><th>Author</th>{tab === "duplicates" && <th>Actions</th>}<th className="right">Amount</th>
+              </tr></thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={splitMode ? 8 : 7} className="empty">Loading transactions…</td></tr>
+                  <tr><td colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7} className="empty">Loading transactions…</td></tr>
                 ) : data.rows.length === 0 ? (
-                  <tr><td colSpan={splitMode ? 8 : 7} className="empty">{tab === "transactions" ? "Import an XLSX or CSV export to begin." : "No duplicates have been found."}</td></tr>
+                  <tr><td colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7} className="empty">{tab === "transactions" ? "Import an XLSX or CSV export to begin." : "No duplicates have been found."}</td></tr>
                 ) : groupRowsByDay(data.rows).map((group) => (
                   <Fragment key={group.key}>
-                    <DayHeader colSpan={splitMode ? 8 : 7} day={group.key} totals={data.dayTotals[group.key] ?? []} />
+                    <DayHeader colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7} day={group.key} totals={data.dayTotals[group.key] ?? []} />
                     {group.rows.map((row) => (
                       <tr key={row.id}>
-                        {splitMode && (
+                        {(splitMode || tab === "duplicates") && (
                           <td className="select-column">
                             <input
-                              aria-label={`Select transaction ${row.id}`}
-                              checked={splitRows.some((item) => item.id === row.id)}
+                              aria-label={tab === "duplicates" ? `Select duplicate ${row.id}` : `Select transaction ${row.id}`}
+                              checked={tab === "duplicates" ? selectedDuplicates.includes(row.id) : splitRows.some((item) => item.id === row.id)}
                               type="checkbox"
-                              onChange={(event) => setSplitRows((current) =>
-                                event.target.checked
-                                  ? [...current, row]
-                                  : current.filter((item) => item.id !== row.id)
-                              )}
+                              onChange={(event) => tab === "duplicates"
+                                ? setSelectedDuplicates((current) => event.target.checked ? [...current, row.id] : current.filter((id) => id !== row.id))
+                                : setSplitRows((current) => event.target.checked ? [...current, row] : current.filter((item) => item.id !== row.id))}
                             />
                           </td>
                         )}
@@ -367,6 +402,7 @@ export default function Dashboard() {
                         <td>{row.categoryName ? <Link className="category-link" href={`/categories/${categorySlug(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
                         <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                         <td>{row.author ?? "—"}</td>
+                        {tab === "duplicates" && <td><button className="delete-row" disabled={deletingDuplicates} onClick={() => void removeDuplicates([row.id])}>Delete</button></td>}
                         <td className="right"><Amount row={row} />{row.duplicateOfId && <small>matches #{row.duplicateOfId}</small>}</td>
                       </tr>
                     ))}

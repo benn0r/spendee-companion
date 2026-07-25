@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import TopNavigation from "@/app/TopNavigation";
 import { useCallback, useEffect, useState } from "react";
 
 type SplitSummary = {
@@ -58,7 +59,7 @@ export default function SplitsView() {
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </Link>
-          <Link className="back-home" href="/">← Transactions</Link>
+          <TopNavigation active="splits" />
         </div>
       </header>
       <div className="workspace splits-page">

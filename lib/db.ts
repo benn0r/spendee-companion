@@ -600,6 +600,15 @@ export function getTransactionFilterOptions(db: Db) {
   };
 }
 
+export function deleteDuplicates(db: Db, ids: number[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Number.isInteger)));
+  if (!uniqueIds.length) throw new Error("Select at least one duplicate.");
+  const result = db.prepare(
+    `DELETE FROM duplicates WHERE id IN (${uniqueIds.map(() => "?").join(", ")})`,
+  ).run(...uniqueIds);
+  return result.changes;
+}
+
 export type CustomSplitPosition = { description: string; amount: number };
 
 export function createSplit(

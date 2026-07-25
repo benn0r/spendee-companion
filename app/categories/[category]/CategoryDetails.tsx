@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import DayHeader from "@/app/DayHeader";
+import TopNavigation from "@/app/TopNavigation";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
@@ -144,7 +145,7 @@ export default function CategoryDetails({ category }: { category: string }) {
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </Link>
-          <Link className="back-home" href="/">← Transactions</Link>
+          <TopNavigation />
         </div>
       </header>
 

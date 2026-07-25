@@ -5,6 +5,7 @@ import {
   getCategoryDetails,
   createSplit,
   deleteSplit,
+  deleteDuplicates,
   getFilteredTransactionPage,
   getTransactionFilterOptions,
   getValidUntil,
@@ -58,6 +59,9 @@ test("persists unique transactions and separates every duplicate occurrence", ()
   assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2, changes: 0, deletions: 0 });
   assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions").get() as { count: number }).count, 1);
   assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 2);
+  const duplicateIds = (db.prepare("SELECT id FROM duplicates ORDER BY id").all() as Array<{ id: number }>).map((row) => row.id);
+  assert.equal(deleteDuplicates(db, duplicateIds.slice(0, 1)), 1);
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 1);
   db.close();
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import TopNavigation from "@/app/TopNavigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
 type Column = { id?: number; name: string; categories: string[]; budget?: number | null };
@@ -95,7 +96,7 @@ export default function MonthlyReport() {
             <span className="brandmark">S</span>
             <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
           </Link>
-          <Link className="back-home" href="/">← Transactions</Link>
+          <TopNavigation active="monthly" />
         </div>
       </header>
       <div className="workspace monthly-page">
