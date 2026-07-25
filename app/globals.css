@@ -259,9 +259,9 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .monthly-report .ledger-head > span { color: var(--muted); font-size: 9px; }
 .monthly-report table { min-width: max(560px, 100%); }
 .monthly-report th, .monthly-report td { padding-left: 8px; padding-right: 8px; }
-.monthly-report th:first-child { position: sticky; left: 0; z-index: 2; width: 126px; min-width: 126px; }
+.monthly-report th:first-child { position: sticky; left: 0; z-index: 2; width: 118px; min-width: 118px; }
 .monthly-report td:first-child { position: sticky; left: 0; z-index: 1; background: white; }
-.monthly-report th:not(:first-child) { width: 110px; min-width: 96px; }
+.monthly-report th:not(:first-child) { width: 100px; min-width: 88px; }
 .monthly-column-heading { display: inline-flex; max-width: 100%; align-items: center; justify-content: flex-end; gap: 4px; }
 .monthly-column-heading > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .monthly-report th strong { color: var(--slate); font-size: 9px; text-transform: none; letter-spacing: 0; }
@@ -270,7 +270,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .category-tooltip-content { position: absolute; top: calc(100% + 8px); right: 0; z-index: 4; width: max-content; max-width: 240px; padding: 8px 10px; border-radius: 7px; color: white; background: var(--slate); box-shadow: 0 5px 18px #34455433; font-size: 9px; font-weight: 400; line-height: 1.45; text-align: left; text-transform: none; letter-spacing: 0; white-space: normal; opacity: 0; pointer-events: none; transform: translateY(-3px); transition: .14s ease; }
 .category-tooltip-content b { display: block; margin-bottom: 2px; color: #b9f0de; font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
 .category-tooltip:hover .category-tooltip-content, .category-tooltip:focus .category-tooltip-content { opacity: 1; transform: translateY(0); }
-.monthly-value strong { display: block; color: var(--slate); font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.monthly-value strong { display: block; color: var(--slate); font-size: 10px; font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .monthly-value span { color: #adb5bb; }
 
 @media (max-width: 900px) {
