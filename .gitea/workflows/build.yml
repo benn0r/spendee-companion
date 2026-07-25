@@ -43,18 +43,25 @@ jobs:
           apt-get install --yes curl docker.io jq
           docker version
       - name: Log in to Gitea Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: git.example.invalid
-          username: benn0r
-          password: ${{ secrets.REGISTRY_TOKEN }}
+        shell: sh
+        env:
+          GITEA_SERVER_URL: ${{ gitea.server_url }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_USERNAME: ${{ gitea.repository_owner }}
+        run: |
+          registry="${GITEA_SERVER_URL#*://}"
+          printf '%s' "${REGISTRY_TOKEN}" \
+            | docker login "${registry}" --username "${REGISTRY_USERNAME}" --password-stdin
       - name: Build and push image
         shell: sh
         env:
+          GITEA_SERVER_URL: ${{ gitea.server_url }}
           IMAGE_BRANCH: ${{ gitea.ref_name }}
+          REGISTRY_OWNER: ${{ gitea.repository_owner }}
           SOURCE_COMMIT: ${{ gitea.sha }}
         run: |
-          image="git.example.invalid/benn0r/spendee"
+          registry="${GITEA_SERVER_URL#*://}"
+          image="${registry}/${REGISTRY_OWNER}/spendee"
           branch_tag="$(printf '%s' "${IMAGE_BRANCH}" \
             | tr '[:upper:]' '[:lower:]' \
             | sed 's#[^a-z0-9_.-]#-#g')"
@@ -64,17 +71,19 @@ jobs:
         if: gitea.ref == 'refs/heads/main'
         shell: sh
         env:
+          GITEA_API_URL: ${{ gitea.api_url }}
+          REGISTRY_OWNER: ${{ gitea.repository_owner }}
           REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
         run: |
           versions="$(curl --fail --silent --show-error \
             --header "Authorization: token ${REGISTRY_TOKEN}" \
-            "https://git.example.invalid/api/v1/packages/benn0r?type=container&q=spendee&limit=100")"
+            "${GITEA_API_URL}/packages/${REGISTRY_OWNER}?type=container&q=spendee&limit=100")"
           printf '%s' "${versions}" \
             | jq -r '.[] | select(.name == "spendee" and .version != "main") | .version' \
             | while IFS= read -r version; do
                 status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
                   --request DELETE \
                   --header "Authorization: token ${REGISTRY_TOKEN}" \
-                  "https://git.example.invalid/api/v1/packages/benn0r/container/spendee/${version}")"
+                  "${GITEA_API_URL}/packages/${REGISTRY_OWNER}/container/spendee/${version}")"
                 [ "${status}" = "204" ] || [ "${status}" = "404" ]
               done
