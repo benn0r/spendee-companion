@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import {
   getCategoryDetails,
   createSplit,
@@ -23,7 +23,7 @@ import {
   setMonthlyReportColumns,
   setWalletStartingBalance,
 } from "../lib/db";
-import { parseImportFile } from "../lib/import-xlsx";
+import { parseImportFile, parseWorkbook } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
@@ -48,7 +48,7 @@ test("persists unique transactions and separates every duplicate occurrence", ()
     currency: "CHF",
     note: null,
     labels: "lunch",
-    author: "Benjamin",
+    author: "Nova",
   };
   const first = importTransactions(db, "first.xlsx", [{ transaction, sourceRow: 2, raw: transaction }]);
   const second = importTransactions(db, "second.xlsx", [
@@ -91,7 +91,7 @@ test("queues changed values and full-import deletions until explicitly approved"
     currency: "CHF",
     note: null,
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   };
   const missing = { ...base, date: "2026-04-02T11:58:51.000Z", amount: -20 };
   importTransactions(db, "initial.xlsx", [
@@ -129,7 +129,7 @@ test("keeps only proposals from the newest full wallet snapshot", () => {
     currency: "CHF",
     note: null,
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   };
   const second = { ...first, date: "2026-04-02T11:58:51.000Z", amount: -20 };
   importTransactions(db, "initial.xlsx", [
@@ -175,7 +175,7 @@ test("calculates active wallet totals and paginated wallet details", () => {
     currency: "CHF",
     note: null,
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   };
   const expense = { ...base, date: "2026-04-02T11:58:51.000Z", type: "Expense", amount: -35 };
   importTransactions(db, "wallet.xlsx", [
@@ -222,7 +222,7 @@ test("aggregates category spending by tag across wallets", () => {
     currency: "CHF",
     note: null,
     labels: "lunch,work",
-    author: "Benjamin",
+    author: "Nova",
   };
   const cash = {
     ...base,
@@ -312,7 +312,7 @@ test("builds and persists merged monthly category columns", () => {
     currency,
     note: null,
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   });
   const rows = [
     makeTransaction("2025-01-04T10:00:00.000Z", "Groceries", -50),
@@ -369,7 +369,7 @@ test("creates readable category slugs and resolves them to exact category names"
     currency: "CHF",
     note: null,
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   };
   importTransactions(db, "category.xlsx", [{ transaction, sourceRow: 2, raw: transaction }]);
   assert.equal(categorySlug("Food & Drink"), "food-and-drink");
@@ -391,11 +391,11 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     currency: "CHF",
     note: null,
     labels: "food, work",
-    author: "Benjamin",
+    author: "Nova",
   };
   const rows: TransactionInput[] = [
     base,
-    { ...base, date: "2026-04-02T10:00:00.000Z", wallet: "Cash", amount: -12, labels: "food", author: "Anna" },
+    { ...base, date: "2026-04-02T10:00:00.000Z", wallet: "Cash", amount: -12, labels: "food", author: "Orion" },
     { ...base, date: "2026-05-02T10:00:00.000Z", type: "Income", categoryName: "Salary", amount: 500, labels: null },
   ];
   importTransactions(db, "filters.xlsx", rows.map((transaction, index) => ({
@@ -411,7 +411,7 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     ["type", "Expense"],
     ["category", "Food & Drink"],
     ["tag", "work"],
-    ["author", "Benjamin"],
+    ["author", "Nova"],
     ["amountOperator", "gt"],
     ["amount", "40"],
   ]);
@@ -434,7 +434,7 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     types: ["Expense", "Income"],
     categories: ["Food & Drink", "Salary"],
     tags: ["food", "work"],
-    authors: ["Anna", "Benjamin"],
+    authors: ["Nova", "Orion"],
     categoryAppearances: {},
   });
   assert.match(filterOptions.currentMonth, /^\d{4}-\d{2}$/);
@@ -454,7 +454,7 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
     currency: "CHF",
     note: "Weekly shop",
     labels: null,
-    author: "Benjamin",
+    author: "Nova",
   };
   const second = { ...base, date: "2026-04-02T10:00:00.000Z", amount: -20, note: "Bakery" };
   importTransactions(db, "split.xlsx", [
@@ -489,7 +489,7 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
 test("parses quoted CSV exports with the same transaction schema", async () => {
   const csv = [
     "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
-    '2026-04-01T11:58:51+00:00,Account,Expense,Food & Drink,-12.50,CHF,"Lunch, coffee","food,work",Spendee Contributors',
+    '2026-04-01T11:58:51+00:00,Account,Expense,Food & Drink,-12.50,CHF,"Lunch, coffee","food,work",Nova Quill',
   ].join("\n");
   const rows = await parseImportFile(Buffer.from(csv), "transactions.csv");
   assert.equal(rows.length, 1);
@@ -502,16 +502,65 @@ test("parses quoted CSV exports with the same transaction schema", async () => {
     currency: "CHF",
     note: "Lunch, coffee",
     labels: "food,work",
-    author: "Spendee Contributors",
+    author: "Nova Quill",
   });
 });
 
 test("parses semicolon-delimited CSV exports", async () => {
   const csv = [
     "Date;Wallet;Type;Category name;Amount;Currency;Note;Labels;Author",
-    "2026-04-01T11:58:51+00:00;Cash;Income;Refund;22;CHF;;;Spendee Contributors",
+    "2026-04-01T11:58:51+00:00;Cash;Income;Refund;22;CHF;;;Nova Quill",
   ].join("\n");
   const rows = await parseImportFile(Buffer.from(csv), "transactions.csv");
   assert.equal(rows[0].transaction.wallet, "Cash");
   assert.equal(rows[0].transaction.amount, 22);
+});
+
+test("rejects malformed and unsupported import files with useful errors", async () => {
+  await assert.rejects(() => parseImportFile(Buffer.from(""), "empty.csv"), /readable transaction table/);
+  await assert.rejects(() => parseImportFile(Buffer.from("Date,Wallet\n"), "missing.csv"), /Missing required columns/);
+  const header = "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author";
+  await assert.rejects(
+    () => parseImportFile(Buffer.from(`${header}\nnot-a-date,Moon Purse,Expense,Potions,-4,CHF,,,Nova Quill`), "date.csv"),
+    /Invalid date/,
+  );
+  await assert.rejects(
+    () => parseImportFile(Buffer.from(`${header}\n2026-07-01,Moon Purse,Expense,Potions,dragon,CHF,,,Nova Quill`), "amount.csv"),
+    /invalid amount/,
+  );
+  await assert.rejects(
+    () => parseImportFile(Buffer.from(`${header}\n2026-07-01,,Expense,Potions,-4,CHF,,,Nova Quill`), "wallet.csv"),
+    /wallet, type and currency are required/,
+  );
+  await assert.rejects(() => parseImportFile(Buffer.from("fantasy"), "ledger.json"), /Only .xlsx and .csv/);
+  assert.deepEqual(await parseImportFile(Buffer.from(`${header}\n`), "header-only.csv"), []);
+});
+
+test("parses a synthetic fantasy XLSX export", async () => {
+  const rows = await parseWorkbook(readFileSync("tests/fixtures/fantasy-transactions.xlsx"));
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((row) => row.transaction), [
+    {
+      date: "2026-07-14T09:30:00.000Z",
+      wallet: "Crystal Satchel",
+      type: "Expense",
+      categoryName: "Potion Supplies",
+      amount: -18.5,
+      currency: "CHF",
+      note: "Silverleaf tonic",
+      labels: "alchemy, quest",
+      author: "Nova Quill",
+    },
+    {
+      date: "2026-07-15T12:00:00.000Z",
+      wallet: "Crystal Satchel",
+      type: "Income",
+      categoryName: "Guild Rewards",
+      amount: 75,
+      currency: "CHF",
+      note: "Wyvern mission",
+      labels: "quest",
+      author: "Orion Vale",
+    },
+  ]);
 });

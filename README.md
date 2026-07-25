@@ -77,12 +77,17 @@ SQLITE_PATH=/absolute/path/spendee.db npm run dev
 
 ```sh
 npm test
+npm run test:coverage
 npm run build
 ```
 
 The test suite covers imports, duplicate persistence, reconciliation approvals,
 wallet and category reporting, filters, monthly reports, split persistence, and
-PDF generation.
+PDF generation. It also exercises every read-only MCP tool, the Streamable HTTP
+MCP endpoint, API route validation and workflows, and server-rendered UI shells
+using entirely synthetic fantasy fixtures. CI enforces minimum coverage of 95%
+for lines, 90% for functions, and 80% for branches across server and library
+code.
 
 ## Docker
 

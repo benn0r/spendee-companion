@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test --import tsx tests/*.test.ts"
+    "test": "node --test --import tsx tests/*.test.ts",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=95 --test-coverage-functions=90 --test-coverage-branches=80 --test-coverage-exclude='app/**/*.tsx' --test-coverage-exclude='tests/**' --import tsx tests/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
