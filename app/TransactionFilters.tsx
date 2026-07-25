@@ -76,7 +76,7 @@ function MultiFilter({
             aria-label={`Search ${label.toLowerCase()}`}
             className="filter-search"
             placeholder={`Search ${label.toLowerCase()}…`}
-            type="search"
+            type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -120,11 +120,13 @@ export default function TransactionFilters({
     details.open = false;
   });
   useEffect(() => {
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) closeMenus();
+    const closeOnOtherClick = (event: PointerEvent) => {
+      panelRef.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach((details) => {
+        if (!details.contains(event.target as Node)) details.open = false;
+      });
     };
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("pointerdown", closeOnOtherClick);
+    return () => document.removeEventListener("pointerdown", closeOnOtherClick);
   }, []);
   return (
     <section className="transaction-filters" aria-label="Transaction filters" ref={panelRef}>
