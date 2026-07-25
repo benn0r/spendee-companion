@@ -496,6 +496,13 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(translate("de", "split.pdf.total"), "GESAMT");
   assert.equal(translateUiText("de", "Transactions"), "Transaktionen");
   assert.equal(translateUiText("de", "✓ Verified"), "✓ Verifiziert");
+  assert.equal(translateUiText("de", "Wallets"), "Portemonnaies");
+  assert.equal(translateUiText("de", "3 wallets"), "3 Portemonnaies");
+  assert.equal(translateUiText("de", "2 categories"), "2 Kategorien");
+  assert.equal(translateUiText("de", "2 transactions"), "2 Transaktionen");
+  assert.equal(translateUiText("de", "1 custom position"), "1 eigene Position");
+  assert.equal(translateUiText("de", "4 splits"), "4 Aufteilungen");
+  assert.equal(translateUiText("de", "＋ Add position"), "＋ Position hinzufügen");
   assert.equal(translateUiText("de", "Page 2 of 7"), "Seite 2 von 7");
   assert.equal(translateUiText("de", "23. July"), "23. Juli");
   assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");

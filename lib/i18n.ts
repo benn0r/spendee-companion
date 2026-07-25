@@ -48,7 +48,7 @@ const germanUi: Record<string, string> = {
   "Review and remove repeated import records.": "Doppelte Importdatensätze prüfen und entfernen.",
   "Import files": "Dateien importieren",
   "Importing…": "Wird importiert…",
-  "Wallets": "Wallets",
+  "Wallets": "Portemonnaies",
   "Balances and transaction totals": "Salden und Transaktionssummen",
   "Categories": "Kategorien",
   "Approval required": "Freigabe erforderlich",
@@ -66,7 +66,7 @@ const germanUi: Record<string, string> = {
   "Delete selected": "Auswahl löschen",
   "Deleting…": "Wird gelöscht…",
   "Date": "Datum",
-  "Wallet": "Wallet",
+  "Wallet": "Portemonnaie",
   "Type": "Typ",
   "Category": "Kategorie",
   "Note & labels": "Notiz & Tags",
@@ -138,6 +138,8 @@ const germanUi: Record<string, string> = {
   "Custom positions": "Eigene Positionen",
   "Add positive or negative adjustments.": "Positive oder negative Anpassungen hinzufügen.",
   "Add position": "Position hinzufügen",
+  "+ Add position": "+ Position hinzufügen",
+  "＋ Add position": "＋ Position hinzufügen",
   "Description": "Beschreibung",
   "Split how many times?": "Wie oft aufteilen?",
   "Total amount": "Gesamtbetrag",
@@ -196,11 +198,14 @@ export function translateUiText(locale: AppLocale, text: string) {
   if (!translated) {
     translated = core
       .replace(/^(\d+) transactions?$/, "$1 Transaktionen")
-      .replace(/^(\d+) wallets?$/, "$1 Wallets")
+      .replace(/^(\d+) wallet$/, "$1 Portemonnaie")
+      .replace(/^(\d+) wallets$/, "$1 Portemonnaies")
       .replace(/^(\d+) categories?$/, "$1 Kategorien")
       .replace(/^(\d+) duplicates?$/, "$1 Duplikate")
       .replace(/^(\d+) splits?$/, "$1 Aufteilungen")
       .replace(/^(\d+) selected transactions?$/, "$1 Transaktionen ausgewählt")
+      .replace(/^(\d+) custom position$/, "$1 eigene Position")
+      .replace(/^(\d+) custom positions$/, "$1 eigene Positionen")
       .replace(/^Page (\d+) of (\d+)$/, "Seite $1 von $2")
       .replace(/^(\d+)[–-](\d+) of (\d+)$/, "$1–$2 von $3");
     if (translated === core) {
