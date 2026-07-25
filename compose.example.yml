@@ -1,0 +1,13 @@
+services:
+  spendee:
+    image: git.example.invalid/benn0r/spendee:main
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      SQLITE_PATH: /data/spendee.db
+    volumes:
+      - spendee-data:/data
+
+volumes:
+  spendee-data:
