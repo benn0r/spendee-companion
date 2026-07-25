@@ -8,6 +8,7 @@ import {
   importTransactions,
   openDatabase,
   reviewReconciliation,
+  resolveCategory,
   setCategoryTags,
   getMonthlyReport,
   setMonthlyReportColumns,
@@ -16,6 +17,7 @@ import {
 import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
+import { categorySlug } from "../lib/category-slug";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -309,6 +311,28 @@ test("builds and persists merged monthly category columns", () => {
       cells: [[{ currency: "CHF", amount: 80 }], []],
     },
   ]);
+  db.close();
+});
+
+test("creates readable category slugs and resolves them to exact category names", () => {
+  const path = `/tmp/spendee-category-slug-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const transaction: TransactionInput = {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food & Drink",
+    amount: -12.5,
+    currency: "CHF",
+    note: null,
+    labels: null,
+    author: "Benjamin",
+  };
+  importTransactions(db, "category.xlsx", [{ transaction, sourceRow: 2, raw: transaction }]);
+  assert.equal(categorySlug("Food & Drink"), "food-and-drink");
+  assert.equal(resolveCategory(db, "food-and-drink"), "Food & Drink");
+  assert.equal(resolveCategory(db, "Food%20%26%20Drink"), "Food & Drink");
   db.close();
 });
 

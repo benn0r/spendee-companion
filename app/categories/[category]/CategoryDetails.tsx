@@ -85,7 +85,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     setError(null);
     try {
       const response = await fetch(
-        `/api/categories/${encodeURIComponent(category)}?page=${page}&pageSize=25`,
+        `/api/categories/${category}?page=${page}&pageSize=25`,
         { cache: "no-store" },
       );
       const result = await response.json();
@@ -113,7 +113,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     setSavingTags(true);
     setTagMessage(null);
     try {
-      const response = await fetch(`/api/categories/${encodeURIComponent(category)}`, {
+      const response = await fetch(`/api/categories/${category}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selectedTags }),
@@ -147,7 +147,7 @@ export default function CategoryDetails({ category }: { category: string }) {
             <span className="category-symbol">#</span>
             <div>
               <p className="eyebrow">CATEGORY</p>
-              <h1>{category}</h1>
+              <h1>{data.category || "Category"}</h1>
               <p>{data.total.toLocaleString("en-CH")} matching {data.total === 1 ? "transaction" : "transactions"} across {data.wallets.length} {data.wallets.length === 1 ? "wallet" : "wallets"}</p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { TransactionInput } from "./types";
 import { calculateDayTotals } from "./day-groups";
+import { categorySlug } from "./category-slug";
 
 type Db = Database.Database;
 let singleton: Db | undefined;
@@ -287,6 +288,22 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     total,
     pages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+export function resolveCategory(db: Db, identifier: string): string | null {
+  let decoded = identifier;
+  try {
+    decoded = decodeURIComponent(identifier);
+  } catch {
+    // A malformed encoded value simply cannot match an exact category.
+  }
+  const categories = (db.prepare(`
+    SELECT DISTINCT category_name AS category FROM transactions
+    WHERE deleted_at IS NULL AND category_name IS NOT NULL
+  `).all() as Array<{ category: string }>).map((row) => row.category);
+  const exact = categories.find((category) => category === identifier || category === decoded);
+  if (exact) return exact;
+  return categories.find((category) => categorySlug(category) === identifier) ?? null;
 }
 
 export function setCategoryTags(db: Db, category: string, selectedTags: string[]) {
