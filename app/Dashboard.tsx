@@ -50,9 +50,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>(emptyStats);
   const [data, setData] = useState<PageData>(emptyPage);
   const [loading, setLoading] = useState(true);
-  const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [fullImport, setFullImport] = useState(false);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
@@ -88,7 +86,7 @@ export default function Dashboard() {
     setUploading(true);
     setMessage(null);
     const form = new FormData();
-    form.set("fullImport", String(fullImport));
+    form.set("fullImport", "false");
     Array.from(files).forEach((file) => form.append("files", file));
     try {
       const response = await fetch("/api/import", { method: "POST", body: form });
@@ -141,6 +139,7 @@ export default function Dashboard() {
           <button className="top-upload" disabled={uploading} onClick={() => inputRef.current?.click()}>
             <span>＋</span>{uploading ? "Importing…" : "Import files"}
           </button>
+          <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
         </div>
       </header>
 
@@ -183,37 +182,6 @@ export default function Dashboard() {
             </div>
           </section>
         )}
-
-        <section className="overview-grid">
-          <div
-            className={`dropzone ${dragging ? "dragging" : ""}`}
-            onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(event) => { event.preventDefault(); setDragging(false); void upload(event.dataTransfer.files); }}
-          >
-            <div className="upload-icon">↑</div>
-            <div className="upload-copy">
-              <h2>{uploading ? "Importing your files…" : "Import Spendee exports"}</h2>
-              <p>Drop a batch of XLSX or CSV files here, or browse from your computer.</p>
-              <span>Duplicates are detected automatically and kept separately.</span>
-              <label className="full-import">
-                <input type="checkbox" checked={fullImport} onChange={(event) => setFullImport(event.target.checked)} />
-                <span><b>Full import</b> · find changed and missing transactions per wallet</span>
-              </label>
-            </div>
-            <button disabled={uploading} onClick={() => inputRef.current?.click()}>
-              {uploading ? "Please wait" : "Choose files"}
-            </button>
-            <input ref={inputRef} type="file" accept=".xlsx,.csv,text/csv" multiple hidden onChange={(event) => event.target.files && void upload(event.target.files)} />
-          </div>
-
-          <div className="stats">
-            <article><span className="metric-icon green">↕</span><div><small>Transactions</small><strong>{stats.transactions.toLocaleString("en-CH")}</strong></div></article>
-            <article><span className="metric-icon blue">◫</span><div><small>Wallets</small><strong>{stats.wallets.toLocaleString("en-CH")}</strong></div></article>
-            <article><span className="metric-icon yellow">⇧</span><div><small>Imports</small><strong>{stats.imports.toLocaleString("en-CH")}</strong></div></article>
-            <article><span className="metric-icon pink">!</span><div><small>Duplicates</small><strong>{stats.duplicates.toLocaleString("en-CH")}</strong></div></article>
-          </div>
-        </section>
 
         {reviews.length > 0 && (
           <section className="review-card">
