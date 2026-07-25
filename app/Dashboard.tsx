@@ -266,7 +266,7 @@ export default function Dashboard() {
                   <span><b>Wallets</b><small>Balances and transaction totals</small></span>
                   <span className="dashboard-widget-meta">
                     <em>{wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}</em>
-                    <i aria-hidden="true">⌄</i>
+                    <i aria-hidden="true"></i>
                   </span>
                 </summary>
                 <div className="dashboard-widget-content">
@@ -298,7 +298,7 @@ export default function Dashboard() {
                   <span><b>Categories</b><small>Browse transactions across all wallets</small></span>
                   <span className="dashboard-widget-meta">
                     <em>{filterOptions.categories.length} {filterOptions.categories.length === 1 ? "category" : "categories"}</em>
-                    <i aria-hidden="true">⌄</i>
+                    <i aria-hidden="true"></i>
                   </span>
                 </summary>
                 <div className="dashboard-widget-content">
