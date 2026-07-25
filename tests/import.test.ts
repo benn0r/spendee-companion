@@ -9,6 +9,8 @@ import {
   openDatabase,
   reviewReconciliation,
   setCategoryTags,
+  getMonthlyReport,
+  setMonthlyReportColumns,
   setWalletStartingBalance,
 } from "../lib/db";
 import { parseImportFile } from "../lib/import-xlsx";
@@ -250,6 +252,64 @@ test("groups complete daily totals in the Zurich timezone and formats day labels
   assert.equal(formatDayLabel("2026-07-25", now), "Today");
   assert.equal(formatDayLabel("2026-07-24", now), "Yesterday");
   assert.equal(formatDayLabel("2026-07-23", now), "23. July");
+});
+
+test("builds and persists merged monthly category columns", () => {
+  const path = `/tmp/spendee-monthly-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const makeTransaction = (
+    date: string,
+    categoryName: string,
+    amount: number,
+    currency = "CHF",
+  ): TransactionInput => ({
+    date,
+    wallet: "Account",
+    type: "Expense",
+    categoryName,
+    amount,
+    currency,
+    note: null,
+    labels: null,
+    author: "Benjamin",
+  });
+  const rows = [
+    makeTransaction("2025-01-04T10:00:00.000Z", "Groceries", -50),
+    makeTransaction("2025-01-08T10:00:00.000Z", "Restaurants", -30),
+    makeTransaction("2025-02-03T10:00:00.000Z", "Groceries", -20),
+    makeTransaction("2025-02-05T10:00:00.000Z", "Utilities", -100),
+  ];
+  importTransactions(db, "monthly.xlsx", rows.map((transaction, index) => ({
+    transaction,
+    sourceRow: index + 2,
+    raw: transaction,
+  })));
+  const defaults = getMonthlyReport(db);
+  assert.deepEqual(defaults.categories, ["Groceries", "Restaurants", "Utilities"]);
+  assert.equal(defaults.configured, false);
+
+  setMonthlyReportColumns(db, [
+    { name: "Food", categories: ["Groceries", "Restaurants"] },
+    { name: "Bills", categories: ["Utilities"] },
+  ]);
+  const report = getMonthlyReport(db);
+  assert.equal(report.configured, true);
+  assert.deepEqual(report.columns.map(({ name, categories }) => ({ name, categories })), [
+    { name: "Food", categories: ["Groceries", "Restaurants"] },
+    { name: "Bills", categories: ["Utilities"] },
+  ]);
+  assert.deepEqual(report.months, [
+    {
+      month: "2025-02",
+      cells: [[{ currency: "CHF", amount: 20 }], [{ currency: "CHF", amount: 100 }]],
+    },
+    {
+      month: "2025-01",
+      cells: [[{ currency: "CHF", amount: 80 }], []],
+    },
+  ]);
+  db.close();
 });
 
 test("parses quoted CSV exports with the same transaction schema", async () => {

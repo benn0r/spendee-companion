@@ -95,6 +95,13 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       selected_tags_json TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS monthly_report_columns (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      categories_json TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
@@ -298,6 +305,103 @@ export function setCategoryTags(db: Db, category: string, selectedTags: string[]
     SET selected_tags_json = excluded.selected_tags_json, updated_at = CURRENT_TIMESTAMP
   `).run(category, JSON.stringify(normalizedTags));
   return { category, selectedTags: normalizedTags };
+}
+
+export type MonthlyReportColumn = {
+  id?: number;
+  name: string;
+  categories: string[];
+};
+
+export function getMonthlyReport(db: Db) {
+  const categories = (db.prepare(`
+    SELECT DISTINCT category_name AS category
+    FROM transactions
+    WHERE deleted_at IS NULL AND category_name IS NOT NULL AND TRIM(category_name) <> ''
+    ORDER BY category_name COLLATE NOCASE
+  `).all() as Array<{ category: string }>).map((row) => row.category);
+  const savedRows = db.prepare(`
+    SELECT id, name, categories_json AS categoriesJson
+    FROM monthly_report_columns ORDER BY position, id
+  `).all() as Array<{ id: number; name: string; categoriesJson: string }>;
+  const columns: MonthlyReportColumn[] = savedRows.length
+    ? savedRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        categories: (JSON.parse(row.categoriesJson) as string[]).filter((category) =>
+          categories.includes(category),
+        ),
+      }))
+    : categories.map((category) => ({ name: category, categories: [category] }));
+  const transactions = db.prepare(`
+    SELECT SUBSTR(date, 1, 7) AS month, category_name AS category,
+      currency, SUM(ABS(amount)) AS amount
+    FROM transactions
+    WHERE deleted_at IS NULL AND amount < 0 AND category_name IS NOT NULL
+    GROUP BY SUBSTR(date, 1, 7), category_name, currency
+    ORDER BY month DESC
+  `).all() as Array<{
+    month: string;
+    category: string;
+    currency: string;
+    amount: number;
+  }>;
+  const monthSet = new Set((db.prepare(`
+    SELECT DISTINCT SUBSTR(date, 1, 7) AS month
+    FROM transactions WHERE deleted_at IS NULL
+    ORDER BY month DESC
+  `).all() as Array<{ month: string }>).map((row) => row.month));
+  const values = new Map<string, Map<string, number>>();
+  for (const row of transactions) {
+    monthSet.add(row.month);
+    columns.forEach((column, index) => {
+      if (!column.categories.includes(row.category)) return;
+      const key = `${row.month}\u0000${index}`;
+      const currencies = values.get(key) ?? new Map<string, number>();
+      currencies.set(row.currency, (currencies.get(row.currency) ?? 0) + row.amount);
+      values.set(key, currencies);
+    });
+  }
+  const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map((month) => ({
+    month,
+    cells: columns.map((_, index) =>
+      Array.from(values.get(`${month}\u0000${index}`) ?? [], ([currency, amount]) => ({
+        currency,
+        amount,
+      })).sort((a, b) => a.currency.localeCompare(b.currency)),
+    ),
+  }));
+  return { categories, columns, months, configured: savedRows.length > 0 };
+}
+
+export function setMonthlyReportColumns(db: Db, columns: MonthlyReportColumn[]) {
+  const available = new Set((db.prepare(`
+    SELECT DISTINCT category_name AS category FROM transactions
+    WHERE deleted_at IS NULL AND category_name IS NOT NULL AND TRIM(category_name) <> ''
+  `).all() as Array<{ category: string }>).map((row) => row.category));
+  const normalizedColumns = columns.map((column) => ({
+    name: column.name.trim(),
+    categories: Array.from(new Set(column.categories.map((category) => category.trim())))
+      .filter((category) => available.has(category)),
+  }));
+  if (!normalizedColumns.length) throw new Error("Add at least one column.");
+  if (normalizedColumns.some((column) => !column.name)) {
+    throw new Error("Every column needs a name.");
+  }
+  if (normalizedColumns.some((column) => !column.categories.length)) {
+    throw new Error("Every column needs at least one category.");
+  }
+  db.transaction(() => {
+    db.prepare("DELETE FROM monthly_report_columns").run();
+    const insert = db.prepare(`
+      INSERT INTO monthly_report_columns (name, categories_json, position)
+      VALUES (?, ?, ?)
+    `);
+    normalizedColumns.forEach((column, position) => {
+      insert.run(column.name, JSON.stringify(column.categories), position);
+    });
+  })();
+  return { columns: normalizedColumns };
 }
 
 function normalized(value: string | null): string {

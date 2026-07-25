@@ -150,6 +150,7 @@ export default function Dashboard() {
             <h1>Transactions</h1>
             <p>Import and review your Spendee exports in one place.</p>
           </div>
+          <Link className="back-home" href="/monthly">Monthly categories →</Link>
         </section>
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
