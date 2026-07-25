@@ -33,7 +33,8 @@ exports.
 - Supports a persisted starting amount per wallet and currency; wallet totals
   combine that starting amount with all active transactions.
 - Links every category to a cross-wallet detail page with paginated matching
-  transactions and a spending-by-tag diagram.
+  transactions and a configurable spending-by-tag pie chart. Unselected and
+  untagged spending is grouped into `Other`.
 - Paginates both lists on the server and stores data in a WAL-mode SQLite
   database.
 

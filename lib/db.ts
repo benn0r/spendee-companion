@@ -89,6 +89,11 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (wallet, currency)
     );
+    CREATE TABLE IF NOT EXISTS category_tag_config (
+      category TEXT PRIMARY KEY,
+      selected_tags_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   const missingKeys = db.prepare(
     "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
@@ -204,25 +209,43 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     SELECT labels, amount, currency FROM transactions
     WHERE category_name = ? AND deleted_at IS NULL AND amount < 0
   `).all(category) as Array<{ labels: string | null; amount: number; currency: string }>;
-  const tagTotals = new Map<string, { tag: string; currency: string; amount: number; transactionCount: number }>();
-  const spendingTotals = new Map<string, number>();
-  for (const row of spendRows) {
-    const spend = Math.abs(row.amount);
-    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + spend);
+  const tagFrequency = new Map<string, number>();
+  const parsedSpendRows = spendRows.map((row) => {
     const tags = row.labels
       ? Array.from(new Set(row.labels.split(",").map((tag) => tag.trim()).filter(Boolean)))
-      : ["Untagged"];
-    for (const tag of tags.length ? tags : ["Untagged"]) {
+      : [];
+    for (const tag of tags) tagFrequency.set(tag, (tagFrequency.get(tag) ?? 0) + 1);
+    return { ...row, tags };
+  });
+  const availableTags = Array.from(tagFrequency)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag]) => tag);
+  const savedConfig = db.prepare(
+    "SELECT selected_tags_json AS selectedTagsJson FROM category_tag_config WHERE category = ?",
+  ).get(category) as { selectedTagsJson: string } | undefined;
+  const selectedTags = savedConfig
+    ? (JSON.parse(savedConfig.selectedTagsJson) as string[]).filter((tag) => availableTags.includes(tag))
+    : availableTags.slice(0, 6);
+  const selectedSet = new Set(selectedTags);
+  const segmentTotals = new Map<string, { tag: string; currency: string; amount: number; transactionCount: number }>();
+  const spendingTotals = new Map<string, number>();
+  for (const row of parsedSpendRows) {
+    const spend = Math.abs(row.amount);
+    spendingTotals.set(row.currency, (spendingTotals.get(row.currency) ?? 0) + spend);
+    const matched = row.tags.filter((tag) => selectedSet.has(tag));
+    const destinations = matched.length ? matched : ["Other"];
+    const allocatedSpend = spend / destinations.length;
+    for (const tag of destinations) {
       const key = `${row.currency}\u0000${tag}`;
-      const current = tagTotals.get(key) ?? {
+      const current = segmentTotals.get(key) ?? {
         tag,
         currency: row.currency,
         amount: 0,
         transactionCount: 0,
       };
-      current.amount += spend;
+      current.amount += allocatedSpend;
       current.transactionCount += 1;
-      tagTotals.set(key, current);
+      segmentTotals.set(key, current);
     }
   }
   const wallets = db.prepare(`
@@ -235,7 +258,10 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     rows,
     wallets,
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
-    tags: Array.from(tagTotals.values()).sort((a, b) =>
+    availableTags,
+    selectedTags,
+    tagConfigSaved: Boolean(savedConfig),
+    segments: Array.from(segmentTotals.values()).sort((a, b) =>
       a.currency.localeCompare(b.currency) || b.amount - a.amount || a.tag.localeCompare(b.tag)
     ),
     page,
@@ -243,6 +269,24 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
     total,
     pages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+export function setCategoryTags(db: Db, category: string, selectedTags: string[]) {
+  const exists = db.prepare(`
+    SELECT 1 FROM transactions
+    WHERE category_name = ? AND deleted_at IS NULL LIMIT 1
+  `).get(category);
+  if (!exists) throw new Error("Category not found.");
+  const normalizedTags = Array.from(new Set(
+    selectedTags.map((tag) => tag.trim()).filter(Boolean),
+  )).sort((a, b) => a.localeCompare(b));
+  db.prepare(`
+    INSERT INTO category_tag_config (category, selected_tags_json)
+    VALUES (?, ?)
+    ON CONFLICT(category) DO UPDATE
+    SET selected_tags_json = excluded.selected_tags_json, updated_at = CURRENT_TIMESTAMP
+  `).run(category, JSON.stringify(normalizedTags));
+  return { category, selectedTags: normalizedTags };
 }
 
 function normalized(value: string | null): string {

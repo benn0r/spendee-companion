@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCategoryDetails, getDatabase } from "@/lib/db";
+import { getCategoryDetails, getDatabase, setCategoryTags } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -16,4 +16,23 @@ export async function GET(
     return NextResponse.json({ error: "Category not found." }, { status: 404 });
   }
   return NextResponse.json(result);
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ category: string }> },
+) {
+  try {
+    const category = (await params).category;
+    const body = await request.json() as { selectedTags?: unknown };
+    if (!Array.isArray(body.selectedTags) || !body.selectedTags.every((tag) => typeof tag === "string")) {
+      return NextResponse.json({ error: "selectedTags must be a list of tag names." }, { status: 400 });
+    }
+    return NextResponse.json(setCategoryTags(getDatabase(), category, body.selectedTags));
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not save tag selection." },
+      { status: 400 },
+    );
+  }
 }

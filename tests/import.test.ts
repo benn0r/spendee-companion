@@ -8,6 +8,7 @@ import {
   importTransactions,
   openDatabase,
   reviewReconciliation,
+  setCategoryTags,
   setWalletStartingBalance,
 } from "../lib/db";
 import { parseImportFile } from "../lib/import-xlsx";
@@ -217,10 +218,22 @@ test("aggregates category spending by tag across wallets", () => {
     { wallet: "Cash", transactionCount: 2 },
   ]);
   assert.deepEqual(details.spendingTotals, [{ currency: "CHF", amount: 60 }]);
-  assert.deepEqual(details.tags, [
-    { tag: "lunch", currency: "CHF", amount: 50, transactionCount: 2 },
+  assert.deepEqual(details.availableTags, ["lunch", "work"]);
+  assert.deepEqual(details.selectedTags, ["lunch", "work"]);
+  assert.equal(details.tagConfigSaved, false);
+  assert.deepEqual(details.segments, [
+    { tag: "lunch", currency: "CHF", amount: 35, transactionCount: 2 },
+    { tag: "work", currency: "CHF", amount: 15, transactionCount: 1 },
+    { tag: "Other", currency: "CHF", amount: 10, transactionCount: 1 },
+  ]);
+  assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), 60);
+  setCategoryTags(db, "Food & Drink", ["work"]);
+  const configured = getCategoryDetails(db, "Food & Drink", 1, 10);
+  assert.deepEqual(configured.selectedTags, ["work"]);
+  assert.equal(configured.tagConfigSaved, true);
+  assert.deepEqual(configured.segments, [
+    { tag: "Other", currency: "CHF", amount: 30, transactionCount: 2 },
     { tag: "work", currency: "CHF", amount: 30, transactionCount: 1 },
-    { tag: "Untagged", currency: "CHF", amount: 10, transactionCount: 1 },
   ]);
   db.close();
 });

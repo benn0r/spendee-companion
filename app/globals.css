@@ -178,23 +178,32 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
 .category-spend small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
 .category-spend strong { color: var(--coral); font-size: 24px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .tag-chart-card, .category-wallets { margin-bottom: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: white; }
-.tag-chart-group { padding-top: 15px; display: grid; grid-template-columns: 145px 1fr; gap: 20px; border-top: 1px solid var(--line); }
-.tag-chart-group + .tag-chart-group { margin-top: 18px; }
-.tag-chart-total { display: flex; flex-direction: column; gap: 4px; }
-.tag-chart-total b { color: var(--slate); font-size: 12px; }
-.tag-chart-total span { color: var(--muted); font-size: 10px; }
-.tag-bars { display: flex; flex-direction: column; gap: 12px; }
-.tag-bar-row { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(180px, 2fr) 105px; align-items: center; gap: 12px; }
-.tag-bar-label { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.tag-bar-label b { overflow: hidden; color: var(--slate); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.tag-bar-label span { color: var(--muted); font-size: 8px; }
-.tag-bar-track { height: 9px; border-radius: 99px; background: #eef2f4; overflow: hidden; }
-.tag-bar-track span { height: 100%; display: block; border-radius: inherit; background: var(--green); }
-.tag-bar-track .tag-color-1 { background: var(--blue); }
-.tag-bar-track .tag-color-2 { background: var(--yellow); }
-.tag-bar-track .tag-color-3 { background: var(--pink); }
-.tag-bar-row > strong { color: var(--slate); font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.chart-note { margin: 16px 0 0 165px; color: #8d979f; font-size: 8px; }
+.tag-config { margin-bottom: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #f9fbfc; }
+.tag-config-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.tag-config-head > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.tag-config-head b { color: var(--slate); font-size: 10px; }
+.tag-config-head span { color: var(--muted); font-size: 8px; }
+.tag-config-head > div:last-child { display: flex; gap: 6px; }
+.tag-config button { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--slate); background: white; cursor: pointer; font-size: 8px; font-weight: 600; }
+.tag-config button.save-tags { border-color: var(--green); color: white; background: var(--green); }
+.tag-config button:disabled { opacity: .6; cursor: wait; }
+.tag-options { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-options label { padding: 5px 7px; display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); background: white; cursor: pointer; font-size: 8px; }
+.tag-options label:has(input:checked) { border-color: #8cdcc2; color: #087b59; background: var(--green-soft); }
+.tag-options input { width: 12px; height: 12px; margin: 0; accent-color: var(--green); }
+.tag-config > p { margin: 9px 0 0; color: var(--green-dark); font-size: 8px; }
+.pie-chart-group { padding: 18px 0; display: grid; grid-template-columns: minmax(220px, .75fr) minmax(280px, 1.25fr); align-items: center; gap: 30px; border-top: 1px solid var(--line); }
+.pie-chart-group + .pie-chart-group { border-top: 1px solid var(--line); }
+.pie-chart { position: relative; width: 220px; aspect-ratio: 1; justify-self: center; border-radius: 50%; box-shadow: inset 0 0 0 1px #ffffff88, 0 8px 24px #34455414; }
+.pie-chart > span { position: absolute; left: 50%; bottom: 13px; padding: 5px 8px; display: flex; align-items: center; gap: 5px; border-radius: 99px; color: var(--slate); background: rgba(255,255,255,.9); box-shadow: 0 2px 8px #34455422; font-size: 8px; transform: translateX(-50%); white-space: nowrap; }
+.pie-chart > span b { font-size: 9px; }
+.pie-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; }
+.pie-legend > div { min-width: 0; display: grid; grid-template-columns: 9px minmax(60px, 1fr) 40px 85px; align-items: center; gap: 7px; }
+.pie-legend > div > span { width: 9px; height: 9px; border-radius: 3px; }
+.pie-legend b { overflow: hidden; color: var(--slate); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.pie-legend small { color: var(--muted); font-size: 8px; text-align: right; }
+.pie-legend strong { color: var(--slate); font-size: 9px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-note { margin: 4px 0 0; color: #8d979f; font-size: 8px; }
 .chart-empty { padding: 40px; color: var(--muted); text-align: center; font-size: 11px; }
 .category-wallets > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
 .category-wallets a { padding: 7px 9px; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 9px; color: var(--slate); text-decoration: none; }
@@ -206,8 +215,7 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
 @media (max-width: 900px) {
   .overview-grid { grid-template-columns: 1fr; }
   .wallet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tag-chart-group { grid-template-columns: 1fr; gap: 12px; }
-  .chart-note { margin-left: 0; }
+  .pie-chart-group { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -221,8 +229,11 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
   .wallet-hero { align-items: flex-start; flex-direction: column; }
   .category-hero { align-items: flex-start; flex-direction: column; }
   .category-spend { width: 100%; padding-top: 15px; align-items: flex-start; border-top: 1px solid var(--line); }
-  .tag-bar-row { grid-template-columns: minmax(85px, .7fr) minmax(90px, 1.3fr); }
-  .tag-bar-row > strong { grid-column: 2; }
+  .tag-config-head { align-items: flex-start; flex-direction: column; }
+  .tag-config-head > div:last-child { width: 100%; }
+  .tag-config-head button { flex: 1; }
+  .pie-chart { width: min(220px, 78vw); }
+  .pie-legend { grid-template-columns: 1fr; }
   .balance-group { width: 100%; min-width: 0; padding-top: 15px; align-items: flex-start; border-top: 1px solid var(--line); }
   .balance-entry { width: 100%; align-items: flex-start; }
   .balance-entry label { width: 100%; align-items: flex-start; flex-direction: column; }

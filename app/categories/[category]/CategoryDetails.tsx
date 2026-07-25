@@ -23,7 +23,10 @@ type CategoryData = {
   rows: Row[];
   wallets: Array<{ wallet: string; transactionCount: number }>;
   spendingTotals: Array<{ currency: string; amount: number }>;
-  tags: Array<{ tag: string; currency: string; amount: number; transactionCount: number }>;
+  availableTags: string[];
+  selectedTags: string[];
+  tagConfigSaved: boolean;
+  segments: Array<{ tag: string; currency: string; amount: number; transactionCount: number }>;
   page: number;
   pages: number;
   pageSize: number;
@@ -35,7 +38,10 @@ const emptyData: CategoryData = {
   rows: [],
   wallets: [],
   spendingTotals: [],
-  tags: [],
+  availableTags: [],
+  selectedTags: [],
+  tagConfigSaved: false,
+  segments: [],
   page: 1,
   pages: 1,
   pageSize: 25,
@@ -50,10 +56,25 @@ function formatAmount(amount: number, currency: string) {
   return new Intl.NumberFormat("de-CH", { style: "currency", currency }).format(amount);
 }
 
+const chartColors = ["#12c48b", "#1eadcf", "#feb100", "#f964a0", "#7c6ee6", "#fb6666", "#53a653", "#8f6b4f", "#344554"];
+
+function pieGradient(segments: Array<{ amount: number }>, total: number) {
+  let cursor = 0;
+  const stops = segments.map((segment, index) => {
+    const start = cursor;
+    cursor += total ? (segment.amount / total) * 100 : 0;
+    return `${chartColors[index % chartColors.length]} ${start}% ${cursor}%`;
+  });
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
 export default function CategoryDetails({ category }: { category: string }) {
   const [data, setData] = useState<CategoryData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [savingTags, setSavingTags] = useState(false);
+  const [tagMessage, setTagMessage] = useState<string | null>(null);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -66,6 +87,7 @@ export default function CategoryDetails({ category }: { category: string }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not load this category.");
       setData(result);
+      setSelectedTags(result.selectedTags);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load this category.");
     } finally {
@@ -76,13 +98,32 @@ export default function CategoryDetails({ category }: { category: string }) {
   useEffect(() => { void load(1); }, [load]);
 
   const chartGroups = useMemo(() => data.spendingTotals.map((total) => {
-    const tags = data.tags.filter((tag) => tag.currency === total.currency);
+    const segments = data.segments.filter((segment) => segment.currency === total.currency);
     return {
       ...total,
-      tags,
-      max: Math.max(...tags.map((tag) => tag.amount), 1),
+      segments,
     };
-  }), [data.spendingTotals, data.tags]);
+  }), [data.spendingTotals, data.segments]);
+
+  async function saveTagSelection() {
+    setSavingTags(true);
+    setTagMessage(null);
+    try {
+      const response = await fetch(`/api/categories/${encodeURIComponent(category)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedTags }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Could not save tag selection.");
+      await load(data.page);
+      setTagMessage("Tag selection saved.");
+    } catch (reason) {
+      setTagMessage(reason instanceof Error ? reason.message : "Could not save tag selection.");
+    } finally {
+      setSavingTags(false);
+    }
+  }
 
   return (
     <main>
@@ -123,35 +164,61 @@ export default function CategoryDetails({ category }: { category: string }) {
           <>
             <section className="tag-chart-card">
               <div className="section-heading">
-                <div><h2>Spending by tag</h2><p>Expense transactions in this category, across all wallets</p></div>
+                <div><h2>Spending by tag</h2><p>Selected tags are shown separately; everything else is grouped as Other</p></div>
+              </div>
+              <div className="tag-config">
+                <div className="tag-config-head">
+                  <div><b>Tags in this chart</b><span>{selectedTags.length} of {data.availableTags.length} selected</span></div>
+                  <div>
+                    <button type="button" onClick={() => setSelectedTags(data.availableTags)}>Select all</button>
+                    <button type="button" onClick={() => setSelectedTags([])}>Clear</button>
+                    <button className="save-tags" disabled={savingTags} type="button" onClick={() => void saveTagSelection()}>
+                      {savingTags ? "Saving…" : "Save selection"}
+                    </button>
+                  </div>
+                </div>
+                <div className="tag-options">
+                  {data.availableTags.map((tag) => (
+                    <label key={tag}>
+                      <input
+                        checked={selectedTags.includes(tag)}
+                        onChange={(event) => setSelectedTags((current) =>
+                          event.target.checked ? [...current, tag] : current.filter((item) => item !== tag)
+                        )}
+                        type="checkbox"
+                      />
+                      <span>{tag}</span>
+                    </label>
+                  ))}
+                </div>
+                {!data.tagConfigSaved && <p>Top tags are selected by default. Save a selection to customize this category.</p>}
+                {tagMessage && <p>{tagMessage}</p>}
               </div>
               {chartGroups.length === 0 && !loading ? (
                 <div className="chart-empty">No expense transactions in this category.</div>
               ) : chartGroups.map((group) => (
-                <div className="tag-chart-group" key={group.currency}>
-                  <div className="tag-chart-total">
-                    <b>{group.currency}</b>
-                    <span>{formatAmount(group.amount, group.currency)} spent</span>
+                <div className="pie-chart-group" key={group.currency}>
+                  <div
+                    aria-label={`${group.currency} spending pie chart`}
+                    className="pie-chart"
+                    role="img"
+                    style={{ background: pieGradient(group.segments, group.amount) }}
+                  >
+                    <span>{group.currency}<b>{formatAmount(group.amount, group.currency)}</b></span>
                   </div>
-                  <div className="tag-bars">
-                    {group.tags.map((tag, index) => (
-                      <div className="tag-bar-row" key={`${tag.currency}-${tag.tag}`}>
-                        <div className="tag-bar-label">
-                          <b>{tag.tag}</b>
-                          <span>{tag.transactionCount} {tag.transactionCount === 1 ? "transaction" : "transactions"}</span>
-                        </div>
-                        <div className="tag-bar-track" aria-hidden="true">
-                          <span className={`tag-color-${index % 4}`} style={{ width: `${Math.max(3, (tag.amount / group.max) * 100)}%` }}></span>
-                        </div>
-                        <strong>{formatAmount(tag.amount, tag.currency)}</strong>
+                  <div className="pie-legend">
+                    {group.segments.map((segment, index) => (
+                      <div key={`${segment.currency}-${segment.tag}`}>
+                        <span style={{ background: chartColors[index % chartColors.length] }}></span>
+                        <b>{segment.tag}</b>
+                        <small>{group.amount ? ((segment.amount / group.amount) * 100).toFixed(1) : "0.0"}%</small>
+                        <strong>{formatAmount(segment.amount, segment.currency)}</strong>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-              {data.tags.some((tag) => tag.tag !== "Untagged") && (
-                <p className="chart-note">A transaction with multiple tags contributes its full amount to each matching tag.</p>
-              )}
+              <p className="chart-note">When a transaction has multiple selected tags, its amount is split evenly between them so the pie always equals total spending.</p>
             </section>
 
             <section className="category-wallets">
