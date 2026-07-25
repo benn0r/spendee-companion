@@ -132,6 +132,8 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
     );
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn(db, "category_tag_config", "icon_id", "INTEGER");
+  ensureColumn(db, "category_tag_config", "color", "TEXT");
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
   ensureColumn(db, "split_records", "title", "TEXT");
   const missingKeys = db.prepare(
@@ -308,8 +310,8 @@ export function getCategoryDetails(
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([tag]) => tag);
   const savedConfig = db.prepare(
-    "SELECT selected_tags_json AS selectedTagsJson, enabled FROM category_tag_config WHERE category = ?",
-  ).get(category) as { selectedTagsJson: string; enabled: number } | undefined;
+    "SELECT selected_tags_json AS selectedTagsJson, enabled, icon_id AS iconId, color FROM category_tag_config WHERE category = ?",
+  ).get(category) as { selectedTagsJson: string; enabled: number; iconId: number | null; color: string | null } | undefined;
   const selectedTags = savedConfig
     ? (JSON.parse(savedConfig.selectedTagsJson) as string[]).filter((tag) => availableTags.includes(tag))
     : availableTags.slice(0, 6);
@@ -349,6 +351,10 @@ export function getCategoryDetails(
     availableTags,
     selectedTags,
     spendingByTagEnabled: savedConfig?.enabled !== 0,
+    appearance: {
+      iconId: savedConfig?.iconId ?? null,
+      color: savedConfig?.color ?? "#1eadcf",
+    },
     tagConfigSaved: Boolean(savedConfig),
     segments: Array.from(segmentTotals.values()).filter((segment) => Math.abs(segment.amount) > 0.000001).sort((a, b) =>
       a.currency.localeCompare(b.currency) || b.amount - a.amount || a.tag.localeCompare(b.tag)
@@ -381,6 +387,8 @@ export function setCategoryTags(
   category: string,
   selectedTags: string[],
   enabled = true,
+  iconId: number | null = null,
+  color = "#1eadcf",
 ) {
   const exists = db.prepare(`
     SELECT 1 FROM transactions
@@ -391,13 +399,14 @@ export function setCategoryTags(
     selectedTags.map((tag) => tag.trim()).filter(Boolean),
   )).sort((a, b) => a.localeCompare(b));
   db.prepare(`
-    INSERT INTO category_tag_config (category, selected_tags_json, enabled)
-    VALUES (?, ?, ?)
+    INSERT INTO category_tag_config (category, selected_tags_json, enabled, icon_id, color)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(category) DO UPDATE
     SET selected_tags_json = excluded.selected_tags_json, enabled = excluded.enabled,
+      icon_id = excluded.icon_id, color = excluded.color,
       updated_at = CURRENT_TIMESTAMP
-  `).run(category, JSON.stringify(normalizedTags), enabled ? 1 : 0);
-  return { category, selectedTags: normalizedTags, spendingByTagEnabled: enabled };
+  `).run(category, JSON.stringify(normalizedTags), enabled ? 1 : 0, iconId, color);
+  return { category, selectedTags: normalizedTags, spendingByTagEnabled: enabled, appearance: { iconId, color } };
 }
 
 export type MonthlyReportColumn = {
@@ -609,6 +618,13 @@ export function getTransactionFilterOptions(db: Db) {
     categories: distinct("category_name"),
     tags: Array.from(tagSet).sort((a, b) => a.localeCompare(b)),
     authors: distinct("author"),
+    categoryAppearances: Object.fromEntries((db.prepare(`
+      SELECT category, icon_id AS iconId, COALESCE(color, '#1eadcf') AS color
+      FROM category_tag_config
+    `).all() as Array<{ category: string; iconId: number | null; color: string }>).map((row) => [
+      row.category,
+      { iconId: row.iconId, color: row.color },
+    ])),
   };
 }
 

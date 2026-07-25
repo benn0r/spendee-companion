@@ -112,3 +112,9 @@ delete data.
 ## License
 
 [MIT](LICENSE)
+
+### Third-party assets
+
+The category icons in `public/category-icons` are official Spendee assets
+retrieved from `api.spendee.com`. They remain the property of their respective
+owner and are not covered by this repository's MIT license.

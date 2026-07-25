@@ -14,6 +14,7 @@ import TransactionFilters, {
 import SplitDialog from "./SplitDialog";
 import TopNavigation from "./TopNavigation";
 import PageSizeSelect from "./PageSizeSelect";
+import CategoryIcon from "./CategoryIcon";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -304,7 +305,7 @@ export default function Dashboard() {
                   <div className="category-directory">
                     {filterOptions.categories.map((category) => (
                       <Link href={`/categories/${categorySlug(category)}`} key={category}>
-                        <span>#</span>
+                        <CategoryIcon appearance={filterOptions.categoryAppearances?.[category]} />
                         <b>{category}</b>
                         <i aria-hidden="true">→</i>
                       </Link>
@@ -451,7 +452,7 @@ export default function Dashboard() {
                         </td>
                         <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                         <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                        <td>{row.categoryName ? <Link className="category-link" href={`/categories/${categorySlug(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
+                        <td>{row.categoryName ? <Link className="category-link category-link-with-icon" href={`/categories/${categorySlug(row.categoryName)}`}><CategoryIcon appearance={filterOptions.categoryAppearances?.[row.categoryName]} />{row.categoryName}</Link> : "—"}</td>
                         <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                         <td>{row.author ?? "—"}</td>
                         {tab === "duplicates" && <td><button className="delete-row" disabled={deletingDuplicates} onClick={() => void removeDuplicates([row.id])}>Delete</button></td>}

@@ -7,6 +7,8 @@ import TopNavigation from "@/app/TopNavigation";
 import PageSizeSelect from "@/app/PageSizeSelect";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
+import CategoryIcon from "@/app/CategoryIcon";
+import type { CategoryAppearance } from "@/lib/category-appearance";
 
 type Row = {
   id: number;
@@ -61,6 +63,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState(25);
+  const [categoryAppearances, setCategoryAppearances] = useState<Record<string, CategoryAppearance>>({});
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -83,6 +86,13 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   }, [wallet, pageSize]);
 
   useEffect(() => { void load(1); }, [load]);
+  useEffect(() => {
+    void fetch("/api/filter-options", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result: { categoryAppearances?: Record<string, CategoryAppearance> }) =>
+        setCategoryAppearances(result.categoryAppearances ?? {})
+      );
+  }, []);
 
   async function saveStartingAmount(currency: string) {
     const amount = Number(startingAmounts[currency]);
@@ -197,7 +207,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                             {data.validUntil && dayKey(row.date) <= data.validUntil && <span className="verified-badge">✓ Verified</span>}
                           </td>
                           <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
-                          <td>{row.categoryName ? <Link className="category-link" href={`/categories/${categorySlug(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
+                          <td>{row.categoryName ? <Link className="category-link category-link-with-icon" href={`/categories/${categorySlug(row.categoryName)}`}><CategoryIcon appearance={categoryAppearances[row.categoryName]} />{row.categoryName}</Link> : "—"}</td>
                           <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
                           <td>{row.author ?? "—"}</td>
                           <td className="right"><span className={`amount ${row.amount < 0 ? "expense" : "income"}`}>{formatAmount(row.amount, row.currency)}</span></td>

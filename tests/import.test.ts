@@ -267,11 +267,12 @@ test("aggregates category spending by tag across wallets", () => {
     { tag: "lunch", currency: "CHF", amount: -25, transactionCount: 3 },
   ]);
   assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), -50);
-  setCategoryTags(db, "Food & Drink", ["work"], false);
+  setCategoryTags(db, "Food & Drink", ["work"], false, 3, "#12c48b");
   const configured = getCategoryDetails(db, "Food & Drink", 1, 10);
   assert.deepEqual(configured.selectedTags, ["work"]);
   assert.equal(configured.tagConfigSaved, true);
   assert.equal(configured.spendingByTagEnabled, false);
+  assert.deepEqual(configured.appearance, { iconId: 3, color: "#12c48b" });
   assert.deepEqual(configured.segments, [
     { tag: "Other", currency: "CHF", amount: -20, transactionCount: 3 },
     { tag: "work", currency: "CHF", amount: -30, transactionCount: 1 },
@@ -425,6 +426,7 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     categories: ["Food & Drink", "Salary"],
     tags: ["food", "work"],
     authors: ["Anna", "Benjamin"],
+    categoryAppearances: {},
   });
   db.close();
 });

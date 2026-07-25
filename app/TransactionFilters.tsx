@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CategoryAppearance } from "@/lib/category-appearance";
 
 export type FilterOptions = {
   wallets: string[];
@@ -8,6 +9,7 @@ export type FilterOptions = {
   categories: string[];
   tags: string[];
   authors: string[];
+  categoryAppearances?: Record<string, CategoryAppearance>;
 };
 
 export type FilterState = {

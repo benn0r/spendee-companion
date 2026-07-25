@@ -6,6 +6,8 @@ import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
 import PageSizeSelect from "@/app/PageSizeSelect";
 import TransactionFilters, { emptyFilters, filterQuery, type FilterOptions, type FilterState } from "@/app/TransactionFilters";
+import CategoryIcon from "@/app/CategoryIcon";
+import { categoryIconIds, defaultCategoryColor, type CategoryAppearance } from "@/lib/category-appearance";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
@@ -32,6 +34,7 @@ type CategoryData = {
   selectedTags: string[];
   spendingByTagEnabled: boolean;
   tagConfigSaved: boolean;
+  appearance: CategoryAppearance;
   segments: Array<{ tag: string; currency: string; amount: number; transactionCount: number }>;
   page: number;
   pages: number;
@@ -50,6 +53,7 @@ const emptyData: CategoryData = {
   selectedTags: [],
   spendingByTagEnabled: true,
   tagConfigSaved: false,
+  appearance: { iconId: null, color: defaultCategoryColor },
   segments: [],
   page: 1,
   pages: 1,
@@ -92,6 +96,8 @@ export default function CategoryDetails({ category }: { category: string }) {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const [activeFilterQuery, setActiveFilterQuery] = useState("");
+  const [iconId, setIconId] = useState<number | null>(null);
+  const [categoryColor, setCategoryColor] = useState(defaultCategoryColor);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -106,6 +112,8 @@ export default function CategoryDetails({ category }: { category: string }) {
       setData(result);
       setSelectedTags(result.selectedTags);
       setSpendingByTagEnabled(result.spendingByTagEnabled);
+      setIconId(result.appearance.iconId);
+      setCategoryColor(result.appearance.color);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load this category.");
     } finally {
@@ -136,7 +144,7 @@ export default function CategoryDetails({ category }: { category: string }) {
       const response = await fetch(`/api/categories/${category}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedTags, spendingByTagEnabled }),
+        body: JSON.stringify({ selectedTags, spendingByTagEnabled, iconId, color: categoryColor }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not save tag selection.");
@@ -165,7 +173,7 @@ export default function CategoryDetails({ category }: { category: string }) {
       <div className="workspace category-page">
         <section className="category-hero">
           <div className="category-title">
-            <span className="category-symbol">#</span>
+            <CategoryIcon appearance={data.appearance} className="category-symbol" />
             <div>
               <p className="eyebrow">CATEGORY</p>
               <h1>{data.category || "Category"}</h1>
@@ -199,6 +207,37 @@ export default function CategoryDetails({ category }: { category: string }) {
                   <span>Choose which insights are shown for {data.category}.</span>
                 </div>
                 <button aria-label="Close settings" onClick={() => setSettingsOpen(false)}>×</button>
+              </div>
+              <div className="category-appearance-settings">
+                <div className="appearance-setting-head">
+                  <div><b>Appearance</b><span>Choose an official Spendee icon and category color.</span></div>
+                  <label className="category-color-picker">
+                    <input
+                      aria-label="Category color"
+                      onChange={(event) => setCategoryColor(event.target.value)}
+                      type="color"
+                      value={categoryColor}
+                    />
+                    <span>{categoryColor.toUpperCase()}</span>
+                  </label>
+                </div>
+                <div className="category-icon-picker">
+                  <button
+                    aria-label="No category icon"
+                    className={iconId === null ? "selected" : ""}
+                    onClick={() => setIconId(null)}
+                    type="button"
+                  ><span style={{ backgroundColor: categoryColor }}>#</span></button>
+                  {categoryIconIds.map((id) => (
+                    <button
+                      aria-label={`Category icon ${id}`}
+                      className={iconId === id ? "selected" : ""}
+                      key={id}
+                      onClick={() => setIconId(id)}
+                      type="button"
+                    ><span style={{ backgroundColor: categoryColor }}><img alt="" src={`/category-icons/cat_${id}.svg`} /></span></button>
+                  ))}
+                </div>
               </div>
               <label className="setting-toggle">
                 <span><b>Spending by tag</b><small>Include expenses and income to show the net amount for each tag.</small></span>
