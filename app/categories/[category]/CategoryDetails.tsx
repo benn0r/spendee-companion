@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
+import PageSizeSelect from "@/app/PageSizeSelect";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
@@ -81,6 +82,7 @@ export default function CategoryDetails({ category }: { category: string }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [savingTags, setSavingTags] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
   const [tagMessage, setTagMessage] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [spendingByTagEnabled, setSpendingByTagEnabled] = useState(true);
@@ -90,7 +92,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     setError(null);
     try {
       const response = await fetch(
-        `/api/categories/${category}?page=${page}&pageSize=25`,
+        `/api/categories/${category}?page=${page}&pageSize=${pageSize}`,
         { cache: "no-store" },
       );
       const result = await response.json();
@@ -103,7 +105,7 @@ export default function CategoryDetails({ category }: { category: string }) {
     } finally {
       setLoading(false);
     }
-  }, [category]);
+  }, [category, pageSize]);
 
   useEffect(() => { void load(1); }, [load]);
 
@@ -314,7 +316,10 @@ export default function CategoryDetails({ category }: { category: string }) {
                 </table>
               </div>
               <div className="pagination">
-                <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+                <div className="pagination-summary">
+                  <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+                  <PageSizeSelect value={pageSize} onChange={setPageSize} />
+                </div>
                 <div>
                   <button disabled={data.page <= 1 || loading} onClick={() => void load(data.page - 1)}>←</button>
                   <span>Page {data.page} of {data.pages}</span>

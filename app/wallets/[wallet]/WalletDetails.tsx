@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
+import PageSizeSelect from "@/app/PageSizeSelect";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 
@@ -59,12 +60,13 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
   const [startingAmounts, setStartingAmounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(25);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/wallets/${encodeURIComponent(wallet)}?page=${page}&pageSize=25`, { cache: "no-store" });
+      const response = await fetch(`/api/wallets/${encodeURIComponent(wallet)}?page=${page}&pageSize=${pageSize}`, { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not load this wallet.");
       setData(result);
@@ -78,7 +80,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
     } finally {
       setLoading(false);
     }
-  }, [wallet]);
+  }, [wallet, pageSize]);
 
   useEffect(() => { void load(1); }, [load]);
 
@@ -207,7 +209,10 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
               </table>
             </div>
             <div className="pagination">
-              <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+              <div className="pagination-summary">
+                <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+                <PageSizeSelect value={pageSize} onChange={setPageSize} />
+              </div>
               <div>
                 <button disabled={data.page <= 1 || loading} onClick={() => void load(data.page - 1)}>←</button>
                 <span>Page {data.page} of {data.pages}</span>

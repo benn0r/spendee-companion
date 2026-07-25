@@ -13,6 +13,7 @@ import TransactionFilters, {
 } from "./TransactionFilters";
 import SplitDialog from "./SplitDialog";
 import TopNavigation from "./TopNavigation";
+import PageSizeSelect from "./PageSizeSelect";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -77,13 +78,14 @@ export default function Dashboard() {
   const [savingValidUntil, setSavingValidUntil] = useState(false);
   const [selectedDuplicates, setSelectedDuplicates] = useState<number[]>([]);
   const [deletingDuplicates, setDeletingDuplicates] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
     try {
       const [statsResponse, pageResponse, reviewResponse, walletsResponse] = await Promise.all([
         fetch("/api/stats", { cache: "no-store" }),
-        fetch(`/api/${targetTab}?page=${page}&pageSize=25${activeFilterQuery ? `&${activeFilterQuery}` : ""}`, { cache: "no-store" }),
+        fetch(`/api/${targetTab}?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}`, { cache: "no-store" }),
         fetch("/api/reconciliation", { cache: "no-store" }),
         fetch("/api/wallets", { cache: "no-store" }),
       ]);
@@ -98,7 +100,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [tab, activeFilterQuery]);
+  }, [tab, activeFilterQuery, pageSize]);
 
   useEffect(() => { void load(tab, 1); }, [tab, load]);
   useEffect(() => {
@@ -421,7 +423,10 @@ export default function Dashboard() {
             </table>
           </div>
           <div className="pagination">
-            <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+            <div className="pagination-summary">
+              <span>{data.total ? `${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} of ${data.total}` : "0 records"}</span>
+              <PageSizeSelect value={pageSize} onChange={setPageSize} />
+            </div>
             <div>
               <button disabled={data.page <= 1 || loading} onClick={() => void load(tab, data.page - 1)}>←</button>
               <span>Page {data.page} of {data.pages}</span>
