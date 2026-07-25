@@ -391,9 +391,9 @@ export default function Dashboard() {
               {tab === "transactions" && (
                 <div className="valid-until-control">
                   <label>
-                    <span>Valid until</span>
+                    <span>Verified until</span>
                     <input
-                      aria-label="Valid until"
+                      aria-label="Verified until"
                       type="date"
                       value={validUntil}
                       onChange={(event) => setValidUntil(event.target.value)}
