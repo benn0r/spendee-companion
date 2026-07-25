@@ -104,7 +104,7 @@ https://your-spendee.example.com/mcp
 
 The endpoint uses stateless Streamable HTTP with JSON responses. It only
 registers read tools: overview and filter options, filtered/paginated
-transactions, duplicates, wallets, category details, monthly categories,
+transactions, duplicates, wallets, category details, Monthy reports,
 splits, and pending reconciliation items. It cannot import, update, approve, or
 delete data.
 

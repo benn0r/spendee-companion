@@ -37,7 +37,7 @@ export default function TopNavigation({
         <Link href="/?view=duplicates">Duplicates <span>{count}</span></Link>
       )}
       <Link className={active === "splits" ? "active" : ""} href="/splits">Splits</Link>
-      <Link className={active === "monthly" ? "active" : ""} href="/monthly">Monthly categories</Link>
+      <Link className={active === "monthly" ? "active" : ""} href="/monthly">Monthy</Link>
     </nav>
   );
 }

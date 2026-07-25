@@ -103,7 +103,7 @@ export default function MonthlyReport() {
         <section className="page-heading">
           <div>
             <p className="eyebrow">SPENDING OVER TIME</p>
-            <h1>Monthly categories</h1>
+            <h1>Monthy</h1>
             <p>Compare net category totals by month and combine categories into custom columns.</p>
           </div>
           <button className="report-config-button" onClick={() => setEditing((value) => !value)}>
