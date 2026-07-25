@@ -144,13 +144,10 @@ export default function TransactionFilters({
           <input type="date" value={value.dateTo} onChange={(event) => update({ dateTo: event.target.value })} />
         </label>
         <MultiFilter label="Wallets" options={options.wallets} selected={value.wallets} onChange={(wallets) => update({ wallets })} />
-        <MultiFilter searchable label="Types" options={options.types} selected={value.types} onChange={(types) => update({ types })} />
         {!hideCategories && <MultiFilter searchable label="Categories" options={options.categories} selected={value.categories} onChange={(categories) => update({ categories })} />}
         <MultiFilter searchable label="Tags" options={options.tags} selected={value.tags} onChange={(tags) => update({ tags })} />
-        <MultiFilter label="Authors" options={options.authors} selected={value.authors} onChange={(authors) => update({ authors })} />
       </div>
       <div className="filter-amount-row">
-        <span>Absolute amount</span>
         <select
           aria-label="Amount comparison"
           value={value.amountOperator}
