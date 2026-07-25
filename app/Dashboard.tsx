@@ -257,32 +257,63 @@ export default function Dashboard() {
 
         {message && <div className={`notice ${message.tone}`}>{message.text}</div>}
 
-        {tab === "transactions" && wallets.length > 0 && (
-          <section className="wallet-overview" aria-labelledby="wallet-overview-title">
-            <div className="section-heading">
-              <div><h2 id="wallet-overview-title">Wallets</h2></div>
-              <span>{wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}</span>
-            </div>
-            <div className="wallet-grid">
-              {wallets.map((wallet, index) => (
-                <Link className="wallet-card" href={`/wallets/${encodeURIComponent(wallet.wallet)}`} key={wallet.wallet}>
-                  <span className={`wallet-symbol wallet-color-${index % 4}`}>{wallet.wallet.slice(0, 1)}</span>
-                  <span className="wallet-card-copy">
-                    <strong>{wallet.wallet}</strong>
-                    <small>{wallet.transactionCount.toLocaleString("en-CH")} {wallet.transactionCount === 1 ? "transaction" : "transactions"}</small>
+        {tab === "transactions" && (wallets.length > 0 || filterOptions.categories.length > 0) && (
+          <div className="dashboard-widgets">
+            {wallets.length > 0 && (
+              <details className="dashboard-widget">
+                <summary>
+                  <span><b>Wallets</b><small>Balances and transaction totals</small></span>
+                  <span className="dashboard-widget-meta">
+                    <em>{wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}</em>
+                    <i aria-hidden="true">⌄</i>
                   </span>
-                  <span className="wallet-totals">
-                    {wallet.totals.map((total) => (
-                      <b className={total.total < 0 ? "negative" : ""} key={total.currency}>
-                        {new Intl.NumberFormat("de-CH", { style: "currency", currency: total.currency }).format(total.total)}
-                      </b>
+                </summary>
+                <div className="dashboard-widget-content">
+                  <div className="wallet-grid">
+                    {wallets.map((wallet, index) => (
+                      <Link className="wallet-card" href={`/wallets/${encodeURIComponent(wallet.wallet)}`} key={wallet.wallet}>
+                        <span className={`wallet-symbol wallet-color-${index % 4}`}>{wallet.wallet.slice(0, 1)}</span>
+                        <span className="wallet-card-copy">
+                          <strong>{wallet.wallet}</strong>
+                          <small>{wallet.transactionCount.toLocaleString("en-CH")} {wallet.transactionCount === 1 ? "transaction" : "transactions"}</small>
+                        </span>
+                        <span className="wallet-totals">
+                          {wallet.totals.map((total) => (
+                            <b className={total.total < 0 ? "negative" : ""} key={total.currency}>
+                              {new Intl.NumberFormat("de-CH", { style: "currency", currency: total.currency }).format(total.total)}
+                            </b>
+                          ))}
+                        </span>
+                        <span className="wallet-arrow">→</span>
+                      </Link>
                     ))}
+                  </div>
+                </div>
+              </details>
+            )}
+            {filterOptions.categories.length > 0 && (
+              <details className="dashboard-widget">
+                <summary>
+                  <span><b>Categories</b><small>Browse transactions across all wallets</small></span>
+                  <span className="dashboard-widget-meta">
+                    <em>{filterOptions.categories.length} {filterOptions.categories.length === 1 ? "category" : "categories"}</em>
+                    <i aria-hidden="true">⌄</i>
                   </span>
-                  <span className="wallet-arrow">→</span>
-                </Link>
-              ))}
-            </div>
-          </section>
+                </summary>
+                <div className="dashboard-widget-content">
+                  <div className="category-directory">
+                    {filterOptions.categories.map((category) => (
+                      <Link href={`/categories/${categorySlug(category)}`} key={category}>
+                        <span>#</span>
+                        <b>{category}</b>
+                        <i aria-hidden="true">→</i>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            )}
+          </div>
         )}
 
         {reviews.length > 0 && (
