@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import DayHeader from "@/app/DayHeader";
-import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
   id: number;
@@ -16,14 +16,13 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
-  sourceFile: string;
-  sourceRow: number;
 };
 
 type CategoryData = {
   category: string;
   rows: Row[];
   dayTotals: DayTotals;
+  validUntil: string | null;
   wallets: Array<{ wallet: string; transactionCount: number }>;
   spendingTotals: Array<{ currency: string; amount: number }>;
   availableTags: string[];
@@ -41,6 +40,7 @@ const emptyData: CategoryData = {
   category: "",
   rows: [],
   dayTotals: {},
+  validUntil: null,
   wallets: [],
   spendingTotals: [],
   availableTags: [],
@@ -296,7 +296,10 @@ export default function CategoryDetails({ category }: { category: string }) {
                         <DayHeader colSpan={6} day={group.key} totals={data.dayTotals[group.key] ?? []} />
                         {group.rows.map((row) => (
                           <tr key={row.id}>
-                            <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                            <td>
+                              <strong>{formatDate(row.date)}</strong>
+                              {data.validUntil && dayKey(row.date) <= data.validUntil && <span className="verified-badge">✓ Verified</span>}
+                            </td>
                             <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                             <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                             <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>

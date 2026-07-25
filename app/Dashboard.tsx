@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import DayHeader from "./DayHeader";
-import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 import TransactionFilters, {
   emptyFilters,
@@ -26,8 +26,6 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
-  sourceFile: string;
-  sourceRow: number;
 };
 type PageData = { rows: Row[]; dayTotals: DayTotals; page: number; pages: number; total: number; pageSize: number };
 type ReviewItem = Row & { action: "update" | "delete"; transactionId: number; isDeleted: number; proposed: (Row & { fingerprint: string; identityKey: string }) | null };
@@ -72,6 +70,9 @@ export default function Dashboard() {
   const [splitMode, setSplitMode] = useState(false);
   const [splitRows, setSplitRows] = useState<Row[]>([]);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [validUntil, setValidUntil] = useState("");
+  const [savedValidUntil, setSavedValidUntil] = useState("");
+  const [savingValidUntil, setSavingValidUntil] = useState(false);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
@@ -100,6 +101,34 @@ export default function Dashboard() {
       .then((response) => response.json())
       .then((result: FilterOptions) => setFilterOptions(result));
   }, []);
+  useEffect(() => {
+    void fetch("/api/valid-until", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result: { validUntil: string | null }) => {
+        setValidUntil(result.validUntil ?? "");
+        setSavedValidUntil(result.validUntil ?? "");
+      });
+  }, []);
+
+  async function saveValidUntil() {
+    setSavingValidUntil(true);
+    try {
+      const response = await fetch("/api/valid-until", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ validUntil: validUntil || null }),
+      });
+      const result = await response.json() as { validUntil?: string | null; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Could not save the validation date.");
+      setValidUntil(result.validUntil ?? "");
+      setSavedValidUntil(result.validUntil ?? "");
+      setMessage({ tone: "success", text: result.validUntil ? `Transactions through ${result.validUntil} are marked as verified.` : "Transaction verification date cleared." });
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Could not save the validation date." });
+    } finally {
+      setSavingValidUntil(false);
+    }
+  }
 
   async function upload(files: FileList | File[]) {
     if (!files.length) return;
@@ -255,6 +284,25 @@ export default function Dashboard() {
             </div>
             <div className="ledger-tools">
               {tab === "transactions" && (
+                <div className="valid-until-control">
+                  <label>
+                    <span>Valid until</span>
+                    <input
+                      aria-label="Valid until"
+                      type="date"
+                      value={validUntil}
+                      onChange={(event) => setValidUntil(event.target.value)}
+                    />
+                  </label>
+                  <button
+                    disabled={savingValidUntil || validUntil === savedValidUntil}
+                    onClick={() => void saveValidUntil()}
+                  >
+                    {savingValidUntil ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              )}
+              {tab === "transactions" && (
                 splitMode ? (
                   <div className="split-mode-actions">
                     <button className="cancel-split" onClick={() => { setSplitMode(false); setSplitRows([]); }}>Cancel</button>
@@ -310,7 +358,10 @@ export default function Dashboard() {
                             />
                           </td>
                         )}
-                        <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                        <td>
+                          <strong>{formatDate(row.date)}</strong>
+                          {savedValidUntil && dayKey(row.date) <= savedValidUntil && <span className="verified-badge">✓ Verified</span>}
+                        </td>
                         <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                         <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                         <td>{row.categoryName ? <Link className="category-link" href={`/categories/${categorySlug(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import DayHeader from "@/app/DayHeader";
-import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 
 type Row = {
@@ -17,14 +17,13 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
-  sourceFile: string;
-  sourceRow: number;
 };
 
 type WalletData = {
   wallet: string;
   rows: Row[];
   dayTotals: DayTotals;
+  validUntil: string | null;
   totals: Array<{ currency: string; transactionTotal: number; startingAmount: number; total: number }>;
   page: number;
   pages: number;
@@ -36,6 +35,7 @@ const emptyData: WalletData = {
   wallet: "",
   rows: [],
   dayTotals: {},
+  validUntil: null,
   totals: [],
   page: 1,
   pages: 1,
@@ -189,7 +189,10 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                       <DayHeader colSpan={6} day={group.key} totals={data.dayTotals[group.key] ?? []} />
                       {group.rows.map((row) => (
                         <tr key={row.id}>
-                          <td><strong>{formatDate(row.date)}</strong><small>{row.sourceFile} · row {row.sourceRow}</small></td>
+                          <td>
+                            <strong>{formatDate(row.date)}</strong>
+                            {data.validUntil && dayKey(row.date) <= data.validUntil && <span className="verified-badge">✓ Verified</span>}
+                          </td>
                           <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                           <td>{row.categoryName ? <Link className="category-link" href={`/categories/${categorySlug(row.categoryName)}`}>{row.categoryName}</Link> : "—"}</td>
                           <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>

@@ -125,6 +125,11 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       snapshot_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS split_entries_split_idx ON split_entries(split_id, id);
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
@@ -144,6 +149,32 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
 export function getDatabase(): Db {
   singleton ??= openDatabase();
   return singleton;
+}
+
+export function getValidUntil(db: Db): string | null {
+  const row = db.prepare(
+    "SELECT value FROM app_settings WHERE key = 'transactions_valid_until'",
+  ).get() as { value: string | null } | undefined;
+  return row?.value || null;
+}
+
+export function setValidUntil(db: Db, value: string | null): string | null {
+  const normalized = value?.trim() || null;
+  if (normalized && !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error("Valid until must be a date.");
+  }
+  if (normalized) {
+    const parsed = new Date(`${normalized}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== normalized) {
+      throw new Error("Valid until must be a valid date.");
+    }
+  }
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES ('transactions_valid_until', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+  `).run(normalized);
+  return normalized;
 }
 
 export type WalletSummary = {
@@ -203,6 +234,7 @@ export function getWalletTransactions(db: Db, wallet: string, page: number, page
     wallet,
     rows,
     totals,
+    validUntil: getValidUntil(db),
     dayTotals: calculateDayTotals(dayRows),
     page,
     pageSize,
@@ -298,6 +330,7 @@ export function getCategoryDetails(db: Db, category: string, page: number, pageS
   return {
     category,
     rows,
+    validUntil: getValidUntil(db),
     dayTotals: calculateDayTotals(dayRows),
     wallets,
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({ currency, amount })),
