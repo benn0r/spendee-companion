@@ -5,12 +5,15 @@ more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse
 transactions with server-side pagination, and safely reconcile complete wallet
 exports.
 
-![Spendee desktop interface](docs/screenshots/spendee-desktop.png)
+![Spendee desktop interface with fictional wallets and transactions](docs/screenshots/spendee-desktop.png)
+
+> The screenshots use entirely fictional demo data. No personal export data is
+> included in this repository.
 
 <details>
   <summary>Mobile layout</summary>
 
-  ![Spendee mobile interface](docs/screenshots/spendee-mobile.png)
+  ![Spendee mobile interface with fictional wallets and transactions](docs/screenshots/spendee-mobile.png)
 </details>
 
 ## What it does
@@ -35,10 +38,18 @@ exports.
 - Links every category to a cross-wallet detail page with paginated matching
   transactions and a configurable spending-by-tag pie chart. Unselected and
   untagged spending is grouped into `Other`.
+- Filters transactions by date range, multiple wallets, types, categories,
+  tags, authors, and absolute amount. Long option lists are searchable.
 - Groups transaction tables by day with `Today`, `Yesterday`, or calendar-date
   headers and complete daily totals for the current view.
-- Paginates both lists on the server and stores data in a WAL-mode SQLite
-  database.
+- Provides a compact monthly category report. Report columns can combine
+  multiple categories and optionally include color-coded budgets.
+- Splits any selection of transactions across a configurable number of shares,
+  with additional positive or negative custom positions and live totals.
+- Persists split snapshots independently from the transaction ledger. Saved
+  splits can be reviewed, deleted, and downloaded as an A4 PDF.
+- Paginates transaction, duplicate, wallet, and category lists on the server and
+  stores data in a WAL-mode SQLite database.
 
 Each uploaded file represents one wallet when **Full import** is enabled. A
 full-import batch may contain multiple files, but the same wallet may only
@@ -67,8 +78,9 @@ npm test
 npm run build
 ```
 
-The test suite verifies duplicate persistence as well as the approval workflow
-for changed and missing transactions.
+The test suite covers imports, duplicate persistence, reconciliation approvals,
+wallet and category reporting, filters, monthly reports, split persistence, and
+PDF generation.
 
 ## Docker
 
