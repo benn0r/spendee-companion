@@ -495,6 +495,7 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(intlLocale("de"), "de-CH");
   assert.equal(translate("de", "split.pdf.total"), "GESAMT");
   assert.equal(translateUiText("de", "Transactions"), "Transaktionen");
+  assert.equal(translateUiText("de", "✓ Verified"), "✓ Verifiziert");
   assert.equal(translateUiText("de", "Page 2 of 7"), "Seite 2 von 7");
   assert.equal(translateUiText("de", "23. July"), "23. Juli");
   assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");

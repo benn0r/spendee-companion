@@ -85,6 +85,7 @@ const germanUi: Record<string, string> = {
   "Equal to": "Gleich",
   "Rows": "Zeilen",
   "Verified": "Verifiziert",
+  "✓ Verified": "✓ Verifiziert",
   "CATEGORY": "KATEGORIE",
   "Category settings": "Kategorieeinstellungen",
   "Appearance": "Darstellung",
