@@ -48,6 +48,10 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .upload-copy h2 { margin: 0 0 6px; color: var(--slate); font-size: 15px; }
 .upload-copy p { margin: 0 0 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .upload-copy span { color: #98a1a9; font-size: 10px; }
+.full-import { width: fit-content; margin-top: 11px; display: flex; align-items: center; gap: 7px; color: var(--muted); cursor: pointer; }
+.full-import input, .review-item input { width: 15px; height: 15px; accent-color: var(--green); }
+.full-import span { color: var(--muted); }
+.full-import b { color: var(--slate); font-weight: 600; }
 .dropzone button { padding: 10px 14px; white-space: nowrap; font-size: 12px; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stats article { min-height: 72px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 11px; background: white; }
@@ -59,6 +63,30 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .stats div { display: flex; flex-direction: column; }
 .stats small { color: var(--muted); font-size: 10px; }
 .stats strong { margin-top: 2px; color: var(--slate); font-size: 21px; letter-spacing: -.04em; }
+.review-card { margin-bottom: 22px; border: 1px solid #f5d894; border-radius: 13px; background: white; overflow: hidden; }
+.review-head { padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; background: #fffaf0; border-bottom: 1px solid #f7e6bd; }
+.review-title { display: flex; align-items: center; gap: 11px; }
+.review-title > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #a16d00; background: #fff0c7; font-weight: 700; }
+.review-title h2 { margin: 0; font-size: 13px; }
+.review-title p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
+.review-actions { display: flex; gap: 7px; }
+.review-actions button { padding: 8px 11px; border-radius: 7px; cursor: pointer; font-size: 10px; font-weight: 600; }
+.review-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.review-actions .reject { border: 1px solid var(--line); color: var(--slate); background: white; }
+.review-actions .approve { border: 1px solid var(--green); color: white; background: var(--green); }
+.review-list { max-height: 290px; overflow: auto; }
+.review-item { min-height: 58px; padding: 10px 18px; display: grid; grid-template-columns: auto 64px minmax(180px, .7fr) minmax(280px, 1.3fr); align-items: center; gap: 12px; border-top: 1px solid #eef1f3; cursor: pointer; }
+.review-item:first-child { border-top: 0; }
+.review-item:hover { background: #fbfdfd; }
+.review-kind { padding: 4px 6px; border-radius: 99px; text-align: center; font-size: 9px; font-weight: 600; }
+.review-kind.update { color: #137f9a; background: #e8f8fc; }
+.review-kind.delete { color: #c34a4a; background: #fff0f0; }
+.review-identity { display: flex; flex-direction: column; }
+.review-identity b { font-size: 11px; }
+.review-identity small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.review-detail { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; }
+.review-detail b { color: var(--slate); }
+.review-detail small { margin-left: 8px; color: #87919a; }
 .ledger { border: 1px solid var(--line); border-radius: 13px; background: white; overflow: hidden; }
 .ledger-head { padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid var(--line); }
 .ledger h2 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
@@ -106,9 +134,15 @@ footer { padding: 22px; color: #98a1a9; text-align: center; font-size: 10px; }
   .overview-grid { display: block; }
   .dropzone { padding: 20px; grid-template-columns: auto 1fr; }
   .dropzone button { grid-column: 1 / -1; width: 100%; }
+  .full-import { grid-column: 1 / -1; }
   .stats { margin-top: 12px; }
   .stats article { padding: 12px; }
   .ledger-head { align-items: flex-start; flex-direction: column; }
   .tabs { width: 100%; }
   .tabs button { flex: 1; }
+  .review-head { align-items: flex-start; flex-direction: column; }
+  .review-actions { width: 100%; }
+  .review-actions button { flex: 1; }
+  .review-item { grid-template-columns: auto 64px 1fr; }
+  .review-detail { grid-column: 2 / -1; padding-bottom: 4px; }
 }

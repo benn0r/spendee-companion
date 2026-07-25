@@ -1,8 +1,9 @@
 # Spendee
 
-A private, self-hosted archive for Spendee transaction exports. Upload one or
-more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse transactions
-with server-side pagination, and review duplicate occurrences separately.
+A private, self-hosted companion for Spendee transaction exports. Upload one or
+more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse
+transactions with server-side pagination, and safely reconcile complete wallet
+exports.
 
 ![Spendee desktop interface](docs/screenshots/spendee-desktop.png)
 
@@ -20,12 +21,19 @@ with server-side pagination, and review duplicate occurrences separately.
 - Continues processing the rest of a batch when an individual file is invalid.
 - Preserves import batch, source filename, source row, raw row data, and import
   timestamp for traceability.
-- Detects duplicates using a SHA-256 fingerprint of all nine normalized export
-  fields.
-- Stores the first occurrence in `transactions` and every later occurrence in
-  `duplicates`, linked to the original transaction.
+- Identifies a transaction by its normalized date/time string, type, and wallet.
+- Stores unchanged repeat occurrences in `duplicates`, linked to the original
+  transaction.
+- Offers a **Full import** mode for complete, single-wallet exports. Changed
+  transactions and transactions missing from the new export are placed in an
+  approval queue; the ledger is never changed or pruned automatically.
+- Lets the user approve or reject proposed changes and deletions in batches.
 - Paginates both lists on the server and stores data in a WAL-mode SQLite
   database.
+
+Each uploaded file represents one wallet when **Full import** is enabled. A
+full-import batch may contain multiple files, but the same wallet may only
+appear in one file.
 
 ## Run locally
 
@@ -50,8 +58,8 @@ npm test
 npm run build
 ```
 
-The test suite verifies that unique transactions remain in the main ledger and
-that every repeated occurrence is persisted in the duplicate ledger.
+The test suite verifies duplicate persistence as well as the approval workflow
+for changed and missing transactions.
 
 ## Docker
 

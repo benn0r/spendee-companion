@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
-import { openDatabase, importTransactions } from "../lib/db";
+import { openDatabase, importTransactions, reviewReconciliation } from "../lib/db";
 import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 
@@ -30,10 +30,94 @@ test("persists unique transactions and separates every duplicate occurrence", ()
     { transaction, sourceRow: 2, raw: transaction },
     { transaction, sourceRow: 3, raw: transaction },
   ]);
-  assert.deepEqual(first, { importId: 1, total: 1, imported: 1, duplicates: 0 });
-  assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2 });
+  assert.deepEqual(first, { importId: 1, total: 1, imported: 1, duplicates: 0, changes: 0, deletions: 0 });
+  assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2, changes: 0, deletions: 0 });
   assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions").get() as { count: number }).count, 1);
   assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 2);
+  db.close();
+});
+
+test("queues changed values and full-import deletions until explicitly approved", () => {
+  const path = `/tmp/spendee-reconcile-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const base: TransactionInput = {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food & Drink",
+    amount: -12.5,
+    currency: "CHF",
+    note: null,
+    labels: null,
+    author: "Benjamin",
+  };
+  const missing = { ...base, date: "2026-04-02T11:58:51.000Z", amount: -20 };
+  importTransactions(db, "initial.xlsx", [
+    { transaction: base, sourceRow: 2, raw: base },
+    { transaction: missing, sourceRow: 3, raw: missing },
+  ]);
+  const changed = { ...base, amount: -15.75 };
+  const result = importTransactions(
+    db,
+    "full.xlsx",
+    [{ transaction: changed, sourceRow: 2, raw: changed }],
+    { fullImport: true },
+  );
+  assert.deepEqual(result, { importId: 2, total: 1, imported: 0, duplicates: 0, changes: 1, deletions: 1 });
+  assert.equal((db.prepare("SELECT amount FROM transactions WHERE date = ?").get(base.date) as { amount: number }).amount, -12.5);
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE deleted_at IS NULL").get() as { count: number }).count, 2);
+
+  const pending = db.prepare("SELECT id, action FROM reconciliation_items WHERE status = 'pending' ORDER BY id").all() as Array<{ id: number; action: string }>;
+  reviewReconciliation(db, pending.map((item) => item.id), "approved");
+  assert.equal((db.prepare("SELECT amount FROM transactions WHERE date = ?").get(base.date) as { amount: number }).amount, -15.75);
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE deleted_at IS NULL").get() as { count: number }).count, 1);
+  db.close();
+});
+
+test("keeps only proposals from the newest full wallet snapshot", () => {
+  const path = `/tmp/spendee-supersede-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const first: TransactionInput = {
+    date: "2026-04-01T11:58:51.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food",
+    amount: -10,
+    currency: "CHF",
+    note: null,
+    labels: null,
+    author: "Benjamin",
+  };
+  const second = { ...first, date: "2026-04-02T11:58:51.000Z", amount: -20 };
+  importTransactions(db, "initial.xlsx", [
+    { transaction: first, sourceRow: 2, raw: first },
+    { transaction: second, sourceRow: 3, raw: second },
+  ]);
+  importTransactions(
+    db,
+    "changed.xlsx",
+    [{ transaction: { ...first, amount: -15 }, sourceRow: 2, raw: first }],
+    { fullImport: true },
+  );
+  importTransactions(
+    db,
+    "latest.xlsx",
+    [
+      { transaction: first, sourceRow: 2, raw: first },
+      { transaction: second, sourceRow: 3, raw: second },
+    ],
+    { fullImport: true },
+  );
+  assert.equal(
+    (db.prepare("SELECT COUNT(*) count FROM reconciliation_items WHERE status = 'pending'").get() as { count: number }).count,
+    0,
+  );
+  assert.equal(
+    (db.prepare("SELECT COUNT(*) count FROM reconciliation_items WHERE status = 'rejected'").get() as { count: number }).count,
+    2,
+  );
   db.close();
 });
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Stats = { transactions: number; duplicates: number; imports: number; wallets: number };
+type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
   id: number;
   duplicateOfId?: number;
@@ -19,9 +19,10 @@ type Row = {
   sourceRow: number;
 };
 type PageData = { rows: Row[]; page: number; pages: number; total: number; pageSize: number };
-type ImportResult = { summary: { total: number; imported: number; duplicates: number; files: number; failed: number } };
+type ReviewItem = Row & { action: "update" | "delete"; transactionId: number; isDeleted: number; proposed: (Row & { fingerprint: string; identityKey: string }) | null };
+type ImportResult = { summary: { total: number; imported: number; duplicates: number; changes: number; deletions: number; files: number; failed: number } };
 
-const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0 };
+const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pending: 0 };
 const emptyPage = { rows: [], page: 1, pages: 1, total: 0, pageSize: 25 };
 
 function formatDate(value: string) {
@@ -43,18 +44,26 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [fullImport, setFullImport] = useState(false);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [selectedReviews, setSelectedReviews] = useState<number[]>([]);
+  const [reviewing, setReviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
     try {
-      const [statsResponse, pageResponse] = await Promise.all([
+      const [statsResponse, pageResponse, reviewResponse] = await Promise.all([
         fetch("/api/stats", { cache: "no-store" }),
         fetch(`/api/${targetTab}?page=${page}&pageSize=25`, { cache: "no-store" }),
+        fetch("/api/reconciliation", { cache: "no-store" }),
       ]);
       setStats(await statsResponse.json());
       setData(await pageResponse.json());
+      const reviewData = await reviewResponse.json();
+      setReviews(reviewData.rows);
+      setSelectedReviews([]);
     } finally {
       setLoading(false);
     }
@@ -67,6 +76,7 @@ export default function Dashboard() {
     setUploading(true);
     setMessage(null);
     const form = new FormData();
+    form.set("fullImport", String(fullImport));
     Array.from(files).forEach((file) => form.append("files", file));
     try {
       const response = await fetch("/api/import", { method: "POST", body: form });
@@ -74,7 +84,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error(result.error ?? "Import failed.");
       setMessage({
         tone: result.summary.failed ? "error" : "success",
-        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
+        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated${result.summary.changes || result.summary.deletions ? ` · ${result.summary.changes + result.summary.deletions} awaiting approval` : ""}${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
       });
       await load(tab, 1);
     } catch (error) {
@@ -82,6 +92,29 @@ export default function Dashboard() {
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  async function review(decision: "approved" | "rejected") {
+    if (!selectedReviews.length) return;
+    setReviewing(true);
+    try {
+      const response = await fetch("/api/reconciliation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedReviews, decision }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Review failed.");
+      setMessage({
+        tone: "success",
+        text: `${result.reviewed} pending ${result.reviewed === 1 ? "item" : "items"} ${decision}.`,
+      });
+      await load(tab, data.page);
+    } catch (error) {
+      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Review failed." });
+    } finally {
+      setReviewing(false);
     }
   }
 
@@ -123,6 +156,10 @@ export default function Dashboard() {
               <h2>{uploading ? "Importing your files…" : "Import Spendee exports"}</h2>
               <p>Drop a batch of XLSX or CSV files here, or browse from your computer.</p>
               <span>Duplicates are detected automatically and kept separately.</span>
+              <label className="full-import">
+                <input type="checkbox" checked={fullImport} onChange={(event) => setFullImport(event.target.checked)} />
+                <span><b>Full import</b> · find changed and missing transactions per wallet</span>
+              </label>
             </div>
             <button disabled={uploading} onClick={() => inputRef.current?.click()}>
               {uploading ? "Please wait" : "Choose files"}
@@ -137,6 +174,47 @@ export default function Dashboard() {
             <article><span className="metric-icon pink">!</span><div><small>Duplicates</small><strong>{stats.duplicates.toLocaleString("en-CH")}</strong></div></article>
           </div>
         </section>
+
+        {reviews.length > 0 && (
+          <section className="review-card">
+            <div className="review-head">
+              <div>
+                <div className="review-title"><span>!</span><div><h2>Approval required</h2><p>{reviews.length} proposed {reviews.length === 1 ? "change needs" : "changes need"} your review</p></div></div>
+              </div>
+              <div className="review-actions">
+                <button className="reject" disabled={!selectedReviews.length || reviewing} onClick={() => void review("rejected")}>Keep current</button>
+                <button className="approve" disabled={!selectedReviews.length || reviewing} onClick={() => void review("approved")}>Approve selected</button>
+              </div>
+            </div>
+            <div className="review-list">
+              {reviews.map((item) => (
+                <label className="review-item" key={item.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedReviews.includes(item.id)}
+                    onChange={(event) => setSelectedReviews((current) =>
+                      event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id)
+                    )}
+                  />
+                  <span className={`review-kind ${item.action}`}>{item.action === "delete" ? "Missing" : item.isDeleted ? "Restore" : "Changed"}</span>
+                  <span className="review-identity"><b>{item.wallet}</b><small>{formatDate(item.date)} · {item.type}</small></span>
+                  {item.action === "delete" ? (
+                    <span className="review-detail">Remove <Amount row={item} /> from the active ledger</span>
+                  ) : item.isDeleted ? (
+                    <span className="review-detail">Restore this transaction to the active ledger</span>
+                  ) : (
+                    <span className="review-detail">
+                      Amount <b>{new Intl.NumberFormat("de-CH", { style: "currency", currency: item.currency }).format(item.amount)}</b>
+                      <span>→</span>
+                      <b>{new Intl.NumberFormat("de-CH", { style: "currency", currency: item.proposed?.currency ?? item.currency }).format(item.proposed?.amount ?? item.amount)}</b>
+                      {item.categoryName !== item.proposed?.categoryName && <small>{item.categoryName ?? "No category"} → {item.proposed?.categoryName ?? "No category"}</small>}
+                    </span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="ledger">
           <div className="ledger-head">
