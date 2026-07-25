@@ -279,6 +279,7 @@ test("builds and persists merged monthly category columns", () => {
   const rows = [
     makeTransaction("2025-01-04T10:00:00.000Z", "Groceries", -50),
     makeTransaction("2025-01-08T10:00:00.000Z", "Restaurants", -30),
+    { ...makeTransaction("2025-01-10T10:00:00.000Z", "Groceries", 15), type: "Income" },
     makeTransaction("2025-02-03T10:00:00.000Z", "Groceries", -20),
     makeTransaction("2025-02-05T10:00:00.000Z", "Utilities", -100),
   ];
@@ -304,11 +305,14 @@ test("builds and persists merged monthly category columns", () => {
   assert.deepEqual(report.months, [
     {
       month: "2025-02",
-      cells: [[{ currency: "CHF", amount: 20 }], [{ currency: "CHF", amount: 100 }]],
+      cells: [
+        [{ currency: "CHF", expenses: 20, income: 0 }],
+        [{ currency: "CHF", expenses: 100, income: 0 }],
+      ],
     },
     {
       month: "2025-01",
-      cells: [[{ currency: "CHF", amount: 80 }], []],
+      cells: [[{ currency: "CHF", expenses: 80, income: 15 }], []],
     },
   ]);
   db.close();

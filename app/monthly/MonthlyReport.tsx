@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Column = { id?: number; name: string; categories: string[] };
-type Cell = Array<{ currency: string; amount: number }>;
+type Cell = Array<{ currency: string; expenses: number; income: number }>;
 type Report = {
   categories: string[];
   columns: Column[];
@@ -90,7 +90,7 @@ export default function MonthlyReport() {
           <div>
             <p className="eyebrow">SPENDING OVER TIME</p>
             <h1>Monthly categories</h1>
-            <p>Compare spending by month and combine categories into custom columns.</p>
+            <p>Compare expenses and income by month and combine categories into custom columns.</p>
           </div>
           <button className="report-config-button" onClick={() => setEditing((value) => !value)}>
             {editing ? "Close settings" : "Configure columns"}
@@ -152,7 +152,7 @@ export default function MonthlyReport() {
 
         <section className="ledger monthly-report">
           <div className="ledger-head">
-            <div><h2>Monthly spending</h2><p>Expenses across all active transactions and wallets</p></div>
+            <div><h2>Monthly totals</h2><p>Expenses and income across all active transactions and wallets</p></div>
             <span>{report.columns.length} {report.columns.length === 1 ? "column" : "columns"}</span>
           </div>
           <div className="table-wrap">
@@ -162,10 +162,20 @@ export default function MonthlyReport() {
                   <th>Month</th>
                   {report.columns.map((column, index) => (
                     <th className="right" key={`${column.name}-${index}`}>
-                      <strong>{column.name}</strong>
-                      {(column.categories.length !== 1 || column.categories[0] !== column.name) && (
-                        <small>{column.categories.join(", ")}</small>
-                      )}
+                      <span className="monthly-column-heading">
+                        <strong>{column.name}</strong>
+                        <span
+                          aria-label={`Selected categories: ${column.categories.join(", ")}`}
+                          className="category-tooltip"
+                          tabIndex={0}
+                        >
+                          <span aria-hidden="true">ⓘ</span>
+                          <span className="category-tooltip-content" role="tooltip">
+                            <b>Selected categories</b>
+                            {column.categories.join(", ")}
+                          </span>
+                        </span>
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -181,7 +191,16 @@ export default function MonthlyReport() {
                     {row.cells.map((cell, index) => (
                       <td className="right monthly-value" key={index}>
                         {cell.length ? cell.map((value) => (
-                          <strong key={value.currency}>{money(value.amount, value.currency)}</strong>
+                          <span className="monthly-currency-totals" key={value.currency}>
+                            <span className="monthly-total expense">
+                              <small>Expenses</small>
+                              <strong>{money(value.expenses, value.currency)}</strong>
+                            </span>
+                            <span className="monthly-total income">
+                              <small>Income</small>
+                              <strong>{money(value.income, value.currency)}</strong>
+                            </span>
+                          </span>
                         )) : <span>—</span>}
                       </td>
                     ))}

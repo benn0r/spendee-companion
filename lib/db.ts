@@ -352,39 +352,46 @@ export function getMonthlyReport(db: Db) {
     : categories.map((category) => ({ name: category, categories: [category] }));
   const transactions = db.prepare(`
     SELECT SUBSTR(date, 1, 7) AS month, category_name AS category,
-      currency, SUM(ABS(amount)) AS amount
+      currency,
+      SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) AS expenses,
+      SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income
     FROM transactions
-    WHERE deleted_at IS NULL AND amount < 0 AND category_name IS NOT NULL
+    WHERE deleted_at IS NULL AND amount <> 0 AND category_name IS NOT NULL
     GROUP BY SUBSTR(date, 1, 7), category_name, currency
     ORDER BY month DESC
   `).all() as Array<{
     month: string;
     category: string;
     currency: string;
-    amount: number;
+    expenses: number;
+    income: number;
   }>;
   const monthSet = new Set((db.prepare(`
     SELECT DISTINCT SUBSTR(date, 1, 7) AS month
     FROM transactions WHERE deleted_at IS NULL
     ORDER BY month DESC
   `).all() as Array<{ month: string }>).map((row) => row.month));
-  const values = new Map<string, Map<string, number>>();
+  const values = new Map<string, Map<string, { expenses: number; income: number }>>();
   for (const row of transactions) {
     monthSet.add(row.month);
     columns.forEach((column, index) => {
       if (!column.categories.includes(row.category)) return;
       const key = `${row.month}\u0000${index}`;
-      const currencies = values.get(key) ?? new Map<string, number>();
-      currencies.set(row.currency, (currencies.get(row.currency) ?? 0) + row.amount);
+      const currencies = values.get(key) ?? new Map<string, { expenses: number; income: number }>();
+      const current = currencies.get(row.currency) ?? { expenses: 0, income: 0 };
+      currencies.set(row.currency, {
+        expenses: current.expenses + row.expenses,
+        income: current.income + row.income,
+      });
       values.set(key, currencies);
     });
   }
   const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map((month) => ({
     month,
     cells: columns.map((_, index) =>
-      Array.from(values.get(`${month}\u0000${index}`) ?? [], ([currency, amount]) => ({
+      Array.from(values.get(`${month}\u0000${index}`) ?? [], ([currency, totals]) => ({
         currency,
-        amount,
+        ...totals,
       })).sort((a, b) => a.currency.localeCompare(b.currency)),
     ),
   }));
