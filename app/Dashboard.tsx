@@ -5,6 +5,12 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import DayHeader from "./DayHeader";
 import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
+import TransactionFilters, {
+  emptyFilters,
+  filterQuery,
+  type FilterOptions,
+  type FilterState,
+} from "./TransactionFilters";
 
 type Stats = { transactions: number; duplicates: number; imports: number; wallets: number; pending: number };
 type Row = {
@@ -33,6 +39,7 @@ type WalletSummary = {
 
 const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0, pending: 0 };
 const emptyPage = { rows: [], dayTotals: {}, page: 1, pages: 1, total: 0, pageSize: 25 };
+const emptyFilterOptions: FilterOptions = { wallets: [], types: [], categories: [], tags: [], authors: [] };
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CH", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -58,13 +65,16 @@ export default function Dashboard() {
   const [reviewing, setReviewing] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(emptyFilterOptions);
+  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
+  const [activeFilterQuery, setActiveFilterQuery] = useState("");
 
   const load = useCallback(async (targetTab = tab, page = 1) => {
     setLoading(true);
     try {
       const [statsResponse, pageResponse, reviewResponse, walletsResponse] = await Promise.all([
         fetch("/api/stats", { cache: "no-store" }),
-        fetch(`/api/${targetTab}?page=${page}&pageSize=25`, { cache: "no-store" }),
+        fetch(`/api/${targetTab}?page=${page}&pageSize=25${activeFilterQuery ? `&${activeFilterQuery}` : ""}`, { cache: "no-store" }),
         fetch("/api/reconciliation", { cache: "no-store" }),
         fetch("/api/wallets", { cache: "no-store" }),
       ]);
@@ -78,9 +88,14 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, activeFilterQuery]);
 
   useEffect(() => { void load(tab, 1); }, [tab, load]);
+  useEffect(() => {
+    void fetch("/api/filter-options", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result: FilterOptions) => setFilterOptions(result));
+  }, []);
 
   async function upload(files: FileList | File[]) {
     if (!files.length) return;
@@ -236,6 +251,18 @@ export default function Dashboard() {
               <button className={tab === "duplicates" ? "active" : ""} onClick={() => setTab("duplicates")}>Duplicates <span>{stats.duplicates}</span></button>
             </div>
           </div>
+
+          <TransactionFilters
+            active={Boolean(activeFilterQuery)}
+            onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
+            onChange={setDraftFilters}
+            onClear={() => {
+              setDraftFilters(emptyFilters);
+              setActiveFilterQuery("");
+            }}
+            options={filterOptions}
+            value={draftFilters}
+          />
 
           <div className="table-wrap">
             <table>

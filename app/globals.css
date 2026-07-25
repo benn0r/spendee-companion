@@ -115,6 +115,31 @@ h1 { margin: 0; color: var(--slate); font-size: 30px; letter-spacing: -.035em; }
 .tabs button { padding: 7px 10px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; }
 .tabs button.active { color: var(--green-dark); background: white; box-shadow: 0 1px 4px #34455414; }
 .tabs span { margin-left: 5px; padding: 1px 5px; border-radius: 99px; background: #e4e9ee; font-size: 9px; }
+.transaction-filters { padding: 12px 14px; border-bottom: 1px solid var(--line); background: #fbfcfd; }
+.filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.filter-date { height: 34px; padding: 0 8px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+.filter-date span, .filter-amount-row > span { color: var(--muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.filter-date input { width: 112px; border: 0; outline: 0; color: var(--slate); background: transparent; font-size: 9px; }
+.filter-multi { position: relative; }
+.filter-multi summary { height: 34px; min-width: 88px; padding: 0 9px; display: flex; align-items: center; justify-content: space-between; gap: 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--slate); background: white; cursor: pointer; font-size: 9px; list-style: none; }
+.filter-multi summary::-webkit-details-marker { display: none; }
+.filter-multi summary::after { content: "⌄"; color: #9ca5ac; }
+.filter-multi summary b { min-width: 17px; padding: 2px 5px; border-radius: 99px; color: var(--green-dark); background: var(--green-soft); font-size: 8px; text-align: center; }
+.filter-multi[open] summary { border-color: #9bdac5; }
+.filter-multi > div { position: absolute; top: calc(100% + 5px); left: 0; z-index: 6; width: max-content; min-width: 180px; max-width: 280px; max-height: 240px; padding: 6px; border: 1px solid var(--line); border-radius: 9px; background: white; box-shadow: 0 10px 30px #34455422; overflow: auto; }
+.filter-multi > div > span { display: block; padding: 9px; color: var(--muted); font-size: 9px; }
+.filter-multi label { padding: 6px 7px; display: flex; align-items: center; gap: 7px; border-radius: 6px; color: var(--slate); cursor: pointer; font-size: 9px; }
+.filter-multi label:hover { background: var(--green-soft); }
+.filter-multi input { width: 13px; height: 13px; margin: 0; accent-color: var(--green); }
+.filter-amount-row { margin-top: 8px; display: flex; align-items: center; gap: 7px; }
+.filter-amount-row select, .filter-amount-row input { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; outline: 0; color: var(--slate); background: white; font-size: 9px; }
+.filter-amount-row input { width: 105px; }
+.filter-amount-row input:disabled { color: #aeb6bc; background: #f2f4f5; }
+.filter-actions { margin-left: auto; display: flex; gap: 7px; }
+.filter-actions button { height: 32px; padding: 0 10px; border-radius: 7px; cursor: pointer; font-size: 9px; font-weight: 600; }
+.clear-filters { border: 1px solid var(--line); color: var(--slate); background: white; }
+.apply-filters { border: 1px solid var(--green); color: white; background: var(--green); }
+.apply-filters:hover { background: var(--green-dark); }
 .table-wrap { overflow: auto; }
 table { width: 100%; min-width: 1080px; border-collapse: collapse; }
 th { padding: 11px 14px; color: #87919a; background: #f9fbfc; font-size: 9px; letter-spacing: .08em; text-align: left; text-transform: uppercase; white-space: nowrap; }
@@ -321,6 +346,13 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
   .ledger-head { align-items: flex-start; flex-direction: column; }
   .tabs { width: 100%; }
   .tabs button { flex: 1; }
+  .filter-date { flex: 1; }
+  .filter-multi { flex: 1 0 30%; }
+  .filter-multi summary { width: 100%; }
+  .filter-amount-row { align-items: flex-start; flex-wrap: wrap; }
+  .filter-amount-row > span { width: 100%; }
+  .filter-actions { width: 100%; margin-left: 0; }
+  .filter-actions button { flex: 1; }
   .review-head { align-items: flex-start; flex-direction: column; }
   .review-actions { width: 100%; }
   .review-actions button { flex: 1; }

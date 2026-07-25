@@ -438,6 +438,113 @@ export function setMonthlyReportColumns(db: Db, columns: MonthlyReportColumn[]) 
   return { columns: normalizedColumns };
 }
 
+export type TransactionFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  wallets: string[];
+  types: string[];
+  categories: string[];
+  tags: string[];
+  authors: string[];
+  amountOperator?: "gt" | "lt" | "eq";
+  amount?: number;
+};
+
+function transactionFilterWhere(filters: TransactionFilters, activeOnly: boolean) {
+  const clauses = activeOnly ? ["deleted_at IS NULL"] : [];
+  const params: Array<string | number> = [];
+  if (filters.dateFrom) {
+    clauses.push("date >= ?");
+    params.push(`${filters.dateFrom}T00:00:00.000Z`);
+  }
+  if (filters.dateTo) {
+    const exclusiveEnd = new Date(`${filters.dateTo}T00:00:00.000Z`);
+    exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+    clauses.push("date < ?");
+    params.push(exclusiveEnd.toISOString());
+  }
+  const addList = (column: string, values: string[]) => {
+    if (!values.length) return;
+    clauses.push(`${column} IN (${values.map(() => "?").join(", ")})`);
+    params.push(...values);
+  };
+  addList("wallet", filters.wallets);
+  addList("type", filters.types);
+  addList("category_name", filters.categories);
+  addList("author", filters.authors);
+  if (filters.tags.length) {
+    clauses.push(`(${filters.tags.map(() =>
+      "(',' || LOWER(REPLACE(COALESCE(labels, ''), ', ', ',')) || ',') LIKE ? ESCAPE '\\'"
+    ).join(" OR ")})`);
+    params.push(...filters.tags.map((tag) =>
+      `%,${tag.toLowerCase().replace(/[\\%_]/g, "\\$&")},%`
+    ));
+  }
+  if (filters.amount !== undefined && Number.isFinite(filters.amount)) {
+    if (filters.amountOperator === "gt") clauses.push("ABS(amount) > ?");
+    if (filters.amountOperator === "lt") clauses.push("ABS(amount) < ?");
+    if (filters.amountOperator === "eq") clauses.push("ABS(ABS(amount) - ?) < 0.005");
+    if (filters.amountOperator) params.push(Math.abs(filters.amount));
+  }
+  return { sql: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
+}
+
+export function getFilteredTransactionPage(
+  db: Db,
+  source: "transactions" | "duplicates",
+  filters: TransactionFilters,
+  page: number,
+  pageSize: number,
+) {
+  const { sql, params } = transactionFilterWhere(filters, source === "transactions");
+  const total = (db.prepare(`SELECT COUNT(*) AS count FROM ${source} ${sql}`).get(
+    ...params,
+  ) as { count: number }).count;
+  const duplicateField = source === "duplicates"
+    ? "duplicate_of_id AS duplicateOfId,"
+    : "";
+  const rows = db.prepare(`
+    SELECT id, ${duplicateField} date, wallet, type, category_name AS categoryName,
+      amount, currency, note, labels, author, source_file AS sourceFile,
+      source_row AS sourceRow, imported_at AS importedAt
+    FROM ${source} ${sql}
+    ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
+  `).all(...params, pageSize, (page - 1) * pageSize);
+  const dayRows = db.prepare(`
+    SELECT date, amount, currency FROM ${source} ${sql}
+  `).all(...params) as Array<{ date: string; amount: number; currency: string }>;
+  return {
+    rows,
+    dayTotals: calculateDayTotals(dayRows),
+    page,
+    pageSize,
+    total,
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+export function getTransactionFilterOptions(db: Db) {
+  const distinct = (column: string) => (db.prepare(`
+    SELECT DISTINCT ${column} AS value FROM transactions
+    WHERE deleted_at IS NULL AND ${column} IS NOT NULL AND TRIM(${column}) <> ''
+    ORDER BY ${column} COLLATE NOCASE
+  `).all() as Array<{ value: string }>).map((row) => row.value);
+  const tagSet = new Set<string>();
+  const labelRows = db.prepare(`
+    SELECT labels FROM transactions WHERE deleted_at IS NULL AND labels IS NOT NULL
+  `).all() as Array<{ labels: string }>;
+  for (const row of labelRows) {
+    row.labels.split(",").map((tag) => tag.trim()).filter(Boolean).forEach((tag) => tagSet.add(tag));
+  }
+  return {
+    wallets: distinct("wallet"),
+    types: distinct("type"),
+    categories: distinct("category_name"),
+    tags: Array.from(tagSet).sort((a, b) => a.localeCompare(b)),
+    authors: distinct("author"),
+  };
+}
+
 function normalized(value: string | null): string {
   return value?.trim().normalize("NFC") ?? "";
 }

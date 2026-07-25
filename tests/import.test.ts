@@ -3,6 +3,8 @@ import { afterEach, test } from "node:test";
 import { rmSync } from "node:fs";
 import {
   getCategoryDetails,
+  getFilteredTransactionPage,
+  getTransactionFilterOptions,
   getWalletSummaries,
   getWalletTransactions,
   importTransactions,
@@ -18,6 +20,7 @@ import { parseImportFile } from "../lib/import-xlsx";
 import type { TransactionInput } from "../lib/types";
 import { calculateDayTotals, formatDayLabel } from "../lib/day-groups";
 import { categorySlug } from "../lib/category-slug";
+import { parseTransactionFilters } from "../lib/transaction-filters";
 
 const paths: string[] = [];
 afterEach(() => {
@@ -346,6 +349,59 @@ test("creates readable category slugs and resolves them to exact category names"
   assert.equal(categorySlug("Food & Drink"), "food-and-drink");
   assert.equal(resolveCategory(db, "food-and-drink"), "Food & Drink");
   assert.equal(resolveCategory(db, "Food%20%26%20Drink"), "Food & Drink");
+  db.close();
+});
+
+test("filters paginated transactions by multi-value fields, dates, tags, and amount", () => {
+  const path = `/tmp/spendee-filters-${crypto.randomUUID()}.db`;
+  paths.push(path);
+  const db = openDatabase(path);
+  const base: TransactionInput = {
+    date: "2026-04-01T10:00:00.000Z",
+    wallet: "Account",
+    type: "Expense",
+    categoryName: "Food & Drink",
+    amount: -45,
+    currency: "CHF",
+    note: null,
+    labels: "food, work",
+    author: "Benjamin",
+  };
+  const rows: TransactionInput[] = [
+    base,
+    { ...base, date: "2026-04-02T10:00:00.000Z", wallet: "Cash", amount: -12, labels: "food", author: "Anna" },
+    { ...base, date: "2026-05-02T10:00:00.000Z", type: "Income", categoryName: "Salary", amount: 500, labels: null },
+  ];
+  importTransactions(db, "filters.xlsx", rows.map((transaction, index) => ({
+    transaction,
+    sourceRow: index + 2,
+    raw: transaction,
+  })));
+  const params = new URLSearchParams([
+    ["dateFrom", "2026-04-01"],
+    ["dateTo", "2026-04-30"],
+    ["wallet", "Account"],
+    ["wallet", "Cash"],
+    ["type", "Expense"],
+    ["category", "Food & Drink"],
+    ["tag", "work"],
+    ["author", "Benjamin"],
+    ["amountOperator", "gt"],
+    ["amount", "40"],
+  ]);
+  const page = getFilteredTransactionPage(
+    db, "transactions", parseTransactionFilters(params), 1, 25,
+  );
+  assert.equal(page.total, 1);
+  assert.equal((page.rows[0] as { amount: number }).amount, -45);
+  assert.deepEqual(Object.keys(page.dayTotals), ["2026-04-01"]);
+  assert.deepEqual(getTransactionFilterOptions(db), {
+    wallets: ["Account", "Cash"],
+    types: ["Expense", "Income"],
+    categories: ["Food & Drink", "Salary"],
+    tags: ["food", "work"],
+    authors: ["Anna", "Benjamin"],
+  });
   db.close();
 });
 
