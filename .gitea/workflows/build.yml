@@ -23,6 +23,10 @@ jobs:
         run: npm run test:coverage
       - name: Build
         run: npm run build
+      - name: Install end-to-end browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
       - name: Audit production dependencies
         shell: sh
         run: |

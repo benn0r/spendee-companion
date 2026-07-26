@@ -82,6 +82,7 @@ SQLITE_PATH=/absolute/path/spendee.db npm run dev
 ```sh
 npm test
 npm run test:coverage
+npm run test:e2e
 npm run build
 ```
 
@@ -92,6 +93,13 @@ MCP endpoint, API route validation and workflows, and server-rendered UI shells
 using entirely synthetic fantasy fixtures. CI enforces minimum coverage of 95%
 for lines, 90% for functions, and 80% for branches across server and library
 code.
+
+The Playwright end-to-end suite runs the complete fantasy-data journey in
+desktop and mobile Chromium: CSV import, transaction verification, wallet and
+category details, settings dialogs, split creation, and PDF download links.
+Playwright starts the app with an isolated temporary SQLite database, so no
+personal data is read or modified. Install its browser once with
+`npx playwright install chromium` before running the suite locally.
 
 ## Docker
 
