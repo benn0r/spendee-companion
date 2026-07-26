@@ -13,4 +13,8 @@ test("public assets use the same version as the footer build", async ({ page }) 
   for (const link of await assetLinks.all()) {
     await expect(link).toHaveAttribute("href", new RegExp(`[?&]v=${buildId}$`));
   }
+
+  const headerLogo = page.locator("header .brandmark");
+  await expect(headerLogo).toHaveAttribute("src", new RegExp(`/icon\\.png\\?v=${buildId}$`));
+  await expect(headerLogo).toHaveCSS("border-radius", "11px");
 });

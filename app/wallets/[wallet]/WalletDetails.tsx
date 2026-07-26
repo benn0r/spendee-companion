@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Brand from "@/app/Brand";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
@@ -128,10 +129,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
     <main>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link className="brand brand-link" href="/">
-            <span className="brandmark">S</span>
-            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
-          </Link>
+          <Brand />
           <TopNavigation />
         </div>
       </header>

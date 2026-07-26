@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/I18nProvider";
@@ -104,10 +105,7 @@ export default function MonthlyReport() {
     <main>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link className="brand brand-link" href="/">
-            <span className="brandmark">S</span>
-            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
-          </Link>
+          <Brand />
           <TopNavigation active="monthly" />
         </div>
       </header>

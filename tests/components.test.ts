@@ -11,6 +11,7 @@ import Dashboard from "../app/Dashboard";
 import MonthlyReport from "../app/monthly/MonthlyReport";
 import SplitsView from "../app/splits/SplitsView";
 import WalletDetails from "../app/wallets/[wallet]/WalletDetails";
+import Brand from "../app/Brand";
 import { assetUrl, BUILD_ID } from "../lib/assets";
 
 test("shared UI components render accessible fantasy-data states", () => {
@@ -44,6 +45,12 @@ test("shared UI components render accessible fantasy-data states", () => {
 test("assetUrl versions public assets with the footer build id", () => {
   assert.equal(assetUrl("/favicon-32.png"), `/favicon-32.png?v=${BUILD_ID}`);
   assert.equal(assetUrl("/asset.svg?size=small"), `/asset.svg?size=small&v=${BUILD_ID}`);
+});
+
+test("header brand uses the versioned application logo", () => {
+  const brand = renderToStaticMarkup(React.createElement(Brand));
+  assert.match(brand, new RegExp(`/icon\\.png\\?v=${BUILD_ID}`));
+  assert.match(brand, /Spendee companion/);
 });
 
 test("filters and top-level client views have stable server-rendered shells", () => {

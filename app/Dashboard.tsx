@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Brand from "@/app/Brand";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import DayHeader from "./DayHeader";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
@@ -235,19 +236,14 @@ export default function Dashboard() {
     <main>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link
-            className="brand brand-link"
-            href="/"
+          <Brand
             onClick={() => {
               setTab("transactions");
               setSplitMode(false);
               setSplitRows([]);
               setSelectedDuplicates([]);
             }}
-          >
-            <span className="brandmark">S</span>
-            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
-          </Link>
+          />
           <div className="topbar-actions">
             <TopNavigation
               active={tab}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
 import { useCallback, useEffect, useState } from "react";
 import { intlLocale, normalizeLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
@@ -59,10 +60,7 @@ export default function SplitsView() {
     <main>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link className="brand brand-link" href="/">
-            <span className="brandmark">S</span>
-            <div><strong>Spendee companion</strong><small>Transaction archive</small></div>
-          </Link>
+          <Brand />
           <TopNavigation active="splits" />
         </div>
       </header>
