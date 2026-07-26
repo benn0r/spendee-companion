@@ -143,7 +143,11 @@ export default function MonthlyReport() {
               <div className="monthy-settings-body">
                 <div className="report-column-list">
               {columns.map((column, index) => (
-                <article className="report-column-editor" key={`${column.id ?? "new"}-${index}`}>
+                <article
+                  aria-label={`Column settings: ${column.name}`}
+                  className="report-column-editor"
+                  key={`${column.id ?? "new"}-${index}`}
+                >
                   <div className="report-column-head">
                     <label>
                       <span>Column name</span>

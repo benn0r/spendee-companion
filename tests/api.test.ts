@@ -71,6 +71,11 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     )));
     assert.equal(page.total, 1);
     assert.equal(page.rows[0].author, "Orion Vale");
+    const safePage = await body(await transactions.GET(new Request(
+      "http://test/api/transactions?page=Infinity&pageSize=10.5",
+    )));
+    assert.equal(safePage.page, 1);
+    assert.equal(safePage.pageSize, 10);
 
     const wallets = await import("../app/api/wallets/route");
     assert.equal((await body(await wallets.GET())).wallets.length, 2);
@@ -78,10 +83,17 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const wallet = await import("../app/api/wallets/[wallet]/route");
     const params = { params: Promise.resolve({ wallet: "Moon Purse" }) };
     assert.equal((await body(await wallet.GET(new Request("http://test/api/wallets/Moon?pageSize=10"), params))).total, 2);
+    const safeWalletPage = await body(await wallet.GET(
+      new Request("http://test/api/wallets/Moon?page=2.9&pageSize=999"),
+      params,
+    ));
+    assert.equal(safeWalletPage.page, 2);
+    assert.equal(safeWalletPage.pageSize, 100);
     assert.equal((await wallet.GET(new Request("http://test/api/wallets/Unknown"), {
       params: Promise.resolve({ wallet: "Unknown" }),
     })).status, 404);
     assert.equal((await wallet.PUT(jsonRequest("http://test", "PUT", { currency: "", startingAmount: "nope" }), params)).status, 400);
+    assert.equal((await wallet.PUT(jsonRequest("http://test", "PUT", { currency: "CHF", startingAmount: "" }), params)).status, 400);
     const updated = await body(await wallet.PUT(jsonRequest("http://test", "PUT", { currency: "CHF", startingAmount: 50 }), params));
     assert.equal(updated.startingAmount, 50);
   });
@@ -97,6 +109,13 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const current = await body(await category.GET(new Request("http://test/api/categories/stardust-snacks?month=2026-07"), params));
     assert.equal(current.chartTotals[0].amount, -24);
     assert.equal((await category.GET(new Request("http://test/api/categories/stardust-snacks?month=wrong"), params)).status, 400);
+    assert.equal((await category.GET(new Request("http://test/api/categories/stardust-snacks?month=2026-13"), params)).status, 400);
+    const safeCategoryPage = await body(await category.GET(
+      new Request("http://test/api/categories/stardust-snacks?page=Infinity&pageSize=10.5"),
+      params,
+    ));
+    assert.equal(safeCategoryPage.page, 1);
+    assert.equal(safeCategoryPage.pageSize, 10);
     assert.equal((await category.GET(new Request("http://test/api/categories/missing"), {
       params: Promise.resolve({ category: "missing" }),
     })).status, 404);
@@ -152,6 +171,11 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const duplicates = await import("../app/api/duplicates/route");
     const listed = await body(await duplicates.GET(new Request("http://test/api/duplicates?pageSize=10")));
     assert.equal(listed.total, 1);
+    const safeDuplicatePage = await body(await duplicates.GET(
+      new Request("http://test/api/duplicates?page=Infinity&pageSize=10.5"),
+    ));
+    assert.equal(safeDuplicatePage.page, 1);
+    assert.equal(safeDuplicatePage.pageSize, 10);
     assert.equal((await duplicates.DELETE(jsonRequest("http://test", "DELETE", { ids: ["bad"] }))).status, 400);
     assert.equal((await body(await duplicates.DELETE(jsonRequest("http://test", "DELETE", { ids: [listed.rows[0].id] })))).deleted, 1);
 

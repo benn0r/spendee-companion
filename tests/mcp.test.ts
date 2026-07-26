@@ -38,9 +38,11 @@ function fantasyTransaction(patch: Partial<TransactionInput> = {}): TransactionI
 }
 
 function parseResult(result: Awaited<ReturnType<Client["callTool"]>>) {
-  const block = result.content?.[0];
+  const content = result.content as Array<{ type: string; text?: string }> | undefined;
+  const block = content?.[0];
   assert.equal(block?.type, "text");
-  return JSON.parse((block as { type: "text"; text: string }).text) as any;
+  if (typeof block?.text !== "string") assert.fail("Expected a text tool result.");
+  return JSON.parse(block.text) as any;
 }
 
 test("read-only MCP exposes every UI data surface with fantasy data", async () => {

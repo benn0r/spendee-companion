@@ -705,7 +705,7 @@ export function createSplit(
   const rows = db.prepare(`
     SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
       note, labels, author, source_file AS sourceFile, source_row AS sourceRow
-    FROM transactions WHERE id IN (${ids.map(() => "?").join(", ")})
+    FROM transactions WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(", ")})
   `).all(...ids) as Array<{
     id: number;
     date: string;

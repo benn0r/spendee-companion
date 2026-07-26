@@ -44,9 +44,9 @@ export function groupRowsByDay<T extends { date: string }>(rows: T[]) {
 
 export function formatDayLabel(key: string, now = new Date(), locale = "en-GB"): string {
   const today = dayKey(now);
-  const yesterdayDate = new Date(now);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterday = dayKey(yesterdayDate);
+  const yesterdayDate = new Date(`${today}T12:00:00.000Z`);
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterday = yesterdayDate.toISOString().slice(0, 10);
   if (key === today) return "Today";
   if (key === yesterday) return "Yesterday";
   const [year, month, day] = key.split("-").map(Number);

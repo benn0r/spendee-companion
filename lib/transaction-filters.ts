@@ -9,8 +9,11 @@ export function parseTransactionFilters(searchParams: URLSearchParams): Transact
   const operator = searchParams.get("amountOperator");
   const date = (name: string) => {
     const value = searchParams.get(name);
-    return value && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-      Number.isFinite(new Date(`${value}T00:00:00.000Z`).getTime()) ? value : undefined;
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+      ? value
+      : undefined;
   };
   return {
     dateFrom: date("dateFrom"),

@@ -479,17 +479,23 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
     })),
     [{ title: "Mountain weekend", customCount: 1 }],
   );
-  const pdf = await createSplitPdf(split as Parameters<typeof createSplitPdf>[0]);
+  const splitData = split as Parameters<typeof createSplitPdf>[0];
+  const pdf = await createSplitPdf(splitData);
   assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
   assert.ok(pdf.length > 1000);
   for (const locale of ["de", "pt-BR", "fr", "it"] as const) {
-    const localizedPdf = await createSplitPdf({ ...split!, locale });
+    const localizedPdf = await createSplitPdf({ ...splitData, locale });
     assert.equal(localizedPdf.subarray(0, 5).toString(), "%PDF-");
     assert.ok(localizedPdf.length > 1000);
   }
   assert.equal(deleteSplit(db, split!.id), true);
   assert.equal(getSplit(db, split!.id), null);
   assert.equal((db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as { count: number }).count, 0);
+  db.prepare("UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(ids[0]);
+  assert.throws(
+    () => createSplit(db, "Hidden transaction", [ids[0]], [], 2),
+    /no longer exist/,
+  );
   db.close();
 });
 

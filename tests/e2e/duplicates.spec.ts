@@ -11,8 +11,10 @@ test("duplicate imports can be listed, selected, and deleted", async ({ page }, 
   await expect(page.getByRole("region", { name: "Transaction filters" })).toHaveCount(0);
   await expect(page.getByText(`Nebula lunch ${variant}`)).toBeVisible();
   await page.getByLabel("Rows per page").selectOption("10");
-  await page.getByLabel("Select all duplicates on this page").check();
+  const scenarioRows = page.getByRole("row").filter({ hasText: variant });
+  await expect(scenarioRows).toHaveCount(3);
+  for (const row of await scenarioRows.all()) await row.getByRole("checkbox").check();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: /Delete selected \(3\)/ }).click();
-  await expect(page.getByText("No duplicates have been found.")).toBeVisible();
+  await expect(scenarioRows).toHaveCount(0);
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCategoryDetails, getDatabase, resolveCategory, setCategoryTags } from "@/lib/db";
 import { parseTransactionFilters } from "@/lib/transaction-filters";
 import { categoryIconIds, validCategoryColor } from "@/lib/category-appearance";
+import { parsePagination } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -16,10 +17,9 @@ export async function GET(
     return NextResponse.json({ error: "Category not found." }, { status: 404 });
   }
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const pageSize = Math.min(100, Math.max(10, Number(searchParams.get("pageSize")) || 25));
+  const { page, pageSize } = parsePagination(searchParams);
   const requestedMonth = searchParams.get("month");
-  if (requestedMonth && requestedMonth !== "all" && !/^\d{4}-\d{2}$/.test(requestedMonth)) {
+  if (requestedMonth && requestedMonth !== "all" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth)) {
     return NextResponse.json({ error: "Select a valid month." }, { status: 400 });
   }
   const chartMonth = requestedMonth === "all" ? null : requestedMonth ?? undefined;

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDatabase, getFilteredTransactionPage } from "@/lib/db";
+import { parsePagination } from "@/lib/pagination";
 import { parseTransactionFilters } from "@/lib/transaction-filters";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const pageSize = Math.min(100, Math.max(10, Number(searchParams.get("pageSize")) || 25));
+  const { page, pageSize } = parsePagination(searchParams);
   return NextResponse.json(getFilteredTransactionPage(
     getDatabase(), "transactions", parseTransactionFilters(searchParams), page, pageSize,
   ));

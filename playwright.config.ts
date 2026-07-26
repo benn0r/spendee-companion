@@ -28,12 +28,11 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: useProductionBuild
-      ? "node build-artifact/server.js"
-      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: "node --import tsx tests/e2e/start-server.ts",
     env: {
       APP_VERSION: "fantasy-e2e-build",
       HOSTNAME: "127.0.0.1",
+      PLAYWRIGHT_USE_PRODUCTION_BUILD: useProductionBuild ? "1" : "0",
       PORT: String(port),
       SQLITE_PATH: databasePath,
     },

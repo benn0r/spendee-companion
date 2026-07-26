@@ -25,12 +25,14 @@ function parseCells(cells: unknown[][]) {
   const indexes = Object.fromEntries(cells[0].map((value, index) => [String(value ?? "").trim(), index]));
   return cells.slice(1).filter((row) => row.some((value) => value != null)).map((row, index) => {
     const get = (column: typeof transactionColumns[number]) => row[indexes[column]];
-    const amount = Number(get("Amount"));
-    if (!Number.isFinite(amount)) throw new Error(`Row ${index + 2}: invalid amount`);
+    const amountText = String(get("Amount") ?? "").trim();
+    const amount = Number(amountText);
+    if (!amountText || !Number.isFinite(amount)) throw new Error(`Row ${index + 2}: invalid amount`);
     const wallet = String(get("Wallet") ?? "").trim();
     const type = String(get("Type") ?? "").trim();
     const currency = String(get("Currency") ?? "").trim().toUpperCase();
     if (!wallet || !type || !currency) throw new Error(`Row ${index + 2}: wallet, type and currency are required`);
+    if (!/^[A-Z]{3}$/.test(currency)) throw new Error(`Row ${index + 2}: currency must be a three-letter code`);
     const transaction: TransactionInput = {
       date: asDate(get("Date")),
       wallet,
@@ -53,9 +55,14 @@ export async function parseImportFile(buffer: Buffer, filename: string) {
     return parseCells(await readSheet(buffer));
   }
   if (extension === "csv") {
+    const header = buffer.toString("utf8").replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0] ?? "";
+    const delimiter = [",", ";", "\t"].reduce((best, candidate) => {
+      const matches = header.split(candidate).length - 1;
+      return matches > best.matches ? { value: candidate, matches } : best;
+    }, { value: ",", matches: -1 }).value;
     const cells = parse(buffer, {
       bom: true,
-      delimiter: [",", ";", "\t"],
+      delimiter,
       relax_column_count: true,
       skip_empty_lines: true,
     }) as unknown[][];
