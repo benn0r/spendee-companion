@@ -9,6 +9,7 @@ import TransactionFilters, { emptyFilters, filterQuery, type FilterOptions, type
 import CategoryIcon from "@/app/CategoryIcon";
 import { useI18n } from "@/app/I18nProvider";
 import { categoryIconIds, defaultCategoryColor, type CategoryAppearance } from "@/lib/category-appearance";
+import { assetUrl } from "@/lib/assets";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
@@ -252,7 +253,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                       key={id}
                       onClick={() => setIconId(id)}
                       type="button"
-                    ><span style={{ backgroundColor: categoryColor }}><img alt="" src={`/category-icons/cat_${id}.svg`} /></span></button>
+                    ><span style={{ backgroundColor: categoryColor }}><img alt="" src={assetUrl(`/category-icons/cat_${id}.svg`)} /></span></button>
                   ))}
                 </div>
               </div>

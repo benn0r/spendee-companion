@@ -11,12 +11,14 @@ import Dashboard from "../app/Dashboard";
 import MonthlyReport from "../app/monthly/MonthlyReport";
 import SplitsView from "../app/splits/SplitsView";
 import WalletDetails from "../app/wallets/[wallet]/WalletDetails";
+import { assetUrl, BUILD_ID } from "../lib/assets";
 
 test("shared UI components render accessible fantasy-data states", () => {
   const icon = renderToStaticMarkup(React.createElement(CategoryIcon, {
     appearance: { iconId: 3, color: "#12c48b" },
   }));
   assert.match(icon, /cat_3\.svg/);
+  assert.match(icon, new RegExp(`v=${BUILD_ID}`));
   assert.match(icon, /background-color:#12c48b/);
   assert.match(renderToStaticMarkup(React.createElement(CategoryIcon, {})), />#<\/b>/);
 
@@ -37,6 +39,11 @@ test("shared UI components render accessible fantasy-data states", () => {
   }));
   assert.match(navigation, /Duplicates <span>4<\/span>/);
   assert.match(navigation, /class="active">Duplicates/);
+});
+
+test("assetUrl versions public assets with the footer build id", () => {
+  assert.equal(assetUrl("/favicon-32.png"), `/favicon-32.png?v=${BUILD_ID}`);
+  assert.equal(assetUrl("/asset.svg?size=small"), `/asset.svg?size=small&v=${BUILD_ID}`);
 });
 
 test("filters and top-level client views have stable server-rendered shells", () => {
