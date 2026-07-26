@@ -39,6 +39,7 @@ jobs:
           exit 1
 
   publish-image:
+    needs: test
     if: gitea.event_name == 'push' && startsWith(gitea.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
