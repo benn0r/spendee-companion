@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
+const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION_BUILD === "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -22,9 +23,13 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: useProductionBuild
+      ? "node build-artifact/server.js"
+      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
     env: {
       APP_VERSION: "fantasy-e2e-build",
+      HOSTNAME: "127.0.0.1",
+      PORT: String(port),
       SQLITE_PATH: databasePath,
     },
     reuseExistingServer: false,
