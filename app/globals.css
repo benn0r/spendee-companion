@@ -225,8 +225,8 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .wallet { width: 27px; height: 27px; margin-right: 8px; display: inline-grid; place-items: center; border-radius: 8px; color: var(--green-dark); background: var(--green-soft); font-weight: 700; }
 .wallet-link { display: inline-flex; align-items: center; color: inherit; font-weight: 600; text-decoration: none; }
 .wallet-link:hover { color: var(--green-dark); }
-.category-link { color: #137f9a; font-weight: 600; text-decoration: none; }
-.category-link:hover { text-decoration: underline; }
+.category-link { color: inherit; font-weight: 600; text-decoration: none; }
+.category-link:hover { color: var(--green-dark); text-decoration: underline; }
 .category-link-with-icon { display: inline-flex; align-items: center; gap: 6px; }
 .category-link-with-icon .category-icon { width: 22px; height: 22px; flex-basis: 22px; border-radius: 6px; }
 .category-link-with-icon .category-icon img { width: 19px; height: 19px; }
