@@ -31,7 +31,7 @@ jobs:
           cp -R public build-artifact/public
           tar --create --gzip --file spendee-build.tgz build-artifact
       - name: Upload production build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: spendee-build-${{ gitea.run_id }}
           path: spendee-build.tgz
@@ -62,7 +62,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Download production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: spendee-build-${{ gitea.run_id }}
       - name: Validate production build artifact
@@ -85,7 +85,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Download production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: spendee-build-${{ gitea.run_id }}
       - name: Extract production build
