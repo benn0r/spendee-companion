@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest-slim
     container: node:22.13.0-bookworm
     timeout-minutes: 15
@@ -19,14 +19,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Install dependencies
         run: npm ci
-      - name: Test
-        run: npm run test:coverage
       - name: Build
         run: npm run build
-      - name: Install end-to-end browser
-        run: npx playwright install --with-deps chromium
-      - name: End-to-end tests
-        run: npm run test:e2e
       - name: Audit production dependencies
         shell: sh
         run: |
@@ -42,8 +36,36 @@ jobs:
           fi
           exit 1
 
-  publish-image:
+  test:
+    needs: build
+    runs-on: ubuntu-latest-slim
+    container: node:22.13.0-bookworm
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit and coverage tests
+        run: npm run test:coverage
+
+  test-e2e:
     needs: test
+    runs-on: ubuntu-latest-slim
+    container: node:22.13.0-bookworm
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Install end-to-end browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+  publish-image:
+    needs: test-e2e
     if: gitea.event_name == 'push' && startsWith(gitea.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
