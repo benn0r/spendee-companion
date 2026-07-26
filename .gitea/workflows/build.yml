@@ -24,7 +24,10 @@ jobs:
       - name: Build
         run: npm run build
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=critical
+        # The npm 10 client bundled with Node 22 uses the retired quick-audit
+        # endpoint, which now rejects otherwise valid lockfiles. Keep the
+        # runtime pinned while using the current bulk-advisory client.
+        run: npx --yes npm@11.16.0 audit --omit=dev --audit-level=critical
 
   publish-image:
     if: gitea.event_name == 'push' && startsWith(gitea.ref, 'refs/heads/')
