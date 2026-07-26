@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test("imports fantasy transactions and completes the primary ledger workflow", async ({ page }, testInfo) => {
-  const variant = testInfo.project.name === "chromium" ? "Desktop" : "Mobile";
+  const device = testInfo.project.name === "chromium" ? "Desktop" : "Mobile";
+  const variant = testInfo.retry ? `${device} Retry ${testInfo.retry}` : device;
   const wallet = `Moon Purse ${variant}`;
   const category = `Stardust Snacks ${variant}`;
   const fantasyCsv = [
@@ -29,9 +30,12 @@ test("imports fantasy transactions and completes the primary ledger workflow", a
   await expect(page.getByText(`Dragon bounty ${variant}`)).toBeVisible();
   await expect(page.getByText(`Gate fare ${variant}`)).toBeVisible();
 
-  await page.getByLabel("Verified until").fill("2026-07-02");
-  await page.locator(".valid-until-control").getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Transactions through 2026-07-02 are marked as verified.")).toBeVisible();
+  const verifiedUntil = page.getByLabel("Verified until");
+  if (await verifiedUntil.inputValue() !== "2026-07-02") {
+    await verifiedUntil.fill("2026-07-02");
+    await page.locator(".valid-until-control").getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Transactions through 2026-07-02 are marked as verified.")).toBeVisible();
+  }
   expect(await page.getByText("✓ Verified").count()).toBeGreaterThanOrEqual(2);
 
   await page.getByRole("link", { name: wallet }).first().click();
@@ -64,8 +68,9 @@ test("imports fantasy transactions and completes the primary ledger workflow", a
   await splitDialog.getByRole("button", { name: "Save split" }).click();
 
   await expect(page).toHaveURL(/\/splits$/);
-  await expect(page.getByText(`Moon voyage ${variant}`)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", /\/api\/splits\/\d+\/pdf/);
+  const savedSplit = page.getByRole("article").filter({ hasText: `Moon voyage ${variant}` });
+  await expect(savedSplit).toBeVisible();
+  await expect(savedSplit.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", /\/api\/splits\/\d+\/pdf/);
 
   await testInfo.attach("completed-workflow", {
     body: await page.screenshot({ fullPage: true }),
