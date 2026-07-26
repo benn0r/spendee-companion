@@ -75,7 +75,7 @@ jobs:
         run: npm run test:coverage
 
   test-e2e:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest-slim
     container: node:22.13.0-bookworm
     timeout-minutes: 15
@@ -98,7 +98,9 @@ jobs:
         run: npm run test:e2e
 
   publish-image:
-    needs: test-e2e
+    needs:
+      - test
+      - test-e2e
     if: gitea.event_name == 'push' && startsWith(gitea.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
