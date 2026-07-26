@@ -507,6 +507,8 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
   .tabs button { flex: 1; }
   .filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-amount-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .filter-multi[open] { grid-column: 1 / -1; }
+  .filter-multi > div { position: static; width: 100%; max-width: none; margin-top: 5px; }
   .filter-actions { width: 100%; margin-left: 0; grid-column: 1 / -1; }
   .filter-actions button { flex: 1; }
   .pagination { align-items: stretch; flex-direction: column; }
