@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
+import { importFiles } from "./import-service";
 import {
   getCategoryDetails,
   getDatabase,
@@ -35,6 +36,14 @@ const filterSchema = {
 
 function result(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+}
+
+function decodeBase64(value: string): Buffer {
+  const normalized = value.replace(/\s+/g, "");
+  if (!normalized || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) || normalized.length % 4 !== 0) {
+    throw new Error("File content must be valid base64.");
+  }
+  return Buffer.from(normalized, "base64");
 }
 
 function filters(input: z.infer<z.ZodObject<typeof filterSchema>>): TransactionFilters {
@@ -83,8 +92,7 @@ export function createReadOnlyMcpServer() {
         (SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL) AS transactions,
         (SELECT COUNT(*) FROM duplicates) AS duplicates,
         (SELECT COUNT(*) FROM imports) AS imports,
-        (SELECT COUNT(DISTINCT wallet) FROM transactions WHERE deleted_at IS NULL) AS wallets,
-        (SELECT COUNT(*) FROM reconciliation_items WHERE status = 'pending') AS pending
+        (SELECT COUNT(DISTINCT wallet) FROM transactions WHERE deleted_at IS NULL) AS wallets
     `).get();
     return result({ counts, validUntil: getValidUntil(db), wallets: groupedWallets(), filters: getTransactionFilterOptions(db) });
   });
@@ -134,23 +142,22 @@ export function createReadOnlyMcpServer() {
     inputSchema: { id: z.number().int().positive() },
   }, async ({ id }) => result(getSplit(getDatabase(), id)));
 
-  server.registerTool("list_pending_reconciliation", {
-    description: "Read proposed full-import changes and deletions that are awaiting user approval.",
-  }, async () => {
-    const rows = getDatabase().prepare(`
-      SELECT r.id, r.action, r.transaction_id AS transactionId, r.created_at AS createdAt,
-        t.date, t.wallet, t.type, t.category_name AS categoryName, t.amount, t.currency,
-        t.note, t.labels, t.author, t.deleted_at IS NOT NULL AS isDeleted,
-        r.proposed_json AS proposedJson
-      FROM reconciliation_items r
-      JOIN transactions t ON t.id = r.transaction_id
-      WHERE r.status = 'pending'
-      ORDER BY r.created_at DESC, r.id DESC
-    `).all().map((row) => {
-      const item = row as Record<string, unknown> & { proposedJson: string | null };
-      return { ...item, proposed: item.proposedJson ? JSON.parse(item.proposedJson) : null, proposedJson: undefined };
-    });
-    return result({ rows, total: rows.length });
+  server.registerTool("import_transaction_files", {
+    description: "Import uploaded Spendee XLSX or CSV files. Set full to replace all transactions for each file's single wallet.",
+    inputSchema: {
+      files: z.array(z.object({
+        filename: z.string().min(1),
+        contentBase64: z.string().min(1).max(20_000_000),
+      })).min(1).max(10),
+      full: z.boolean().default(false),
+    },
+  }, async ({ files, full }) => {
+    const payload = await importFiles(files.map((file) => ({
+      name: file.filename,
+      buffer: decodeBase64(file.contentBase64),
+    })), { full });
+    const response = result({ results: payload.results, summary: payload.summary, error: payload.error });
+    return payload.successful ? response : { ...response, isError: true };
   });
 
   return server;

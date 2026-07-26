@@ -13,7 +13,6 @@ import {
   getWalletTransactions,
   importTransactions,
   openDatabase,
-  reviewReconciliation,
   resolveCategory,
   setCategoryTags,
   setValidUntil,
@@ -56,8 +55,8 @@ test("persists unique transactions and separates every duplicate occurrence", ()
     { transaction, sourceRow: 2, raw: transaction },
     { transaction, sourceRow: 3, raw: transaction },
   ]);
-  assert.deepEqual(first, { importId: 1, total: 1, imported: 1, duplicates: 0, changes: 0, deletions: 0 });
-  assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2, changes: 0, deletions: 0 });
+  assert.deepEqual(first, { importId: 1, total: 1, imported: 1, duplicates: 0, replaced: 0 });
+  assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2, replaced: 0 });
   assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions").get() as { count: number }).count, 1);
   assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 2);
   const duplicateIds = (db.prepare("SELECT id FROM duplicates ORDER BY id").all() as Array<{ id: number }>).map((row) => row.id);
@@ -79,7 +78,7 @@ test("persists the global transaction validation date", () => {
   db.close();
 });
 
-test("queues changed values and full-import deletions until explicitly approved", () => {
+test("full imports atomically replace one wallet without affecting other wallets", () => {
   const path = `/tmp/spendee-reconcile-${crypto.randomUUID()}.db`;
   paths.push(path);
   const db = openDatabase(path);
@@ -95,9 +94,12 @@ test("queues changed values and full-import deletions until explicitly approved"
     author: "Nova",
   };
   const missing = { ...base, date: "2026-04-02T11:58:51.000Z", amount: -20 };
+  const otherWallet = { ...base, date: "2026-04-03T11:58:51.000Z", wallet: "Vault" };
   importTransactions(db, "initial.xlsx", [
     { transaction: base, sourceRow: 2, raw: base },
     { transaction: missing, sourceRow: 3, raw: missing },
+    { transaction: missing, sourceRow: 4, raw: missing },
+    { transaction: otherWallet, sourceRow: 5, raw: otherWallet },
   ]);
   const changed = { ...base, amount: -15.75 };
   const result = importTransactions(
@@ -106,60 +108,11 @@ test("queues changed values and full-import deletions until explicitly approved"
     [{ transaction: changed, sourceRow: 2, raw: changed }],
     { fullImport: true },
   );
-  assert.deepEqual(result, { importId: 2, total: 1, imported: 0, duplicates: 0, changes: 1, deletions: 1 });
-  assert.equal((db.prepare("SELECT amount FROM transactions WHERE date = ?").get(base.date) as { amount: number }).amount, -12.5);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE deleted_at IS NULL").get() as { count: number }).count, 2);
-
-  const pending = db.prepare("SELECT id, action FROM reconciliation_items WHERE status = 'pending' ORDER BY id").all() as Array<{ id: number; action: string }>;
-  reviewReconciliation(db, pending.map((item) => item.id), "approved");
+  assert.deepEqual(result, { importId: 2, total: 1, imported: 1, duplicates: 0, replaced: 2 });
   assert.equal((db.prepare("SELECT amount FROM transactions WHERE date = ?").get(base.date) as { amount: number }).amount, -15.75);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE deleted_at IS NULL").get() as { count: number }).count, 1);
-  db.close();
-});
-
-test("keeps only proposals from the newest full wallet snapshot", () => {
-  const path = `/tmp/spendee-supersede-${crypto.randomUUID()}.db`;
-  paths.push(path);
-  const db = openDatabase(path);
-  const first: TransactionInput = {
-    date: "2026-04-01T11:58:51.000Z",
-    wallet: "Account",
-    type: "Expense",
-    categoryName: "Food",
-    amount: -10,
-    currency: "CHF",
-    note: null,
-    labels: null,
-    author: "Nova",
-  };
-  const second = { ...first, date: "2026-04-02T11:58:51.000Z", amount: -20 };
-  importTransactions(db, "initial.xlsx", [
-    { transaction: first, sourceRow: 2, raw: first },
-    { transaction: second, sourceRow: 3, raw: second },
-  ]);
-  importTransactions(
-    db,
-    "changed.xlsx",
-    [{ transaction: { ...first, amount: -15 }, sourceRow: 2, raw: first }],
-    { fullImport: true },
-  );
-  importTransactions(
-    db,
-    "latest.xlsx",
-    [
-      { transaction: first, sourceRow: 2, raw: first },
-      { transaction: second, sourceRow: 3, raw: second },
-    ],
-    { fullImport: true },
-  );
-  assert.equal(
-    (db.prepare("SELECT COUNT(*) count FROM reconciliation_items WHERE status = 'pending'").get() as { count: number }).count,
-    0,
-  );
-  assert.equal(
-    (db.prepare("SELECT COUNT(*) count FROM reconciliation_items WHERE status = 'rejected'").get() as { count: number }).count,
-    2,
-  );
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE wallet = 'Account'").get() as { count: number }).count, 1);
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE wallet = 'Vault'").get() as { count: number }).count, 1);
+  assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates WHERE wallet = 'Account'").get() as { count: number }).count, 0);
   db.close();
 });
 
@@ -534,11 +487,11 @@ test("provides locale normalization, formatting metadata, and message fallback",
   assert.equal(translateUiText("de", "23. July"), "23. Juli");
   assert.equal(translateUiText("de", "Dragon transaction journal"), "Dragon transaction journal");
   for (const phrase of [
-    "Search wallets…", "No matches", "Current month", "Saved", "Actions", "Missing", "Restore", "Changed",
+    "Search wallets…", "No matches", "Current month", "Saved", "Actions",
     "Spending by label", "Labels in the chart", "Search labels…",
     "Import an XLSX or CSV export to begin.", "No duplicates have been found.", "Expense", "Income", "New column",
     "Category settings saved.", "Could not load this wallet.", "Could not save split.", "Enter a title for the split.",
-    "3 active transactions", "2 of 5 selected", "4 proposed changes need your review", "3 separated duplicates",
+    "3 active transactions", "2 of 5 selected", "3 separated duplicates",
     "Delete selected (2)", "Split selected (2)", "matches #42", "Position 1 description", "Remove position 1",
     "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF", "Select transaction 9",
     "Transactions through 2026-07-25 are marked as verified.", "0 records", "25 Jul 2026, 10:30",
@@ -557,14 +510,14 @@ test("provides locale normalization, formatting metadata, and message fallback",
   }
   const dynamicPhrases = [
     "2 categories", "3 selected transactions", "· 1 custom position", "4 active transactions",
-    "2 columns", "2 of 5 selected", "1 proposed change needs your review", "3 proposed changes need your review",
-    "2 separated duplicates", "1 duplicate deleted.", "2 pending items approved.", "1 pending item rejected.",
+    "2 columns", "2 of 5 selected", "2 separated duplicates", "1 duplicate deleted.",
     "Delete selected (2)", "Split selected (2)", "matches #42", "Position 1 description", "Position 1 amount",
     "Remove position 1", "Remove Dragon Food", "Selected categories: Dragon Food, Moon Travel", "Starting amount in CHF",
     "Select duplicate 3", "Select transaction 9", "Category icon 4", "CHF spending pie chart",
     "Wallet \"Moon Purse\" appears in more than one full-import file.", "Delete \"Alpine weekend\"? This cannot be undone.",
     "Delete 2 selected duplicates? This cannot be undone.", "Transactions through 2026-07-25 are marked as verified.",
     "Transaction verification date cleared.", "3 files processed · 8 imported · 2 duplicates separated",
+    "1 file processed · 1 imported · 0 duplicates separated · 2 previous transactions replaced",
     "Page 2 of 7", "26–50 of 140",
   ];
   for (const locale of ["pt-BR", "fr", "it"] as const) {

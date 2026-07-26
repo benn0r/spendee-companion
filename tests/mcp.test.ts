@@ -61,9 +61,6 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
     transaction, sourceRow: index + 2, raw: transaction,
   })));
   importTransactions(db, "fantasy-repeat.csv", [{ transaction: grocery, sourceRow: 2, raw: grocery }]);
-  importTransactions(db, "fantasy-change.csv", [{
-    transaction: { ...grocery, amount: -42 }, sourceRow: 2, raw: grocery,
-  }], { fullImport: true });
   setWalletStartingBalance(db, "Phoenix Pouch", "CHF", 200);
   setValidUntil(db, "2026-07-12");
   setMonthlyReportColumns(db, [{ name: "Magic life", categories: ["Enchanted Groceries"], budget: 80 }]);
@@ -85,13 +82,13 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
       "get_overview",
       "get_split",
       "get_wallet",
+      "import_transaction_files",
       "list_duplicates",
-      "list_pending_reconciliation",
       "list_splits",
       "list_transactions",
       "list_wallets",
     ]);
-    assert.ok(names.every((name) => !/create|update|delete|import|approve|reject/.test(name)));
+    assert.deepEqual(names.filter((name) => /create|update|delete|import|approve|reject/.test(name)), ["import_transaction_files"]);
 
     const overview = parseResult(await client.callTool({ name: "get_overview", arguments: {} }));
     assert.equal(overview.counts.transactions, 2);
@@ -133,8 +130,25 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
     const oneSplit = parseResult(await client.callTool({ name: "get_split", arguments: { id: split!.id } }));
     assert.equal(oneSplit.entries.length, 3);
 
-    const pending = parseResult(await client.callTool({ name: "list_pending_reconciliation", arguments: {} }));
-    assert.ok(pending.total >= 1);
+    const replacementCsv = [
+      "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
+      "2026-07-11T10:00:00.000Z,Phoenix Pouch,Expense,Enchanted Groceries,-42,CHF,Fresh moonberries,magic,Nova Quill",
+    ].join("\n");
+    const imported = parseResult(await client.callTool({
+      name: "import_transaction_files",
+      arguments: {
+        files: [{ filename: "phoenix-full.csv", contentBase64: Buffer.from(replacementCsv).toString("base64") }],
+        full: true,
+      },
+    }));
+    assert.deepEqual(imported.summary, {
+      total: 1, imported: 1, duplicates: 0, replaced: 2, files: 1, failed: 0,
+    });
+    const replacedWallet = parseResult(await client.callTool({
+      name: "get_wallet", arguments: { wallet: "Phoenix Pouch", page: 1, pageSize: 10 },
+    }));
+    assert.equal(replacedWallet.total, 1);
+    assert.equal(replacedWallet.rows[0].amount, -42);
 
     const invalid = await client.callTool({
       name: "list_transactions", arguments: { page: 0, pageSize: 500 },

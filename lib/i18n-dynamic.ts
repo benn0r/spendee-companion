@@ -7,11 +7,8 @@ type DynamicConfig = {
   customPositions: Forms;
   activeTransactions: Forms;
   selection: (selected: string, total: string) => string;
-  proposedChanges: Forms;
   separatedDuplicates: Forms;
   deletedDuplicates: Forms;
-  approvedItems: Forms;
-  rejectedItems: Forms;
   deleteSelected: (count: string) => string;
   splitSelected: (count: string) => string;
   matches: (id: string) => string;
@@ -30,7 +27,7 @@ type DynamicConfig = {
   deleteDuplicates: Forms;
   verifiedThrough: (date: string) => string;
   verificationCleared: string;
-  importSummary: (files: string, imported: string, duplicates: string) => string;
+  importSummary: (files: string, imported: string, duplicates: string, replaced?: string) => string;
   page: (page: string, pages: string) => string;
   range: (from: string, to: string, total: string) => string;
 };
@@ -42,11 +39,8 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["item personalizado", "itens personalizados"],
     activeTransactions: ["transação ativa", "transações ativas"],
     selection: (selected, total) => `${selected} de ${total} selecionados`,
-    proposedChanges: ["alteração proposta precisa da sua revisão", "alterações propostas precisam da sua revisão"],
     separatedDuplicates: ["duplicata separada", "duplicatas separadas"],
     deletedDuplicates: ["duplicata excluída.", "duplicatas excluídas."],
-    approvedItems: ["item pendente aprovado.", "itens pendentes aprovados."],
-    rejectedItems: ["item pendente rejeitado.", "itens pendentes rejeitados."],
     deleteSelected: (count) => `Excluir selecionados (${count})`,
     splitSelected: (count) => `Ratear selecionadas (${count})`,
     matches: (id) => `corresponde a #${id}`,
@@ -65,7 +59,7 @@ const configs: Record<Locale, DynamicConfig> = {
     deleteDuplicates: ["duplicata selecionada? Esta ação não pode ser desfeita.", "duplicatas selecionadas? Esta ação não pode ser desfeita."],
     verifiedThrough: (date) => `As transações até ${date} estão marcadas como verificadas.`,
     verificationCleared: "A data de verificação das transações foi removida.",
-    importSummary: (files, imported, duplicates) => `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas`,
+    importSummary: (files, imported, duplicates, replaced) => `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas${replaced ? ` · ${replaced} transações anteriores substituídas` : ""}`,
     page: (page, pages) => `Página ${page} de ${pages}`,
     range: (from, to, total) => `${from}–${to} de ${total}`,
   },
@@ -75,11 +69,8 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["élément personnalisé", "éléments personnalisés"],
     activeTransactions: ["transaction active", "transactions actives"],
     selection: (selected, total) => `${selected} sur ${total} sélectionnés`,
-    proposedChanges: ["modification proposée à vérifier", "modifications proposées à vérifier"],
     separatedDuplicates: ["doublon séparé", "doublons séparés"],
     deletedDuplicates: ["doublon supprimé.", "doublons supprimés."],
-    approvedItems: ["élément en attente approuvé.", "éléments en attente approuvés."],
-    rejectedItems: ["élément en attente rejeté.", "éléments en attente rejetés."],
     deleteSelected: (count) => `Supprimer la sélection (${count})`,
     splitSelected: (count) => `Répartir la sélection (${count})`,
     matches: (id) => `correspond au no ${id}`,
@@ -98,7 +89,7 @@ const configs: Record<Locale, DynamicConfig> = {
     deleteDuplicates: ["doublon sélectionné ? Cette action est irréversible.", "doublons sélectionnés ? Cette action est irréversible."],
     verifiedThrough: (date) => `Les transactions jusqu’au ${date} sont marquées comme vérifiées.`,
     verificationCleared: "La date de vérification des transactions a été supprimée.",
-    importSummary: (files, imported, duplicates) => `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés`,
+    importSummary: (files, imported, duplicates, replaced) => `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés${replaced ? ` · ${replaced} transactions précédentes remplacées` : ""}`,
     page: (page, pages) => `Page ${page} sur ${pages}`,
     range: (from, to, total) => `${from}–${to} sur ${total}`,
   },
@@ -108,11 +99,8 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["voce personalizzata", "voci personalizzate"],
     activeTransactions: ["transazione attiva", "transazioni attive"],
     selection: (selected, total) => `${selected} di ${total} selezionati`,
-    proposedChanges: ["modifica proposta da controllare", "modifiche proposte da controllare"],
     separatedDuplicates: ["duplicato separato", "duplicati separati"],
     deletedDuplicates: ["duplicato eliminato.", "duplicati eliminati."],
-    approvedItems: ["elemento in sospeso approvato.", "elementi in sospeso approvati."],
-    rejectedItems: ["elemento in sospeso rifiutato.", "elementi in sospeso rifiutati."],
     deleteSelected: (count) => `Elimina selezionati (${count})`,
     splitSelected: (count) => `Ripartisci selezionate (${count})`,
     matches: (id) => `corrisponde al n. ${id}`,
@@ -131,7 +119,7 @@ const configs: Record<Locale, DynamicConfig> = {
     deleteDuplicates: ["duplicato selezionato? Questa operazione non può essere annullata.", "duplicati selezionati? Questa operazione non può essere annullata."],
     verifiedThrough: (date) => `Le transazioni fino al ${date} sono contrassegnate come verificate.`,
     verificationCleared: "La data di verifica delle transazioni è stata rimossa.",
-    importSummary: (files, imported, duplicates) => `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati`,
+    importSummary: (files, imported, duplicates, replaced) => `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati${replaced ? ` · ${replaced} transazioni precedenti sostituite` : ""}`,
     page: (page, pages) => `Pagina ${page} di ${pages}`,
     range: (from, to, total) => `${from}–${to} di ${total}`,
   },
@@ -156,14 +144,10 @@ export function translateDynamicUi(locale: Locale, text: string): string {
   if (match) return `${match[1]} ${form(c.activeTransactions, match[1])}`;
   match = text.match(/^(\d+) of (\d+) selected$/);
   if (match) return c.selection(match[1], match[2]);
-  match = text.match(/^(\d+) proposed changes? need(?:s)? your review$/);
-  if (match) return `${match[1]} ${form(c.proposedChanges, match[1])}`;
   match = text.match(/^(\d+) separated duplicates?$/);
   if (match) return `${match[1]} ${form(c.separatedDuplicates, match[1])}`;
   match = text.match(/^(\d+) duplicates? deleted\.$/);
   if (match) return `${match[1]} ${form(c.deletedDuplicates, match[1])}`;
-  match = text.match(/^(\d+) pending items? (approved|rejected)\.$/);
-  if (match) return `${match[1]} ${form(match[2] === "approved" ? c.approvedItems : c.rejectedItems, match[1])}`;
   match = text.match(/^Delete selected \((\d+)\)$/); if (match) return c.deleteSelected(match[1]);
   match = text.match(/^Split selected \((\d+)\)$/); if (match) return c.splitSelected(match[1]);
   match = text.match(/^matches #(\d+)$/); if (match) return c.matches(match[1]);
@@ -183,8 +167,8 @@ export function translateDynamicUi(locale: Locale, text: string): string {
   if (match) return `${match[1]} ${form(c.deleteDuplicates, match[1])}`;
   match = text.match(/^Transactions through (.+) are marked as verified\.$/); if (match) return c.verifiedThrough(match[1]);
   if (text === "Transaction verification date cleared.") return c.verificationCleared;
-  match = text.match(/^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated$/);
-  if (match) return c.importSummary(match[1], match[2], match[3]);
+  match = text.match(/^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/);
+  if (match) return c.importSummary(match[1], match[2], match[3], match[4]);
   match = text.match(/^Page (\d+) of (\d+)$/); if (match) return c.page(match[1], match[2]);
   match = text.match(/^(\d+)[–-](\d+) of (\d+)$/); if (match) return c.range(match[1], match[2], match[3]);
   return text;

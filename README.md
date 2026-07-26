@@ -27,10 +27,9 @@ exports.
 - Identifies a transaction by its normalized date/time string, type, and wallet.
 - Stores unchanged repeat occurrences in `duplicates`, linked to the original
   transaction.
-- Offers a **Full import** mode for complete, single-wallet exports. Changed
-  transactions and transactions missing from the new export are placed in an
-  approval queue; the ledger is never changed or pruned automatically.
-- Lets the user approve or reject proposed changes and deletions in batches.
+- Offers a **Full import** mode for complete, single-wallet exports. It
+  atomically removes that wallet's existing transactions and imports the fresh
+  snapshot while leaving every other wallet untouched.
 - Shows the current transaction-derived total for every wallet on the homepage,
   with a dedicated paginated activity page for each wallet. Collapsed dashboard
   directories provide quick access to every wallet and category.
@@ -55,7 +54,8 @@ exports.
   added without changing the split schema or PDF layout.
 - Paginates transaction, duplicate, wallet, and category lists on the server and
   stores data in a WAL-mode SQLite database.
-- Exposes the same data through a read-only MCP Streamable HTTP endpoint.
+- Exposes the same data through an MCP Streamable HTTP endpoint. Data tools are
+  read-only, with one explicit file-import tool.
 
 Each uploaded file represents one wallet when **Full import** is enabled. A
 full-import batch may contain multiple files, but the same wallet may only
@@ -86,9 +86,9 @@ npm run test:e2e
 npm run build
 ```
 
-The test suite covers imports, duplicate persistence, reconciliation approvals,
+The test suite covers imports, duplicate persistence, full-wallet replacement,
 wallet and category reporting, filters, monthly reports, split persistence, and
-PDF generation. It also exercises every read-only MCP tool, the Streamable HTTP
+PDF generation. It also exercises every MCP read tool and file import, the Streamable HTTP
 MCP endpoint, API route validation and workflows, and server-rendered UI shells
 using entirely synthetic fantasy fixtures. CI enforces minimum coverage of 95%
 for lines, 90% for functions, and 80% for branches across server and library
@@ -112,7 +112,7 @@ The container exposes port `3000`, stores its database at
 `/data/spendee.db`, and provides a health endpoint at `/api/health`. A
 `compose.example.yml` is included for a persistent deployment.
 
-## Read-only MCP server
+## MCP server
 
 Connect an MCP client to:
 
@@ -120,11 +120,12 @@ Connect an MCP client to:
 https://your-spendee.example.com/mcp
 ```
 
-The endpoint uses stateless Streamable HTTP with JSON responses. It only
-registers read tools: overview and filter options, filtered/paginated
+The endpoint uses stateless Streamable HTTP with JSON responses. Its data tools
+are read-only: overview and filter options, filtered/paginated
 transactions, duplicates, wallets, category details, Monthy reports,
-splits, and pending reconciliation items. It cannot import, update, approve, or
-delete data.
+and splits. The `import_transaction_files` tool accepts one to ten XLSX/CSV
+files as base64 using `{ filename, contentBase64 }`; set `full: true` to replace
+each file's single wallet. No other tool can mutate data.
 
 ## License
 

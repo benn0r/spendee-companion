@@ -10,8 +10,7 @@ export async function GET() {
       (SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL) AS transactions,
       (SELECT COUNT(*) FROM duplicates) AS duplicates,
       (SELECT COUNT(*) FROM imports) AS imports,
-      (SELECT COUNT(DISTINCT wallet) FROM transactions WHERE deleted_at IS NULL) AS wallets,
-      (SELECT COUNT(*) FROM reconciliation_items WHERE status = 'pending') AS pending
+      (SELECT COUNT(DISTINCT wallet) FROM transactions WHERE deleted_at IS NULL) AS wallets
   `).get();
   return NextResponse.json(stats);
 }

@@ -42,7 +42,7 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const response = await route.POST(new Request("http://test/api/import", { method: "POST", body: form }));
     assert.equal(response.status, 200);
     assert.deepEqual((await body(response)).summary, {
-      total: 3, imported: 3, duplicates: 0, changes: 0, deletions: 0, files: 1, failed: 0,
+      total: 3, imported: 3, duplicates: 0, replaced: 0, files: 1, failed: 0,
     });
 
     const invalid = new FormData();
@@ -163,7 +163,7 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     assert.equal((await single.DELETE(new Request("http://test"), params)).status, 404);
   });
 
-  await t.test("handles duplicate and reconciliation routes", async () => {
+  await t.test("handles duplicate routes", async () => {
     const { getDatabase, importTransactions } = await import("../lib/db");
     const db = getDatabase();
     const original = db.prepare("SELECT date, wallet, type, category_name AS categoryName, amount, currency, note, labels, author FROM transactions LIMIT 1").get() as any;
@@ -178,17 +178,6 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     assert.equal(safeDuplicatePage.pageSize, 10);
     assert.equal((await duplicates.DELETE(jsonRequest("http://test", "DELETE", { ids: ["bad"] }))).status, 400);
     assert.equal((await body(await duplicates.DELETE(jsonRequest("http://test", "DELETE", { ids: [listed.rows[0].id] })))).deleted, 1);
-
-    const changed = { ...original, amount: Number(original.amount) - 7 };
-    importTransactions(db, "changed-fantasy.csv", [{ transaction: changed, sourceRow: 2, raw: changed }], { fullImport: true });
-    const reconciliation = await import("../app/api/reconciliation/route");
-    const pending = await body(await reconciliation.GET());
-    assert.ok(pending.total > 0);
-    assert.equal((await reconciliation.POST(jsonRequest("http://test", "POST", { ids: [], decision: "approved" }))).status, 400);
-    const reviewed = await body(await reconciliation.POST(jsonRequest("http://test", "POST", {
-      ids: pending.rows.map((row: any) => row.id), decision: "rejected",
-    })));
-    assert.equal(reviewed.reviewed, pending.total);
   });
 
   await t.test("serves the MCP Streamable HTTP protocol and rejects GET", async () => {
