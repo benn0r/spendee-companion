@@ -10,11 +10,16 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "line" : "list",
+  reporter: process.env.CI
+    ? [
+        ["line"],
+        ["html", { open: "never", outputFolder: "playwright-report" }],
+      ]
+    : "list",
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
-    screenshot: "only-on-failure",
+    screenshot: process.env.CI ? "on" : "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure",
   },

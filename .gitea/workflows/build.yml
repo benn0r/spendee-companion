@@ -96,6 +96,15 @@ jobs:
         env:
           PLAYWRIGHT_USE_PRODUCTION_BUILD: "1"
         run: npm run test:e2e
+      - name: Upload end-to-end results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: spendee-e2e-${{ gitea.run_id }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: error
 
   publish-image:
     needs:
