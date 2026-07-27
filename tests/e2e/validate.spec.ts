@@ -30,8 +30,13 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await expect(matchedRow.locator(".category-icon")).toBeVisible();
   await expect(matchedRow.locator(".validation-amount")).toHaveClass(/negative/);
   await expect(page.locator(".day-header")).toHaveCount(3);
-  await page.getByText("Raw OpenAI response").click();
-  await expect(page.locator(".raw-response pre")).toContainText('"mocked": true');
+  await expect(page.getByText("Raw OpenAI response")).toHaveCount(0);
+  await expect(page.getByText("DOCUMENT DETAILS")).toHaveCount(0);
+  await page.getByLabel("Filter by status").selectOption("matched");
+  await expect(page.locator(".validation-transaction")).toHaveCount(1);
+  await expect(page.locator(".validation-transaction")).toContainText("Nebula lunch");
+  await page.getByLabel("Filter by status").selectOption("all");
+  await expect(page.locator(".validation-transaction")).toHaveCount(3);
 
   page.once("dialog", (confirmation) => confirmation.accept());
   await page.getByRole("button", { name: "Blacklist Comet bakery" }).click();
