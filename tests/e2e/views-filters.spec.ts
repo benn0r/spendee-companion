@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("transaction and category filters work across wallet and category views", async ({ page }, testInfo) => {

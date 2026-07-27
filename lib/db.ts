@@ -368,6 +368,8 @@ export function getCategoryDetails(
     chartTotals.set(row.currency, (chartTotals.get(row.currency) ?? 0) + row.amount);
     const matched = row.tags.filter((tag) => selectedSet.has(tag));
     const destinations = matched.length ? matched : ["Other"];
+    // A transaction may carry several selected labels. Split it evenly so the
+    // chart remains exhaustive without counting the transaction more than once.
     const allocatedSpend = row.amount / destinations.length;
     for (const tag of destinations) {
       const key = `${row.currency}\u0000${tag}`;
@@ -578,6 +580,8 @@ export type TransactionFilters = {
 
 function transactionFilterWhere(filters: TransactionFilters, activeOnly: boolean) {
   const clauses = activeOnly ? ["deleted_at IS NULL"] : [];
+  // Append placeholders and values together: every caller reuses this exact pair
+  // for count, page, and day-total queries, so their filter semantics stay aligned.
   const params: Array<string | number> = [];
   if (filters.dateFrom) {
     clauses.push("date >= ?");
@@ -599,6 +603,8 @@ function transactionFilterWhere(filters: TransactionFilters, activeOnly: boolean
   addList("category_name", filters.categories);
   addList("author", filters.authors);
   if (filters.tags.length) {
+    // Labels are stored as comma-separated text. Padding both sides with commas
+    // gives exact, case-insensitive label matches instead of substring matches.
     clauses.push(`(${filters.tags.map(() =>
       "(',' || LOWER(REPLACE(COALESCE(labels, ''), ', ', ',')) || ',') LIKE ? ESCAPE '\\'"
     ).join(" OR ")})`);
@@ -609,6 +615,8 @@ function transactionFilterWhere(filters: TransactionFilters, activeOnly: boolean
   if (filters.amount !== undefined && Number.isFinite(filters.amount)) {
     if (filters.amountOperator === "gt") clauses.push("ABS(amount) > ?");
     if (filters.amountOperator === "lt") clauses.push("ABS(amount) < ?");
+    // Imported amounts are floating-point values; half a cent is the boundary
+    // for considering their absolute monetary values equal.
     if (filters.amountOperator === "eq") clauses.push("ABS(ABS(amount) - ?) < 0.005");
     if (filters.amountOperator) params.push(Math.abs(filters.amount));
   }
@@ -750,6 +758,8 @@ export function createSplit(
   if (positions.some((position) => !position.description || !Number.isFinite(position.amount))) {
     throw new Error("Every custom position needs a description and valid amount.");
   }
+  // Aggregate transaction and custom positions before dividing. Rounding each
+  // position first would accumulate currency rounding drift across the split.
   const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0) +
     positions.reduce((sum, position) => sum + position.amount, 0);
   const splitAmount = totalAmount / splitCount;
@@ -767,6 +777,8 @@ export function createSplit(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const row of rows.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)) {
+      // Keep an immutable snapshot: later imports can replace the source row,
+      // but an already-created split must continue to render the original data.
       insert.run(
         splitId, "transaction", row.id,
         row.note || row.categoryName || row.type,
@@ -882,6 +894,8 @@ export function importTransactions(
       ? (db.prepare("SELECT COUNT(*) AS count FROM transactions WHERE wallet = ?").get(wallet) as { count: number }).count
       : 0;
     if (wallet) {
+      // Full import is a replacement, not a merge. These deletes and all inserts
+      // share this outer transaction, so a failed replacement rolls back intact.
       db.prepare(`
         DELETE FROM duplicates
         WHERE wallet = ? OR duplicate_of_id IN (SELECT id FROM transactions WHERE wallet = ?)

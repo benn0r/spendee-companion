@@ -32,6 +32,8 @@ function translateDocument(locale: AppLocale) {
     if (!parent || ["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA"].includes(parent.tagName)) continue;
     const current = node.nodeValue ?? "";
     const previous = textSources.get(node);
+    // Translate from the original source after locale switches, but adopt text
+    // React has genuinely replaced rather than treating it as a prior translation.
     const source = previous && current === previous.rendered ? previous.source : current;
     const rendered = translateUiText(locale, source);
     textSources.set(node, { source, rendered });
@@ -64,6 +66,8 @@ export function I18nProvider({ children, locale: requestedLocale = "en" }: { chi
     titleRendered = titleSource.split(" · ").map((part) => translateUiText(locale, part)).join(" · ");
     document.title = titleRendered;
     translateDocument(locale);
+    // Client-rendered and asynchronously loaded content bypasses React-level t(),
+    // so keep those DOM additions in the selected locale as they arrive.
     const observer = new MutationObserver(() => translateDocument(locale));
     observer.observe(document.body, { attributes: true, characterData: true, childList: true, subtree: true });
     return () => observer.disconnect();

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("MCP file upload supports full wallet replacement", async ({ page }, testInfo) => {

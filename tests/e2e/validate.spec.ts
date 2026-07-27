@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("validates a PDF against a wallet and persists the mocked OpenAI result", async ({ page }, testInfo) => {

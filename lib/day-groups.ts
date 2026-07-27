@@ -1,6 +1,8 @@
 export type DayTotal = { currency: string; total: number };
 export type DayTotals = Record<string, DayTotal[]>;
 
+// Use one product timezone for both grouping and labels; otherwise timestamps
+// around midnight could appear under different days on server and client.
 const timeZone = "Europe/Zurich";
 
 export function dayKey(value: string | Date): string {
@@ -50,6 +52,8 @@ export function formatDayLabel(key: string, now = new Date(), locale = "en-GB"):
   if (key === today) return "Today";
   if (key === yesterday) return "Yesterday";
   const [year, month, day] = key.split("-").map(Number);
+  // Noon UTC keeps a date-only key away from either midnight boundary while the
+  // locale formatter supplies only the month name.
   const date = new Date(Date.UTC(year, month - 1, day, 12));
   const monthName = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(date);
   return `${day}. ${monthName}`;

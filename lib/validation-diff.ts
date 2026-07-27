@@ -9,6 +9,8 @@ function calendarDate(value: string) {
 }
 
 function transactionKey(transaction: { date: string; amount: number; currency: string }) {
+  // Statements often shorten or alter descriptions, so reconciliation deliberately
+  // uses only the stable posting fields and compares monetary values in whole cents.
   return `${calendarDate(transaction.date)}|${transaction.currency.toUpperCase()}|${Math.round(transaction.amount * 100)}`;
 }
 
@@ -28,6 +30,8 @@ export function compareValidationTransactions(
   const missingInApp: ValidationDiff["missingInApp"] = [];
   for (const transaction of documentTransactions) {
     const candidates = available.get(transactionKey(transaction));
+    // Treat each key as a multiset: consuming one candidate prevents duplicate
+    // statement lines from all matching the same application transaction.
     const app = candidates?.shift();
     if (app) matching.push({ document: transaction, app });
     else missingInApp.push(transaction);

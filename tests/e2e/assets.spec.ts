@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { openDashboard } from "./helpers";
 
 test("public assets use the same version as the footer build", async ({ page }) => {

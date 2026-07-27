@@ -33,6 +33,8 @@ export async function POST(request: Request) {
     if (!wallets.has(wallet)) return NextResponse.json({ error: "The selected wallet does not exist." }, { status: 400 });
 
     const id = enqueueValidation(db, { wallet, filename: file.name, pdf });
+    // Persist the processing state before returning 202 so clients can poll it.
+    // Both terminal paths discard the temporary PDF while retaining the result.
     const processValidation = async () => {
       try {
         const [{ document, rawResponse }, thumbnail] = await Promise.all([

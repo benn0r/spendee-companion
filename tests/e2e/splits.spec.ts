@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("splits can be created, listed, downloaded as PDF, and deleted", async ({ page }, testInfo) => {

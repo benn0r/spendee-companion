@@ -40,6 +40,8 @@ const extractionSchema = {
 } as const;
 
 function responseText(payload: any): string | undefined {
+  // Support both the Responses API convenience field and its canonical nested
+  // content shape; mocks and SDK/API versions may provide either representation.
   if (typeof payload.output_text === "string") return payload.output_text;
   for (const output of payload.output ?? []) {
     for (const content of output.content ?? []) {

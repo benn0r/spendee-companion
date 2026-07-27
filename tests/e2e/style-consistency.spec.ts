@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./fixture";
 import { openDashboard } from "./helpers";
 
 async function expectSharedDialog(page: Page, dialog: Locator, mobile: boolean) {

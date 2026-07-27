@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("duplicate imports can be listed, selected, and deleted", async ({ page }, testInfo) => {

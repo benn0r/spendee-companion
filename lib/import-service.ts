@@ -22,6 +22,8 @@ export async function importFiles(files: ImportFile[], options: { full?: boolean
           );
         }
         const wallet = [...wallets][0];
+        // A second full-import file for the same wallet would erase the rows from
+        // the first file, making the batch order change its result.
         if (fullImportWallets.has(wallet)) {
           throw new Error(`Wallet "${wallet}" appears in more than one full-import file.`);
         }

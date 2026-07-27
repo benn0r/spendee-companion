@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
 test("Monthly columns can merge categories and persist a budget", async ({ page }, testInfo) => {
@@ -45,4 +45,25 @@ test("Monthly columns can merge categories and persist a budget", async ({ page 
   for (const category of expenseCategories) {
     await expect(savedEditor.getByLabel(category, { exact: true })).toBeChecked();
   }
+
+  const unsavedName = `Unsaved costs ${variant}`;
+  await savedEditor.getByLabel("Column name").fill(unsavedName);
+  await savedDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("columnheader", { name: new RegExp(columnName) })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: new RegExp(unsavedName) })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Monthy settings" }).click();
+  const cleanupDialog = page.getByRole("dialog", { name: "Table columns" });
+  const persistedEditor = cleanupDialog.getByRole("article", {
+    name: `Column settings: ${columnName}`,
+  });
+  await expect(persistedEditor.getByLabel("Column name")).toHaveValue(columnName);
+  await persistedEditor.getByRole("button", { name: `Remove ${columnName}` }).click();
+  await cleanupDialog.getByRole("button", { name: "Save columns" }).click();
+  await expect(cleanupDialog).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: new RegExp(columnName) })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Monthy" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: new RegExp(columnName) })).toHaveCount(0);
 });
