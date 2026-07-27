@@ -13,6 +13,7 @@ process.env.OPENAI_VALIDATION_MOCK = JSON.stringify({
   ],
 });
 process.env.VALIDATION_THUMBNAIL_MOCK_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+process.env.VALIDATION_BACKGROUND_IMMEDIATE = "1";
 
 after(async () => {
   const { getDatabase } = await import("../lib/db");
@@ -152,18 +153,20 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     form.append("wallet", "Moon Purse");
     form.append("file", new File(["%PDF-1.4 fantasy statement"], "moon-statement.pdf", { type: "application/pdf" }));
     const response = await route.POST(new Request("http://test/api/validations", { method: "POST", body: form }));
-    assert.equal(response.status, 201);
+    assert.equal(response.status, 202);
     const created = await body(response);
-    assert.equal(created.title, "Moon Guild Statement");
-    assert.equal(created.diff.matching.length, 1);
-    assert.equal(created.diff.missingInApp.length, 1);
-    assert.equal(created.diff.missingInDocument.length, 1);
-    assert.equal(created.rawOpenAI.mocked, true);
+    assert.equal(created.status, "processing");
 
     assert.equal((await body(await route.GET())).validations[0].counts.missingInApp, 1);
     const detail = await import("../app/api/validations/[id]/route");
     const params = { params: Promise.resolve({ id: String(created.id) }) };
-    assert.equal((await body(await detail.GET(new Request("http://test"), params))).rawOpenAI.output.title, "Moon Guild Statement");
+    const completed = await body(await detail.GET(new Request("http://test"), params));
+    assert.equal(completed.status, "complete");
+    assert.equal(completed.title, "Moon Guild Statement");
+    assert.equal(completed.diff.matching.length, 1);
+    assert.equal(completed.diff.missingInApp.length, 1);
+    assert.equal(completed.diff.missingInDocument.length, 1);
+    assert.equal(completed.rawOpenAI.output.title, "Moon Guild Statement");
     const thumbnail = await import("../app/api/validations/[id]/thumbnail/route");
     const image = await thumbnail.GET(new Request("http://test"), params);
     assert.equal(image.headers.get("content-type"), "image/png");

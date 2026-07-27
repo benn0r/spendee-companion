@@ -52,11 +52,39 @@ export function createValidation(db: Db, input: {
   return getValidation(db, Number(result.lastInsertRowid));
 }
 
+export function enqueueValidation(db: Db, input: { wallet: string; filename: string; pdf: Buffer }) {
+  const emptyDiff: ValidationDiff = { matching: [], missingInApp: [], missingInDocument: [] };
+  const result = db.prepare(`
+    INSERT INTO validation_runs (
+      wallet, source_filename, title, metadata_json, date_from, date_to,
+      thumbnail_png, extracted_json, raw_openai_json, diff_json, model, status, pdf_blob
+    ) VALUES (?, ?, ?, '{}', '', '', X'', '{}', '{}', ?, '', 'processing', ?)
+  `).run(input.wallet, input.filename, input.filename, JSON.stringify(emptyDiff), input.pdf);
+  return Number(result.lastInsertRowid);
+}
+
+export function completeValidation(db: Db, id: number, input: {
+  document: ExtractedDocument; rawOpenAI: unknown; dateFrom: string; dateTo: string;
+  thumbnail: Buffer; diff: ValidationDiff; model: string;
+}) {
+  db.prepare(`UPDATE validation_runs SET title = ?, print_date = ?, issuer = ?, account_reference = ?,
+    metadata_json = ?, date_from = ?, date_to = ?, thumbnail_png = ?, extracted_json = ?,
+    raw_openai_json = ?, diff_json = ?, model = ?, status = 'complete', error = NULL, pdf_blob = NULL
+    WHERE id = ?`).run(input.document.title, input.document.printDate, input.document.issuer,
+    input.document.accountReference, JSON.stringify(input.document.metadata), input.dateFrom, input.dateTo,
+    input.thumbnail, JSON.stringify(input.document), JSON.stringify(input.rawOpenAI), JSON.stringify(input.diff),
+    input.model, id);
+}
+
+export function failValidation(db: Db, id: number, error: string) {
+  db.prepare("UPDATE validation_runs SET status = 'failed', error = ?, pdf_blob = NULL WHERE id = ?").run(error, id);
+}
+
 export function listValidations(db: Db) {
   const rows = db.prepare(`
     SELECT id, wallet, source_filename AS filename, title, print_date AS printDate,
       issuer, account_reference AS accountReference, date_from AS dateFrom,
-      date_to AS dateTo, diff_json AS diffJson, model, created_at AS createdAt
+      date_to AS dateTo, diff_json AS diffJson, model, status, error, created_at AS createdAt
     FROM validation_runs ORDER BY created_at DESC, id DESC
   `).all() as Array<Record<string, unknown> & { diffJson: string }>;
   return rows.map(({ diffJson, ...row }) => {
@@ -77,7 +105,7 @@ export function getValidation(db: Db, id: number) {
     SELECT id, wallet, source_filename AS filename, title, print_date AS printDate,
       issuer, account_reference AS accountReference, metadata_json AS metadataJson,
       date_from AS dateFrom, date_to AS dateTo, extracted_json AS extractedJson,
-      raw_openai_json AS rawOpenAIJson, diff_json AS diffJson, model,
+      raw_openai_json AS rawOpenAIJson, diff_json AS diffJson, model, status, error,
       created_at AS createdAt
     FROM validation_runs WHERE id = ?
   `).get(id) as (Record<string, unknown> & {

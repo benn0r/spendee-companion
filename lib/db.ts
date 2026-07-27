@@ -154,6 +154,9 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
   ensureColumn(db, "split_records", "title", "TEXT");
   ensureColumn(db, "split_records", "locale", "TEXT NOT NULL DEFAULT 'en'");
   ensureColumn(db, "validation_runs", "raw_openai_json", "TEXT NOT NULL DEFAULT '{}'");
+  ensureColumn(db, "validation_runs", "status", "TEXT NOT NULL DEFAULT 'complete'");
+  ensureColumn(db, "validation_runs", "error", "TEXT");
+  ensureColumn(db, "validation_runs", "pdf_blob", "BLOB");
   db.exec(`
     DROP TABLE IF EXISTS reconciliation_items;
     DELETE FROM duplicates

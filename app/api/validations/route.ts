@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getDatabase, getWalletSummaries } from "@/lib/db";
 import { extractValidationDocument, validationModel } from "@/lib/openai-validation";
 import { compareValidationTransactions, validationDateRange } from "@/lib/validation-diff";
 import { renderValidationThumbnail } from "@/lib/validation-thumbnail";
-import { createValidation, getWalletValidationTransactions, listValidations } from "@/lib/validations";
+import { completeValidation, enqueueValidation, failValidation, getWalletValidationTransactions, listValidations } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
@@ -31,25 +31,25 @@ export async function POST(request: Request) {
     const wallets = new Set(getWalletSummaries(db).map((summary) => summary.wallet));
     if (!wallets.has(wallet)) return NextResponse.json({ error: "The selected wallet does not exist." }, { status: 400 });
 
-    const [{ document, rawResponse }, thumbnail] = await Promise.all([
-      extractValidationDocument(pdf, file.name),
-      renderValidationThumbnail(pdf),
-    ]);
-    const { dateFrom, dateTo } = validationDateRange(document.transactions);
-    const appTransactions = getWalletValidationTransactions(db, wallet, dateFrom, dateTo);
-    const diff = compareValidationTransactions(document.transactions, appTransactions);
-    const validation = createValidation(db, {
-      wallet,
-      filename: file.name,
-      document,
-      rawOpenAI: rawResponse,
-      dateFrom,
-      dateTo,
-      thumbnail,
-      diff,
-      model: validationModel,
-    });
-    return NextResponse.json(validation, { status: 201 });
+    const id = enqueueValidation(db, { wallet, filename: file.name, pdf });
+    const processValidation = async () => {
+      try {
+        const [{ document, rawResponse }, thumbnail] = await Promise.all([
+          extractValidationDocument(pdf, file.name), renderValidationThumbnail(pdf),
+        ]);
+        const { dateFrom, dateTo } = validationDateRange(document.transactions);
+        const appTransactions = getWalletValidationTransactions(db, wallet, dateFrom, dateTo);
+        completeValidation(db, id, {
+          document, rawOpenAI: rawResponse, dateFrom, dateTo, thumbnail,
+          diff: compareValidationTransactions(document.transactions, appTransactions), model: validationModel,
+        });
+      } catch (processingError) {
+        failValidation(db, id, processingError instanceof Error ? processingError.message : "Validation failed.");
+      }
+    };
+    if (process.env.VALIDATION_BACKGROUND_IMMEDIATE === "1") await processValidation();
+    else after(processValidation);
+    return NextResponse.json({ id, status: "processing" }, { status: 202 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not validate the document." },
