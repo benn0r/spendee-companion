@@ -9,7 +9,7 @@ export default function TopNavigation({
   onDuplicates,
   duplicateCount,
 }: {
-  active?: "transactions" | "duplicates" | "splits" | "monthly";
+  active?: "transactions" | "duplicates" | "splits" | "monthly" | "validate";
   onTransactions?: () => void;
   onDuplicates?: () => void;
   duplicateCount?: number;
@@ -38,6 +38,7 @@ export default function TopNavigation({
       )}
       <Link className={active === "splits" ? "active" : ""} href="/splits">Splits</Link>
       <Link className={active === "monthly" ? "active" : ""} href="/monthly">Monthy</Link>
+      <Link className={active === "validate" ? "active" : ""} href="/validate">Validate</Link>
     </nav>
   );
 }

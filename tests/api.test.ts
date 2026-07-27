@@ -5,6 +5,15 @@ import { rmSync } from "node:fs";
 const databasePath = `/tmp/spendee-api-fantasy-${crypto.randomUUID()}.db`;
 process.env.SQLITE_PATH = databasePath;
 process.env.APP_VERSION = "fantasy-test-build";
+process.env.OPENAI_VALIDATION_MOCK = JSON.stringify({
+  title: "Moon Guild Statement", printDate: "2026-07-14", issuer: "Moon Guild Bank",
+  accountReference: "4242", metadata: { cycle: "July" }, transactions: [
+    { date: "2026-07-01", description: "Nebula lunch", amount: -24, currency: "CHF" },
+    { date: "2026-07-03", description: "Comet bakery", amount: -18, currency: "CHF" },
+  ],
+});
+process.env.VALIDATION_THUMBNAIL_MOCK_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+process.env.VALIDATION_BACKGROUND_IMMEDIATE = "1";
 
 after(async () => {
   const { getDatabase } = await import("../lib/db");
@@ -136,6 +145,46 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
       columns: [{ name: "Adventures", categories: ["Portal Travel", "Stardust Snacks"], budget: 100 }],
     }));
     assert.equal((await body(response)).columns[0].name, "Adventures");
+  });
+
+  await t.test("persists a mocked document validation, raw response, thumbnail, and diff", async () => {
+    const { getDatabase, importTransactions } = await import("../lib/db");
+    importTransactions(getDatabase(), "transfer.csv", [{ sourceRow: 2, raw: {}, transaction: {
+      date: "2026-07-02T10:00:00+00:00", wallet: "Moon Purse", type: "Incoming Transfer", categoryName: "Transfer",
+      amount: -99, currency: "CHF", note: "Internal portal transfer", labels: "", author: "Nova Quill",
+    } }]);
+    const route = await import("../app/api/validations/route");
+    const form = new FormData();
+    form.append("wallet", "Moon Purse");
+    form.append("file", new File(["%PDF-1.4 fantasy statement"], "moon-statement.pdf", { type: "application/pdf" }));
+    const response = await route.POST(new Request("http://test/api/validations", { method: "POST", body: form }));
+    assert.equal(response.status, 202);
+    const created = await body(response);
+    assert.equal(created.status, "processing");
+
+    assert.equal((await body(await route.GET())).validations[0].counts.missingInApp, 1);
+    const detail = await import("../app/api/validations/[id]/route");
+    const params = { params: Promise.resolve({ id: String(created.id) }) };
+    const completed = await body(await detail.GET(new Request("http://test"), params));
+    assert.equal(completed.status, "complete");
+    assert.equal(completed.title, "Moon Guild Statement");
+    assert.equal(completed.diff.matching.length, 1);
+    assert.equal(completed.diff.missingInApp.length, 1);
+    assert.equal(completed.diff.missingInDocument.length, 1);
+    assert.equal(completed.rawOpenAI.output.title, "Moon Guild Statement");
+    const thumbnail = await import("../app/api/validations/[id]/thumbnail/route");
+    const image = await thumbnail.GET(new Request("http://test"), params);
+    assert.equal(image.headers.get("content-type"), "image/png");
+    assert.ok((await image.arrayBuffer()).byteLength > 10);
+
+    const blacklist = await import("../app/api/validation-blacklist/route");
+    const added = await body(await blacklist.POST(jsonRequest("http://test", "POST", { description: "  Comet   bakery ", validationId: created.id })));
+    assert.equal(added.entries[0].description, "Comet bakery");
+    assert.equal((await body(await detail.GET(new Request("http://test"), params))).diff.missingInApp.length, 0);
+    assert.equal((await body(await blacklist.GET())).entries.length, 1);
+    assert.equal((await blacklist.DELETE(jsonRequest("http://test", "DELETE", { id: added.entries[0].id + 99 }))).status, 404);
+    assert.equal((await blacklist.DELETE(jsonRequest("http://test", "DELETE", { id: added.entries[0].id, validationId: created.id }))).status, 200);
+    assert.equal((await body(await detail.GET(new Request("http://test"), params))).diff.missingInApp.length, 1);
   });
 
   await t.test("creates, reads, downloads, and deletes a split", async () => {
