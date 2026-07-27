@@ -32,10 +32,14 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await expect(page.locator(".day-header")).toHaveCount(3);
   await expect(page.getByText("Raw OpenAI response")).toHaveCount(0);
   await expect(page.getByText("DOCUMENT DETAILS")).toHaveCount(0);
-  await page.getByLabel("Filter by status").selectOption("matched");
+  await page.locator(".validation-status-filter summary").click();
+  await page.getByLabel("Matching").check();
   await expect(page.locator(".validation-transaction")).toHaveCount(1);
   await expect(page.locator(".validation-transaction")).toContainText("Nebula lunch");
-  await page.getByLabel("Filter by status").selectOption("all");
+  await page.getByLabel("Missing in Spendee").check();
+  await expect(page.locator(".validation-transaction")).toHaveCount(2);
+  await page.getByLabel("Matching").uncheck();
+  await page.getByLabel("Missing in Spendee").uncheck();
   await expect(page.locator(".validation-transaction")).toHaveCount(3);
 
   page.once("dialog", (confirmation) => confirmation.accept());

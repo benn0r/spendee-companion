@@ -152,6 +152,9 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     importTransactions(getDatabase(), "transfer.csv", [{ sourceRow: 2, raw: {}, transaction: {
       date: "2026-07-02T10:00:00+00:00", wallet: "Moon Purse", type: "Incoming Transfer", categoryName: "Transfer",
       amount: -99, currency: "CHF", note: "Internal portal transfer", labels: "", author: "Nova Quill",
+    } }, { sourceRow: 3, raw: {}, transaction: {
+      date: "2026-07-02T11:00:00+00:00", wallet: "Moon Purse", type: "Outgoing Transfer", categoryName: "Transfer",
+      amount: 99, currency: "CHF", note: "Return portal transfer", labels: "", author: "Nova Quill",
     } }]);
     const route = await import("../app/api/validations/route");
     const form = new FormData();
