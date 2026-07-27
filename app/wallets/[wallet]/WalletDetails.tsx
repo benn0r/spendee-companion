@@ -162,7 +162,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
             <section
               aria-labelledby="wallet-settings-title"
               aria-modal="true"
-              className="category-settings-dialog wallet-settings-dialog"
+              className="dialog-surface category-settings-dialog wallet-settings-dialog"
               role="dialog"
               onMouseDown={(event) => event.stopPropagation()}
             >

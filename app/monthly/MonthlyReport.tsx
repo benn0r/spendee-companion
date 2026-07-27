@@ -126,7 +126,7 @@ export default function MonthlyReport() {
             <section
               aria-labelledby="monthy-settings-title"
               aria-modal="true"
-              className="category-settings-dialog monthy-settings-dialog"
+              className="dialog-surface category-settings-dialog monthy-settings-dialog"
               role="dialog"
               onMouseDown={(event) => event.stopPropagation()}
             >

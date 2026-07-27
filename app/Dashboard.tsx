@@ -435,7 +435,7 @@ export default function Dashboard() {
           <section
             aria-labelledby="import-dialog-title"
             aria-modal="true"
-            className="import-dialog"
+            className="dialog-surface import-dialog"
             role="dialog"
             onMouseDown={(event) => event.stopPropagation()}
           >

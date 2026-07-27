@@ -88,7 +88,7 @@ export default function SplitDialog({
       <section
         aria-labelledby="split-dialog-title"
         aria-modal="true"
-        className="split-dialog"
+        className="dialog-surface split-dialog"
         role="dialog"
         onMouseDown={(event) => event.stopPropagation()}
       >

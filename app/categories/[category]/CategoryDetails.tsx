@@ -212,7 +212,7 @@ export default function CategoryDetails({ category }: { category: string }) {
             <section
               aria-labelledby="category-settings-title"
               aria-modal="true"
-              className="category-settings-dialog"
+              className="dialog-surface category-settings-dialog"
               role="dialog"
               onMouseDown={(event) => event.stopPropagation()}
             >

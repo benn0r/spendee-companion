@@ -10,6 +10,9 @@ test("splits can be created, listed, downloaded as PDF, and deleted", async ({ p
   await selectedRow.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Split selected \(1\)/ }).click();
   const dialog = page.getByRole("dialog", { name: "Review selected transactions" });
+  await expect(dialog).toHaveClass(/dialog-surface/);
+  await expect(dialog).toHaveCSS("border-radius", "14px");
+  await expect(dialog).toHaveCSS("overflow-y", "auto");
   await dialog.getByLabel("Split title").fill(`Moon voyage ${variant}`);
   await dialog.getByRole("button", { name: "＋ Add position" }).click();
   await dialog.getByLabel("Position 1 description").fill("Potion rebate");
