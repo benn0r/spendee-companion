@@ -1,6 +1,7 @@
 import type { ExtractedDocument } from "./validation-types";
 
 export const validationModel = process.env.OPENAI_VALIDATION_MODEL || "gpt-5.6-sol";
+const retryableStatuses = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
 const extractionSchema = {
   type: "object",
@@ -48,6 +49,48 @@ function responseText(payload: any): string | undefined {
   return undefined;
 }
 
+export async function requestExtraction(
+  apiKey: string,
+  requestBody: unknown,
+  pause: (milliseconds: number) => Promise<unknown> = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+) {
+  let lastError = "OpenAI extraction failed.";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const contentType = response.headers.get("content-type") || "unknown content type";
+      const responseBody = await response.text();
+      let payload: any;
+      try {
+        payload = JSON.parse(responseBody);
+      } catch {
+        lastError = `OpenAI returned an unexpected non-JSON response (HTTP ${response.status}, ${contentType}).`;
+        if (attempt < 2) { await pause(500 * (attempt + 1)); continue; }
+        throw new Error(lastError);
+      }
+      if (response.ok) return payload;
+      lastError = payload.error?.message || `OpenAI extraction failed (${response.status}).`;
+      if (retryableStatuses.has(response.status) && attempt < 2) {
+        await pause(500 * (attempt + 1));
+        continue;
+      }
+      throw new Error(lastError);
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError;
+      if (attempt < 2 && /fetch failed|network|socket|ECONNRESET/i.test(lastError)) {
+        await pause(500 * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(lastError);
+}
+
 function validateExtraction(value: unknown): ExtractedDocument {
   if (!value || typeof value !== "object") throw new Error("OpenAI returned an invalid extraction.");
   const candidate = value as ExtractedDocument & { metadata: Record<string, string> | Array<{ key: string; value: string }> };
@@ -82,10 +125,7 @@ export async function extractValidationDocument(pdf: Buffer, filename: string): 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not configured.");
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const payload = await requestExtraction(apiKey, {
       model: validationModel,
       reasoning: { effort: "low" },
       input: [{
@@ -110,10 +150,8 @@ export async function extractValidationDocument(pdf: Buffer, filename: string): 
           schema: extractionSchema,
         },
       },
-    }),
-  });
-  const payload = await response.json() as any;
-  if (!response.ok) throw new Error(payload.error?.message || `OpenAI extraction failed (${response.status}).`);
+    },
+  );
   const text = responseText(payload);
   if (!text) throw new Error("OpenAI returned no structured extraction.");
   return { document: validateExtraction(JSON.parse(text)), rawResponse: payload };
