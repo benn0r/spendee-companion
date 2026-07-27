@@ -91,13 +91,28 @@
 .validation-ledger td:nth-child(2) { width: 45%; white-space: normal; }
 .validation-ledger .right { text-align: right; }
 .validation-transaction > td:first-child { border-left: 3px solid transparent; }
-.validation-transaction.matched { background: #f2faf6; }
-.validation-transaction.missing-app { background: #fff9ed; }
-.validation-transaction.missing-document { background: #fff3f2; }
-.validation-transaction.matched > td:first-child { border-left-color: var(--green); color: #087b59; }
-.validation-transaction.missing-app > td:first-child { border-left-color: #e6a72d; color: #98620a; }
-.validation-transaction.missing-document > td:first-child { border-left-color: #dc655c; color: #a33f38; }
-.validation-status-dot { width: 7px; height: 7px; margin-right: 7px; display: inline-block; border-radius: 50%; background: currentColor; }
+.validation-heading-actions { display: flex; align-items: center; gap: 8px; }
+.validation-settings-button { padding: 9px 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--slate); background: white; cursor: pointer; font-size: 11px; font-weight: 600; }
+.validation-status-badge { width: fit-content; padding: 5px 8px; display: inline-flex; align-items: center; border: 1px solid; border-radius: 99px; font-size: 8px; font-weight: 800; white-space: nowrap; }
+.validation-status-badge.matched { color: #087b59; border-color: #9ddac6; background: #e9f8f2; }
+.validation-status-badge.missing-app { color: #8a5909; border-color: #ebc46f; background: #fff6df; }
+.validation-status-badge.missing-document { color: #a33f38; border-color: #e9aaa5; background: #fff0ef; }
+.validation-category { display: inline-flex; align-items: center; gap: 7px; }
+.validation-category .category-icon { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; }
+.validation-amount.positive strong { color: #087b59; }
+.validation-amount.negative strong { color: #c34d45; }
+.validation-row-action { width: 38px; padding-left: 4px !important; }
+.validation-row-action button { width: 25px; height: 25px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: white; cursor: pointer; }
+.validation-row-action button:hover { color: #a33f38; border-color: #e9aaa5; background: #fff5f4; }
+.validation-settings-dialog { width: min(560px, 100%); }
+.validation-blacklist { max-height: 360px; margin-top: 18px; border: 1px solid var(--line); border-radius: 10px; overflow: auto; }
+.validation-blacklist > div { padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); }
+.validation-blacklist > div:first-child { border-top: 0; }
+.validation-blacklist span { min-width: 0; display: grid; gap: 3px; }
+.validation-blacklist strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.validation-blacklist small { color: var(--muted); font-size: 8px; }
+.validation-blacklist button { padding: 6px 9px; border: 1px solid #e9aaa5; border-radius: 7px; color: #a33f38; background: white; cursor: pointer; font-size: 9px; font-weight: 700; }
+.validation-settings-empty { margin: 18px 0 0; padding: 20px; border-radius: 10px; color: var(--muted); background: #f6f8f9; text-align: center; font-size: 11px; }
 
 @media (max-width: 800px) {
   .validation-layout { grid-template-columns: 1fr; }

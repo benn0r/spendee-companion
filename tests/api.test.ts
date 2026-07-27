@@ -148,6 +148,11 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
   });
 
   await t.test("persists a mocked document validation, raw response, thumbnail, and diff", async () => {
+    const { getDatabase, importTransactions } = await import("../lib/db");
+    importTransactions(getDatabase(), "transfer.csv", [{ sourceRow: 2, raw: {}, transaction: {
+      date: "2026-07-02T10:00:00+00:00", wallet: "Moon Purse", type: "Transfer", categoryName: "Transfer",
+      amount: -99, currency: "CHF", note: "Internal portal transfer", labels: "", author: "Nova Quill",
+    } }]);
     const route = await import("../app/api/validations/route");
     const form = new FormData();
     form.append("wallet", "Moon Purse");
@@ -171,6 +176,15 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     const image = await thumbnail.GET(new Request("http://test"), params);
     assert.equal(image.headers.get("content-type"), "image/png");
     assert.ok((await image.arrayBuffer()).byteLength > 10);
+
+    const blacklist = await import("../app/api/validation-blacklist/route");
+    const added = await body(await blacklist.POST(jsonRequest("http://test", "POST", { description: "  Comet   bakery ", validationId: created.id })));
+    assert.equal(added.entries[0].description, "Comet bakery");
+    assert.equal((await body(await detail.GET(new Request("http://test"), params))).diff.missingInApp.length, 0);
+    assert.equal((await body(await blacklist.GET())).entries.length, 1);
+    assert.equal((await blacklist.DELETE(jsonRequest("http://test", "DELETE", { id: added.entries[0].id + 99 }))).status, 404);
+    assert.equal((await blacklist.DELETE(jsonRequest("http://test", "DELETE", { id: added.entries[0].id, validationId: created.id }))).status, 200);
+    assert.equal((await body(await detail.GET(new Request("http://test"), params))).diff.missingInApp.length, 1);
   });
 
   await t.test("creates, reads, downloads, and deletes a split", async () => {

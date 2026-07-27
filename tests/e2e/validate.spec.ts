@@ -18,15 +18,31 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   });
   await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();
   await expect(page.locator(".validation-counts")).toContainText("1 Matching");
-  await expect(page.locator(".validation-counts")).toContainText("1 Missing in app");
+  await expect(page.locator(".validation-counts")).toContainText("1 Missing in Spendee");
   await expect(page.locator(".validation-counts")).toContainText("1 Missing in document");
-  await expect(page.locator(".validation-transaction.matched").getByText("Nebula lunch", { exact: true })).toBeVisible();
+  const matchedRow = page.locator(".validation-status-badge.matched").locator("xpath=ancestor::tr");
+  const missingSpendeeRow = page.locator(".validation-status-badge.missing-app").locator("xpath=ancestor::tr");
+  const missingDocumentRow = page.locator(".validation-status-badge.missing-document").locator("xpath=ancestor::tr");
+  await expect(matchedRow.getByText("Nebula lunch", { exact: true })).toBeVisible();
   await expect(page.getByText("Comet bakery", { exact: true })).toBeVisible();
-  await expect(page.locator(".validation-transaction.missing-app")).toContainText("Comet bakery");
-  await expect(page.locator(".validation-transaction.missing-document")).toContainText("Dragon bounty");
+  await expect(missingSpendeeRow).toContainText("Comet bakery");
+  await expect(missingDocumentRow).toContainText("Dragon bounty");
+  await expect(matchedRow.locator(".category-icon")).toBeVisible();
+  await expect(matchedRow.locator(".validation-amount")).toHaveClass(/negative/);
   await expect(page.locator(".day-header")).toHaveCount(3);
   await page.getByText("Raw OpenAI response").click();
   await expect(page.locator(".raw-response pre")).toContainText('"mocked": true');
+
+  page.once("dialog", (confirmation) => confirmation.accept());
+  await page.getByRole("button", { name: "Blacklist Comet bakery" }).click();
+  await expect(page.locator(".validation-counts")).toContainText("0 Missing in Spendee");
+  await page.getByRole("button", { name: "Settings" }).click();
+  const settings = page.getByRole("dialog", { name: "Ignored descriptions" });
+  await expect(settings.getByText("Comet bakery")).toBeVisible();
+  page.once("dialog", (confirmation) => confirmation.accept());
+  await settings.getByRole("button", { name: "Remove" }).click();
+  await expect(page.locator(".validation-counts")).toContainText("1 Missing in Spendee");
+  await page.getByRole("button", { name: "Close settings" }).click();
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();

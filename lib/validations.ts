@@ -11,7 +11,7 @@ export function getWalletValidationTransactions(db: Db, wallet: string, dateFrom
   return db.prepare(`
     SELECT id, date, wallet, type, category_name AS categoryName, amount, currency, note
     FROM transactions
-    WHERE deleted_at IS NULL AND wallet = ? AND date >= ? AND date < ?
+    WHERE deleted_at IS NULL AND wallet = ? AND type COLLATE NOCASE <> 'Transfer' AND date >= ? AND date < ?
     ORDER BY date ASC, id ASC
   `).all(wallet, `${dateFrom}T00:00:00.000Z`, exclusiveEnd.toISOString()) as ValidationAppTransaction[];
 }
@@ -129,4 +129,8 @@ export function getValidationThumbnail(db: Db, id: number) {
   const row = db.prepare("SELECT thumbnail_png AS thumbnail FROM validation_runs WHERE id = ?")
     .get(id) as { thumbnail: Buffer } | undefined;
   return row?.thumbnail ?? null;
+}
+
+export function updateValidationDiff(db: Db, id: number, diff: ValidationDiff) {
+  db.prepare("UPDATE validation_runs SET diff_json = ? WHERE id = ?").run(JSON.stringify(diff), id);
 }

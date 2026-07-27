@@ -146,6 +146,12 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS validation_runs_created_idx ON validation_runs(created_at DESC, id DESC);
+    CREATE TABLE IF NOT EXISTS validation_description_blacklist (
+      id INTEGER PRIMARY KEY,
+      description TEXT NOT NULL,
+      normalized_description TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "category_tag_config", "icon_id", "INTEGER");

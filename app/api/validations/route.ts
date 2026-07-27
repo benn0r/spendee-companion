@@ -3,6 +3,7 @@ import { getDatabase, getWalletSummaries } from "@/lib/db";
 import { extractValidationDocument, validationModel } from "@/lib/openai-validation";
 import { compareValidationTransactions, validationDateRange } from "@/lib/validation-diff";
 import { renderValidationThumbnail } from "@/lib/validation-thumbnail";
+import { filterBlacklistedTransactions } from "@/lib/validation-blacklist";
 import { completeValidation, enqueueValidation, failValidation, getWalletValidationTransactions, listValidations } from "@/lib/validations";
 
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
         const appTransactions = getWalletValidationTransactions(db, wallet, dateFrom, dateTo);
         completeValidation(db, id, {
           document, rawOpenAI: rawResponse, dateFrom, dateTo, thumbnail,
-          diff: compareValidationTransactions(document.transactions, appTransactions), model: validationModel,
+          diff: compareValidationTransactions(filterBlacklistedTransactions(db, document.transactions), appTransactions), model: validationModel,
         });
       } catch (processingError) {
         failValidation(db, id, processingError instanceof Error ? processingError.message : "Validation failed.");
