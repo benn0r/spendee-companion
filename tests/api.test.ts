@@ -150,7 +150,7 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
   await t.test("persists a mocked document validation, raw response, thumbnail, and diff", async () => {
     const { getDatabase, importTransactions } = await import("../lib/db");
     importTransactions(getDatabase(), "transfer.csv", [{ sourceRow: 2, raw: {}, transaction: {
-      date: "2026-07-02T10:00:00+00:00", wallet: "Moon Purse", type: "Transfer", categoryName: "Transfer",
+      date: "2026-07-02T10:00:00+00:00", wallet: "Moon Purse", type: "Incoming Transfer", categoryName: "Transfer",
       amount: -99, currency: "CHF", note: "Internal portal transfer", labels: "", author: "Nova Quill",
     } }]);
     const route = await import("../app/api/validations/route");

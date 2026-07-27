@@ -11,7 +11,9 @@ export function getWalletValidationTransactions(db: Db, wallet: string, dateFrom
   return db.prepare(`
     SELECT id, date, wallet, type, category_name AS categoryName, amount, currency, note
     FROM transactions
-    WHERE deleted_at IS NULL AND wallet = ? AND type COLLATE NOCASE <> 'Transfer' AND date >= ? AND date < ?
+    WHERE deleted_at IS NULL AND wallet = ?
+      AND LOWER(type) NOT IN ('transfer', 'incoming transfer')
+      AND date >= ? AND date < ?
     ORDER BY date ASC, id ASC
   `).all(wallet, `${dateFrom}T00:00:00.000Z`, exclusiveEnd.toISOString()) as ValidationAppTransaction[];
 }

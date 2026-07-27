@@ -92,18 +92,19 @@
 .validation-ledger .right { text-align: right; }
 .validation-transaction > td:first-child { border-left: 3px solid transparent; }
 .validation-heading-actions { display: flex; align-items: center; gap: 8px; }
-.validation-settings-button { padding: 9px 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--slate); background: white; cursor: pointer; font-size: 11px; font-weight: 600; }
 .validation-status-badge { width: fit-content; padding: 5px 8px; display: inline-flex; align-items: center; border: 1px solid; border-radius: 99px; font-size: 8px; font-weight: 800; white-space: nowrap; }
 .validation-status-badge.matched { color: #087b59; border-color: #9ddac6; background: #e9f8f2; }
 .validation-status-badge.missing-app { color: #8a5909; border-color: #ebc46f; background: #fff6df; }
-.validation-status-badge.missing-document { color: #a33f38; border-color: #e9aaa5; background: #fff0ef; }
+.validation-status-badge.missing-document { color: #21648f; border-color: #9bc8e4; background: #edf7fd; }
+.validation-counts .spendee-only { color: #21648f; background: #eaf6fd; }
 .validation-category { display: inline-flex; align-items: center; gap: 7px; }
 .validation-category .category-icon { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; }
 .validation-amount.positive strong { color: #087b59; }
 .validation-amount.negative strong { color: #c34d45; }
-.validation-row-action { width: 38px; padding-left: 4px !important; }
-.validation-row-action button { width: 25px; height: 25px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: white; cursor: pointer; }
-.validation-row-action button:hover { color: #a33f38; border-color: #e9aaa5; background: #fff5f4; }
+.validation-description { display: inline-flex; align-items: center; gap: 5px; }
+.validation-description > strong { display: inline; }
+.validation-description button { width: 18px; height: 18px; padding: 0; display: inline-grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: white; cursor: pointer; font-size: 9px; line-height: 1; }
+.validation-description button:hover { color: #a33f38; border-color: #e9aaa5; background: #fff5f4; }
 .validation-settings-dialog { width: min(560px, 100%); }
 .validation-blacklist { max-height: 360px; margin-top: 18px; border: 1px solid var(--line); border-radius: 10px; overflow: auto; }
 .validation-blacklist > div { padding: 11px 13px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); }
