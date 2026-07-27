@@ -5,6 +5,14 @@ import { rmSync } from "node:fs";
 const databasePath = `/tmp/spendee-api-fantasy-${crypto.randomUUID()}.db`;
 process.env.SQLITE_PATH = databasePath;
 process.env.APP_VERSION = "fantasy-test-build";
+process.env.OPENAI_VALIDATION_MOCK = JSON.stringify({
+  title: "Moon Guild Statement", printDate: "2026-07-14", issuer: "Moon Guild Bank",
+  accountReference: "4242", metadata: { cycle: "July" }, transactions: [
+    { date: "2026-07-01", description: "Nebula lunch", amount: -24, currency: "CHF" },
+    { date: "2026-07-03", description: "Comet bakery", amount: -18, currency: "CHF" },
+  ],
+});
+process.env.VALIDATION_THUMBNAIL_MOCK_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 after(async () => {
   const { getDatabase } = await import("../lib/db");
@@ -136,6 +144,30 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
       columns: [{ name: "Adventures", categories: ["Portal Travel", "Stardust Snacks"], budget: 100 }],
     }));
     assert.equal((await body(response)).columns[0].name, "Adventures");
+  });
+
+  await t.test("persists a mocked document validation, raw response, thumbnail, and diff", async () => {
+    const route = await import("../app/api/validations/route");
+    const form = new FormData();
+    form.append("wallet", "Moon Purse");
+    form.append("file", new File(["%PDF-1.4 fantasy statement"], "moon-statement.pdf", { type: "application/pdf" }));
+    const response = await route.POST(new Request("http://test/api/validations", { method: "POST", body: form }));
+    assert.equal(response.status, 201);
+    const created = await body(response);
+    assert.equal(created.title, "Moon Guild Statement");
+    assert.equal(created.diff.matching.length, 1);
+    assert.equal(created.diff.missingInApp.length, 1);
+    assert.equal(created.diff.missingInDocument.length, 1);
+    assert.equal(created.rawOpenAI.mocked, true);
+
+    assert.equal((await body(await route.GET())).validations[0].counts.missingInApp, 1);
+    const detail = await import("../app/api/validations/[id]/route");
+    const params = { params: Promise.resolve({ id: String(created.id) }) };
+    assert.equal((await body(await detail.GET(new Request("http://test"), params))).rawOpenAI.output.title, "Moon Guild Statement");
+    const thumbnail = await import("../app/api/validations/[id]/thumbnail/route");
+    const image = await thumbnail.GET(new Request("http://test"), params);
+    assert.equal(image.headers.get("content-type"), "image/png");
+    assert.ok((await image.arrayBuffer()).byteLength > 10);
   });
 
   await t.test("creates, reads, downloads, and deletes a split", async () => {

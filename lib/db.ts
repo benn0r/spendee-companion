@@ -7,7 +7,7 @@ import { calculateDayTotals } from "./day-groups";
 import { categorySlug } from "./category-slug";
 import { normalizeLocale, type AppLocale } from "./i18n";
 
-type Db = Database.Database;
+export type Db = Database.Database;
 let singleton: Db | undefined;
 
 function currentMonthKey() {
@@ -127,6 +127,25 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
       value TEXT,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS validation_runs (
+      id INTEGER PRIMARY KEY,
+      wallet TEXT NOT NULL,
+      source_filename TEXT NOT NULL,
+      title TEXT NOT NULL,
+      print_date TEXT,
+      issuer TEXT,
+      account_reference TEXT,
+      metadata_json TEXT NOT NULL,
+      date_from TEXT NOT NULL,
+      date_to TEXT NOT NULL,
+      thumbnail_png BLOB NOT NULL,
+      extracted_json TEXT NOT NULL,
+      raw_openai_json TEXT NOT NULL,
+      diff_json TEXT NOT NULL,
+      model TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS validation_runs_created_idx ON validation_runs(created_at DESC, id DESC);
   `);
   ensureColumn(db, "category_tag_config", "enabled", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "category_tag_config", "icon_id", "INTEGER");
@@ -134,6 +153,7 @@ export function openDatabase(filename = process.env.SQLITE_PATH ?? "./data/spend
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
   ensureColumn(db, "split_records", "title", "TEXT");
   ensureColumn(db, "split_records", "locale", "TEXT NOT NULL DEFAULT 'en'");
+  ensureColumn(db, "validation_runs", "raw_openai_json", "TEXT NOT NULL DEFAULT '{}'");
   db.exec(`
     DROP TABLE IF EXISTS reconciliation_items;
     DELETE FROM duplicates

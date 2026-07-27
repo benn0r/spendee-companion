@@ -18,7 +18,7 @@ WORKDIR /app
 ARG APP_VERSION=dev
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 APP_VERSION=${APP_VERSION}
 ENV SQLITE_PATH=/data/spendee.db
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl poppler-utils \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /data && chown node:node /data
 COPY --from=builder /app/public ./public

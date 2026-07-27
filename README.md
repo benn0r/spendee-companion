@@ -44,6 +44,10 @@ exports.
   headers and complete daily totals for the current view.
 - Provides a compact monthly category report. Report columns can combine
   multiple categories and optionally include color-coded budgets.
+- Validates PDF statements against a selected wallet with OpenAI extraction.
+  Each run persists statement metadata, a first-page thumbnail, the normalized
+  transactions, the complete OpenAI response, and one-to-one reconciliation
+  results for the statement's date range. The original PDF is not retained.
 - Splits any selection of transactions across a configurable number of shares,
   with additional positive or negative custom positions and live totals.
 - Persists split snapshots independently from the transaction ledger. Saved
@@ -73,6 +77,10 @@ npm run dev
 Open <http://localhost:3000>. By default the database is created at
 `./data/spendee.db`. Set `SQLITE_PATH` to use another location.
 
+Document validation requires `OPENAI_API_KEY`. It uses `gpt-5.6-sol` by
+default; set `OPENAI_VALIDATION_MODEL` to override the extraction model. The
+runtime image includes Poppler to generate first-page thumbnails.
+
 ```sh
 SQLITE_PATH=/absolute/path/spendee.db npm run dev
 ```
@@ -87,8 +95,8 @@ npm run build
 ```
 
 The test suite covers imports, duplicate persistence, full-wallet replacement,
-wallet and category reporting, filters, monthly reports, split persistence, and
-PDF generation. It also exercises every MCP read tool and file import, the Streamable HTTP
+wallet and category reporting, filters, monthly reports, validation matching,
+validation persistence, split persistence, and PDF generation. It also exercises every MCP read tool and file import, the Streamable HTTP
 MCP endpoint, API route validation and workflows, and server-rendered UI shells
 using entirely synthetic fantasy fixtures. CI enforces minimum coverage of 95%
 for lines, 90% for functions, and 80% for branches across server and library
