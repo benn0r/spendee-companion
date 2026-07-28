@@ -56,7 +56,11 @@ export default function ValidateView() {
     const names = walletData.wallets.map((item) => item.wallet);
     setWallets(names); setWallet((current) => current || names[0] || "");
     setBlacklist(blacklistData.entries); setAppearances(filterData.categoryAppearances || {});
-    if (entries[0]) await selectValidation(entries[0].id);
+    // A ledger match links to a specific historical run. Prefer that run over
+    // the newest entry while retaining the usual newest-first fallback.
+    const requestedId = Number(new URLSearchParams(window.location.search).get("validation"));
+    const initial = entries.find((entry) => entry.id === requestedId) ?? entries[0];
+    if (initial) await selectValidation(initial.id);
     setLoading(false);
   }, [refreshList, selectValidation]);
 
@@ -78,6 +82,7 @@ export default function ValidateView() {
     setSubmitting(false);
     if (!response.ok || !result.id) { setError(result.error || "Validation failed."); return; }
     setDialogOpen(false); setDragging(false);
+    window.history.replaceState(null, "", `/validate?validation=${result.id}`);
     await refreshList(); await selectValidation(result.id);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -114,7 +119,7 @@ export default function ValidateView() {
     <div className="workspace validation-page">
       <section className="page-heading"><div><p className="eyebrow">DOCUMENT RECONCILIATION</p><h1>Validate</h1><p>Compare PDF statements with the transactions saved in a wallet.</p></div><div className="validation-heading-actions"><button aria-label="Validation settings" className="settings-cog-button" onClick={() => setSettingsOpen(true)} title="Validation settings">⚙</button><button className="page-import-button" onClick={() => setDialogOpen(true)}><span>＋</span>Upload document</button></div></section>
       <section className="validation-layout">
-        <aside className="validation-sidebar"><div className="validation-history"><h2>Past validations</h2>{loading ? <p>Loading…</p> : validations.length === 0 ? <p>No validations yet.</p> : validations.map((item) => <button className={selected?.id === item.id ? "active" : ""} key={item.id} onClick={() => void selectValidation(item.id)}>{item.status === "complete" ? <img alt="Statement thumbnail" src={`/api/validations/${item.id}/thumbnail`} /> : <span className={`validation-state-icon ${item.status}`}>{item.status === "processing" ? "…" : "!"}</span>}<span><strong>{item.status === "processing" ? item.filename : item.title}</strong><small>{item.wallet}{item.dateFrom ? ` · ${date(item.dateFrom)}–${date(item.dateTo)}` : ""}</small><em>{item.status === "processing" ? "Extracting in background…" : item.status === "failed" ? "Extraction failed" : `${item.counts.matching} matched · ${item.counts.missingInApp + item.counts.missingInDocument} differences`}</em></span></button>)}</div></aside>
+        <aside className="validation-sidebar"><div className="validation-history"><h2>Past validations</h2>{loading ? <p>Loading…</p> : validations.length === 0 ? <p>No validations yet.</p> : validations.map((item) => <button aria-pressed={selected?.id === item.id} className={selected?.id === item.id ? "active" : ""} data-validation-id={item.id} key={item.id} onClick={() => { window.history.replaceState(null, "", `/validate?validation=${item.id}`); void selectValidation(item.id); }}>{item.status === "complete" ? <img alt="Statement thumbnail" src={`/api/validations/${item.id}/thumbnail`} /> : <span className={`validation-state-icon ${item.status}`}>{item.status === "processing" ? "…" : "!"}</span>}<span><strong>{item.status === "processing" ? item.filename : item.title}</strong><small>{item.wallet}{item.dateFrom ? ` · ${date(item.dateFrom)}–${date(item.dateTo)}` : ""}</small><em>{item.status === "processing" ? "Extracting in background…" : item.status === "failed" ? "Extraction failed" : `${item.counts.matching} matched · ${item.counts.missingInApp + item.counts.missingInDocument} differences`}</em></span></button>)}</div></aside>
         <section className="validation-results">
           {!selected ? <div className="validation-empty"><h2>No validation selected</h2><p>Upload a PDF statement to start.</p></div> : selected.status === "processing" ? <div className="validation-empty processing"><span className="validation-spinner" /><h2>Extracting statement</h2><p>You can leave this page. The validation is running in the background.</p></div> : selected.status === "failed" ? <div className="validation-empty failed"><h2>Extraction failed</h2><p>{selected.error}</p></div> : <>
             <header className="validation-result-head"><img alt="First page of uploaded statement" src={`/api/validations/${selected.id}/thumbnail`} /><div><p className="eyebrow">{selected.issuer || "DOCUMENT"}</p><h2>{selected.title}</h2><p>{selected.wallet} · {date(selected.dateFrom)}–{date(selected.dateTo)}</p><small>Validated {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(selected.createdAt))}</small></div></header>

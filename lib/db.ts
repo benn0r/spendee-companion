@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { TransactionInput } from "./types";
+import type { TransactionInput, TransactionRow, TransactionValidation } from "./types";
 import { calculateDayTotals } from "./day-groups";
 import { categorySlug } from "./category-slug";
 import { normalizeLocale, type AppLocale } from "./i18n";
@@ -643,18 +643,87 @@ export function getFilteredTransactionPage(
       source_row AS sourceRow, imported_at AS importedAt
     FROM ${source} ${sql}
     ORDER BY date DESC, id DESC LIMIT ? OFFSET ?
-  `).all(...params, pageSize, (page - 1) * pageSize);
+  `).all(...params, pageSize, (page - 1) * pageSize) as Array<
+    Omit<TransactionRow, "validation"> & { duplicateOfId?: number }
+  >;
   const dayRows = db.prepare(`
     SELECT date, amount, currency FROM ${source} ${sql}
   `).all(...params) as Array<{ date: string; amount: number; currency: string }>;
   return {
-    rows,
+    rows: attachValidationReferences(db, source, rows),
     dayTotals: calculateDayTotals(dayRows),
     page,
     pageSize,
     total,
     pages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+type ValidationCandidate = ValidationAppSnapshot & TransactionValidation;
+
+type ValidationAppSnapshot = Pick<
+  TransactionInput,
+  "date" | "wallet" | "type" | "categoryName" | "amount" | "currency" | "note"
+> & { transactionId: number };
+
+function attachValidationReferences(
+  db: Db,
+  source: "transactions" | "duplicates",
+  rows: Array<Omit<TransactionRow, "validation"> & { duplicateOfId?: number }>,
+) {
+  const withoutMatches = rows.map((row) => ({ ...row, validation: null }));
+  if (source !== "transactions" || !rows.length) return withoutMatches;
+
+  const ids = rows.map((row) => row.id);
+  // Resolve validation JSON only after pagination. Joining json_each into the
+  // page query could duplicate a transaction that appears in several statements.
+  const candidates = db.prepare(`
+    SELECT validation.id, validation.title,
+      json_extract(match.value, '$.document.description') AS description,
+      CAST(json_extract(match.value, '$.app.id') AS INTEGER) AS transactionId,
+      json_extract(match.value, '$.app.date') AS date,
+      json_extract(match.value, '$.app.wallet') AS wallet,
+      json_extract(match.value, '$.app.type') AS type,
+      json_extract(match.value, '$.app.categoryName') AS categoryName,
+      json_extract(match.value, '$.app.amount') AS amount,
+      json_extract(match.value, '$.app.currency') AS currency,
+      json_extract(match.value, '$.app.note') AS note
+    FROM validation_runs validation
+    CROSS JOIN json_each(
+      CASE WHEN json_valid(validation.diff_json) THEN validation.diff_json ELSE '{"matching":[]}' END,
+      '$.matching'
+    ) match
+    WHERE validation.status = 'complete'
+      AND CAST(json_extract(match.value, '$.app.id') AS INTEGER) IN (${ids.map(() => "?").join(", ")})
+    ORDER BY validation.created_at DESC, validation.id DESC, CAST(match.key AS INTEGER) ASC
+  `).all(...ids) as ValidationCandidate[];
+
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  const references = new Map<number, TransactionValidation>();
+  // Candidates arrive newest first; accepting only the first valid snapshot per row
+  // resolves multiple validations without multiplying transaction-list results.
+  for (const candidate of candidates) {
+    const row = rowsById.get(candidate.transactionId);
+    if (!row || references.has(row.id)) continue;
+    // Full imports delete and reinsert rows, and SQLite may reuse their numeric IDs.
+    // Verify the persisted validation snapshot so an unrelated replacement cannot inherit a stale link.
+    if (
+      candidate.date !== row.date ||
+      candidate.wallet !== row.wallet ||
+      candidate.type !== row.type ||
+      candidate.categoryName !== row.categoryName ||
+      candidate.amount !== row.amount ||
+      candidate.currency !== row.currency ||
+      candidate.note !== row.note
+    ) continue;
+    references.set(row.id, {
+      id: candidate.id,
+      title: candidate.title,
+      description: candidate.description,
+    });
+  }
+
+  return rows.map((row) => ({ ...row, validation: references.get(row.id) ?? null }));
 }
 
 export function getTransactionFilterOptions(db: Db) {

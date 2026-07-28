@@ -1,5 +1,26 @@
-import { expect, test } from "./fixture";
+import { expect, test, type Page } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
+
+async function uploadMockStatement(page: Page, wallet: string, filename: string) {
+  const historyEntries = page.locator(".validation-history > button");
+  const previousCount = await historyEntries.count();
+  await page.getByRole("button", { name: "Upload document" }).click();
+  const dialog = page.getByRole("dialog", { name: "Upload document" });
+  await dialog.getByLabel("Wallet").selectOption(wallet);
+  await dialog.locator('input[type="file"]').setInputFiles({
+    name: filename,
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 fantasy statement without personal data"),
+  });
+  await expect(dialog).toBeHidden();
+  await expect(historyEntries).toHaveCount(previousCount + 1);
+  const newest = historyEntries.first();
+  await expect(newest).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();
+  const id = Number(await newest.getAttribute("data-validation-id"));
+  await expect(page).toHaveURL(new RegExp(`/validate\\?validation=${id}$`));
+  return id;
+}
 
 test("validates a PDF against a wallet and persists the mocked OpenAI result", async ({ page }, testInfo) => {
   const { csv, wallet, variant } = fantasyData(testInfo, "Document validation");
@@ -8,15 +29,7 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await page.getByRole("link", { name: "Validate" }).click();
   await expect(page.getByRole("heading", { name: "Validate" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Upload document" }).click();
-  const dialog = page.getByRole("dialog", { name: "Upload document" });
-  await dialog.getByLabel("Wallet").selectOption(wallet);
-  await dialog.locator('input[type="file"]').setInputFiles({
-    name: "moon-guild-statement.pdf",
-    mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.4 fantasy statement without personal data"),
-  });
-  await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();
+  await uploadMockStatement(page, wallet, "moon-guild-statement.pdf");
   await expect(page.locator(".validation-counts")).toContainText("1 Matching");
   await expect(page.locator(".validation-counts")).toContainText("1 Missing in Spendee");
   await expect(page.locator(".validation-counts")).toContainText("1 Only in Spendee");
@@ -56,4 +69,29 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await page.reload();
   await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();
   await expect(page.getByText("Moon Guild Card Statement").first()).toBeVisible();
+});
+
+test("links matched transactions to their exact validation and document description", async ({ page }, testInfo) => {
+  const { csv, wallet, variant } = fantasyData(testInfo, "Validation transaction link");
+  await openDashboard(page);
+  await importCsv(page, csv, `validation-link-${variant}.csv`, /3 imported/);
+  await page.getByRole("link", { name: "Validate" }).click();
+
+  const matchedValidationId = await uploadMockStatement(page, wallet, "matched-statement.pdf");
+  const newerValidationId = await uploadMockStatement(page, `Cloud Vault ${variant}`, "newer-unmatched-statement.pdf");
+  expect(newerValidationId).not.toBe(matchedValidationId);
+
+  await page.getByRole("link", { name: "Transactions" }).click();
+  const transactionRow = page.getByRole("row").filter({ hasText: `Nebula lunch ${variant}` });
+  const validationLink = transactionRow.getByRole("link", { name: "Open validation Moon Guild Card Statement" });
+  await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
+  await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
+
+  await validationLink.click();
+  await expect(page).toHaveURL(new RegExp(`/validate\\?validation=${matchedValidationId}$`));
+  await expect(page.locator('.validation-history button[aria-pressed="true"]')).toHaveAttribute("data-validation-id", String(matchedValidationId));
+  await expect(page.getByRole("heading", { name: "Moon Guild Card Statement" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator('.validation-history button[aria-pressed="true"]')).toHaveAttribute("data-validation-id", String(matchedValidationId));
 });

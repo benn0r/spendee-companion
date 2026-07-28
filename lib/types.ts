@@ -22,11 +22,18 @@ export type TransactionInput = {
   author: string | null;
 };
 
+export type TransactionValidation = {
+  id: number;
+  title: string;
+  description: string;
+};
+
 export type TransactionRow = TransactionInput & {
   id: number;
   sourceFile: string;
   sourceRow: number;
   importedAt: string;
+  validation: TransactionValidation | null;
 };
 
 export type DuplicateRow = TransactionRow & {

@@ -180,6 +180,26 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
     assert.equal(image.headers.get("content-type"), "image/png");
     assert.ok((await image.arrayBuffer()).byteLength > 10);
 
+    const newerForm = new FormData();
+    newerForm.append("wallet", "Moon Purse");
+    newerForm.append("file", new File(["%PDF-1.4 newer fantasy statement"], "newer-moon-statement.pdf", { type: "application/pdf" }));
+    const newer = await body(await route.POST(new Request("http://test/api/validations", {
+      method: "POST",
+      body: newerForm,
+    })));
+    const transactions = await import("../app/api/transactions/route");
+    const transactionPage = await body(await transactions.GET(new Request(
+      "http://test/api/transactions?pageSize=100",
+    )));
+    const matched = transactionPage.rows.find((row: { note: string | null }) => row.note === "Nebula lunch");
+    const unmatched = transactionPage.rows.find((row: { note: string | null }) => row.note === "Dragon bounty");
+    assert.deepEqual(matched.validation, {
+      id: newer.id,
+      title: "Moon Guild Statement",
+      description: "Nebula lunch",
+    });
+    assert.equal(unmatched.validation, null);
+
     const blacklist = await import("../app/api/validation-blacklist/route");
     const added = await body(await blacklist.POST(jsonRequest("http://test", "POST", { description: "  Comet   bakery ", validationId: created.id })));
     assert.equal(added.entries[0].description, "Comet bakery");

@@ -31,6 +31,7 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
+  validation?: { id: number; title: string; description: string } | null;
 };
 type PageData = { rows: Row[]; dayTotals: DayTotals; page: number; pages: number; total: number; pageSize: number };
 type ImportResult = { summary: { total: number; imported: number; duplicates: number; replaced: number; files: number; failed: number } };
@@ -403,7 +404,24 @@ export default function Dashboard() {
                         <td><Link className="wallet-link" href={`/wallets/${encodeURIComponent(row.wallet)}`}><span className="wallet">{row.wallet.slice(0, 1)}</span>{row.wallet}</Link></td>
                         <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                         <td>{row.categoryName ? <Link className="category-link category-link-with-icon" href={`/categories/${categorySlug(row.categoryName)}`}><CategoryIcon appearance={filterOptions.categoryAppearances?.[row.categoryName]} />{row.categoryName}</Link> : "—"}</td>
-                        <td>{row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}</td>
+                        <td>
+                          {row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}
+                          {tab === "transactions" && row.validation && (
+                            <div className="transaction-validation-match">
+                              <span className="transaction-validation-copy">
+                                <b>Statement:</b>
+                                <span className="transaction-validation-description" title={row.validation.description}>{row.validation.description}</span>
+                              </span>
+                              <Link
+                                aria-label={`Open validation ${row.validation.title}`}
+                                href={`/validate?validation=${row.validation.id}`}
+                                title={row.validation.title}
+                              >
+                                View validation <span aria-hidden="true">↗</span>
+                              </Link>
+                            </div>
+                          )}
+                        </td>
                         <td>{row.author ?? "—"}</td>
                         {tab === "duplicates" && <td><button className="delete-row" disabled={deletingDuplicates} onClick={() => void removeDuplicates([row.id])}>Delete</button></td>}
                         <td className="right"><Amount row={row} />{row.duplicateOfId && <small>matches #{row.duplicateOfId}</small>}</td>
