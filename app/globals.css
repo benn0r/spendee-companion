@@ -204,7 +204,7 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .transaction-description-line { max-width: 320px; display: flex; align-items: center; gap: 6px; }
 .transaction-description-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transaction-validation-match { min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 9px; }
-.transaction-validation-description { max-width: 130px; padding: 2px 6px; overflow: hidden; border: 1px solid #b9ddd1; border-radius: 99px; color: var(--green-dark); background: var(--green-soft); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-validation-description { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transaction-validation-link { width: 19px; height: 19px; flex: 0 0 19px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #b9ddd1; border-radius: 6px; color: var(--green-dark); background: white; font-size: 11px; font-weight: 700; line-height: 1; text-decoration: none; }
 .transaction-validation-link:hover { border-color: var(--green); background: var(--green-soft); }
 .transaction-validation-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }

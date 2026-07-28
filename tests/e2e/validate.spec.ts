@@ -87,7 +87,10 @@ test("links matched transactions to their exact validation and document descript
   const descriptionLine = transactionRow.locator(".transaction-description-line");
   await expect(descriptionLine).toContainText(`Nebula lunch ${variant}`);
   await expect(descriptionLine).toContainText("Nebula lunch");
-  await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
+  const validationDescription = transactionRow.locator(".transaction-validation-description");
+  await expect(validationDescription).toHaveText("Nebula lunch");
+  await expect(validationDescription).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(validationDescription).toHaveCSS("border-top-width", "0px");
   await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
   await expect(validationLink).toHaveText("↗");
   await expect(transactionRow.getByText("Statement:", { exact: true })).toHaveCount(0);

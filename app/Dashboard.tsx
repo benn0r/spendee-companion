@@ -407,7 +407,7 @@ export default function Dashboard() {
                         <td>
                           {row.note || row.labels || row.validation ? <>
                             <div className="transaction-description-line">
-                              <span className="transaction-description-text">{row.note ?? "—"}</span>
+                              {row.note && <span className="transaction-description-text">{row.note}</span>}
                               {tab === "transactions" && row.validation && (
                                 <span className="transaction-validation-match">
                                   <span className="transaction-validation-description" title={row.validation.description}>{row.validation.description}</span>
