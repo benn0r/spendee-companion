@@ -9,6 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: build-${{ gitea.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest-slim
@@ -119,11 +123,21 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Install Docker CLI
+      - name: Prepare image publishing tools
         shell: sh
         run: |
-          apt-get update
-          apt-get install --yes curl docker.io jq
+          packages=""
+          command -v curl >/dev/null 2>&1 || packages="${packages} curl"
+          command -v docker >/dev/null 2>&1 || packages="${packages} docker.io"
+          command -v jq >/dev/null 2>&1 || packages="${packages} jq"
+
+          # Hosted runners already provide Moby. Keep it instead of replacing it
+          # with docker.io, and retain a fallback for leaner future runner images.
+          if [ -n "${packages}" ]; then
+            apt-get update
+            apt-get install --yes ${packages}
+          fi
+
           docker version
       - name: Log in to Gitea Container Registry
         shell: sh
