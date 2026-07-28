@@ -93,6 +93,9 @@ test("links matched transactions to their exact validation and document descript
   await expect(validationDescription).toHaveCSS("border-top-width", "0px");
   await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
   await expect(validationLink).toHaveText("↗");
+  await expect(validationLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(validationLink).toHaveCSS("border-top-width", "0px");
+  await expect(validationLink).toHaveCSS("opacity", "0.55");
   await expect(transactionRow.getByText("Statement:", { exact: true })).toHaveCount(0);
   await expect(transactionRow.getByText("View validation", { exact: true })).toHaveCount(0);
 
