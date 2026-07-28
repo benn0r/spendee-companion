@@ -84,8 +84,14 @@ test("links matched transactions to their exact validation and document descript
   await page.getByRole("link", { name: "Transactions" }).click();
   const transactionRow = page.getByRole("row").filter({ hasText: `Nebula lunch ${variant}` });
   const validationLink = transactionRow.getByRole("link", { name: "Open validation Moon Guild Card Statement" });
+  const descriptionLine = transactionRow.locator(".transaction-description-line");
+  await expect(descriptionLine).toContainText(`Nebula lunch ${variant}`);
+  await expect(descriptionLine).toContainText("Nebula lunch");
   await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
   await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
+  await expect(validationLink).toHaveText("↗");
+  await expect(transactionRow.getByText("Statement:", { exact: true })).toHaveCount(0);
+  await expect(transactionRow.getByText("View validation", { exact: true })).toHaveCount(0);
 
   const originalId = (await (await page.request.get("/api/transactions?pageSize=100")).json()).rows
     .find((row: { note: string }) => row.note === `Nebula lunch ${variant}`).id;

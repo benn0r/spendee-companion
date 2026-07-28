@@ -405,22 +405,25 @@ export default function Dashboard() {
                         <td><span className={`type ${row.type.toLowerCase().replaceAll(" ", "-")}`}>{row.type}</span></td>
                         <td>{row.categoryName ? <Link className="category-link category-link-with-icon" href={`/categories/${categorySlug(row.categoryName)}`}><CategoryIcon appearance={filterOptions.categoryAppearances?.[row.categoryName]} />{row.categoryName}</Link> : "—"}</td>
                         <td>
-                          {row.note || row.labels ? <><span>{row.note ?? "—"}</span><small>{row.labels}</small></> : "—"}
-                          {tab === "transactions" && row.validation && (
-                            <div className="transaction-validation-match">
-                              <span className="transaction-validation-copy">
-                                <b>Statement:</b>
-                                <span className="transaction-validation-description" title={row.validation.description}>{row.validation.description}</span>
-                              </span>
-                              <Link
-                                aria-label={`Open validation ${row.validation.title}`}
-                                href={`/validate?validation=${row.validation.id}`}
-                                title={row.validation.title}
-                              >
-                                View validation <span aria-hidden="true">↗</span>
-                              </Link>
+                          {row.note || row.labels || row.validation ? <>
+                            <div className="transaction-description-line">
+                              <span className="transaction-description-text">{row.note ?? "—"}</span>
+                              {tab === "transactions" && row.validation && (
+                                <span className="transaction-validation-match">
+                                  <span className="transaction-validation-description" title={row.validation.description}>{row.validation.description}</span>
+                                  <Link
+                                    aria-label={`Open validation ${row.validation.title}`}
+                                    className="transaction-validation-link"
+                                    href={`/validate?validation=${row.validation.id}`}
+                                    title={`Open ${row.validation.title}`}
+                                  >
+                                    <span aria-hidden="true">↗</span>
+                                  </Link>
+                                </span>
+                              )}
                             </div>
-                          )}
+                            {row.labels && <small>{row.labels}</small>}
+                          </> : "—"}
                         </td>
                         <td>{row.author ?? "—"}</td>
                         {tab === "duplicates" && <td><button className="delete-row" disabled={deletingDuplicates} onClick={() => void removeDuplicates([row.id])}>Delete</button></td>}

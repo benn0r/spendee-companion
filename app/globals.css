@@ -201,12 +201,13 @@ td small { max-width: 220px; margin-top: 3px; color: #9ca5ac; font-size: 9px; ov
 .category-link-with-icon { display: inline-flex; align-items: center; gap: 6px; }
 .category-link-with-icon .category-icon { width: 22px; height: 22px; flex-basis: 22px; border-radius: 6px; }
 .category-link-with-icon .category-icon img { width: 19px; height: 19px; }
-.transaction-validation-match { max-width: 280px; margin-top: 6px; padding-top: 5px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #edf1f3; font-size: 9px; }
-.transaction-validation-copy { min-width: 0; display: flex; align-items: center; gap: 3px; color: var(--muted); white-space: nowrap; }
-.transaction-validation-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.transaction-validation-match b { color: var(--green-dark); font-weight: 700; }
-.transaction-validation-match a { flex: 0 0 auto; color: var(--green-dark); font-weight: 700; text-decoration: none; white-space: nowrap; }
-.transaction-validation-match a:hover { text-decoration: underline; }
+.transaction-description-line { max-width: 320px; display: flex; align-items: center; gap: 6px; }
+.transaction-description-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-validation-match { min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 9px; }
+.transaction-validation-description { max-width: 130px; padding: 2px 6px; overflow: hidden; border: 1px solid #b9ddd1; border-radius: 99px; color: var(--green-dark); background: var(--green-soft); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.transaction-validation-link { width: 19px; height: 19px; flex: 0 0 19px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #b9ddd1; border-radius: 6px; color: var(--green-dark); background: white; font-size: 11px; font-weight: 700; line-height: 1; text-decoration: none; }
+.transaction-validation-link:hover { border-color: var(--green); background: var(--green-soft); }
+.transaction-validation-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .type { padding: 4px 7px; border-radius: 99px; color: #66747e; background: #f0f3f5; font-size: 9px; white-space: nowrap; }
 .type.income, .type.incoming-transfer { color: #07835e; background: var(--green-soft); }
 .type.expense { color: #c34a4a; background: #fff0f0; }
