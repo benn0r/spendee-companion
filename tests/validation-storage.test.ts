@@ -196,7 +196,7 @@ test("validation transaction lookup is date-inclusive and ignores every transfer
   });
 });
 
-test("transaction pages link the newest completed snapshot without leaking links across reused IDs", () => {
+test("transaction pages reconcile the newest completed validation after a full re-import", () => {
   withDatabase((db) => {
     const transaction = {
       date: "2026-07-01T09:00:00.000Z",
@@ -209,7 +209,16 @@ test("transaction pages link the newest completed snapshot without leaking links
       labels: null,
       author: "Nova",
     };
-    importTransactions(db, "original.csv", [{ transaction, sourceRow: 2, raw: transaction }]);
+    const otherWalletTransaction = {
+      ...transaction,
+      date: "2026-07-02T09:00:00.000Z",
+      wallet: "Crystal Vault",
+      note: "Unrelated vault transaction",
+    };
+    importTransactions(db, "original.csv", [
+      { transaction, sourceRow: 2, raw: transaction },
+      { transaction: otherWalletTransaction, sourceRow: 3, raw: otherWalletTransaction },
+    ]);
     const app = getWalletValidationTransactions(db, transaction.wallet, "2026-07-01", "2026-07-01")[0];
     const matchingDiff = (description: string): ValidationDiff => ({
       matching: [{
@@ -223,7 +232,11 @@ test("transaction pages link the newest completed snapshot without leaking links
       createValidation(db, {
         wallet: transaction.wallet,
         filename: `${title}.pdf`,
-        document: { ...document, title },
+        document: {
+          ...document,
+          title,
+          transactions: [{ ...document.transactions[0], description }],
+        },
         rawOpenAI: {},
         dateFrom: "2026-07-01",
         dateTo: "2026-07-01",
@@ -233,7 +246,7 @@ test("transaction pages link the newest completed snapshot without leaking links
       });
       return (db.prepare("SELECT MAX(id) AS id FROM validation_runs").get() as { id: number }).id;
     };
-    const filters = { wallets: [], types: [], categories: [], tags: [], authors: [] };
+    const filters = { wallets: [transaction.wallet], types: [], categories: [], tags: [], authors: [] };
 
     const olderId = createMatch("Older statement", "Old document wording");
     const latestId = createMatch("Latest statement", "Latest document wording");
@@ -254,13 +267,83 @@ test("transaction pages link the newest completed snapshot without leaking links
     importTransactions(db, "duplicate.csv", [{ transaction, sourceRow: 2, raw: transaction }]);
     assert.equal(getFilteredTransactionPage(db, "duplicates", filters, 1, 25).rows[0].validation, null);
 
-    const replacement = { ...transaction, note: "Entirely different replacement" };
+    importTransactions(db, "fresh-snapshot.csv", [{ transaction, sourceRow: 2, raw: transaction }], {
+      fullImport: true,
+    });
+    const reimportedId = (db.prepare(
+      "SELECT id FROM transactions WHERE wallet = ?",
+    ).get(transaction.wallet) as { id: number }).id;
+    assert.notEqual(reimportedId, app.id, "the regression requires a fresh database ID");
+    assert.deepEqual(getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0].validation, {
+      id: latestId,
+      title: "Latest statement",
+      description: "Latest document wording",
+    });
+
+    const replacement = { ...transaction, amount: -19, note: "Entirely different replacement" };
     importTransactions(db, "replacement.csv", [{ transaction: replacement, sourceRow: 2, raw: replacement }], {
       fullImport: true,
     });
-    const replacementId = (db.prepare("SELECT id FROM transactions").get() as { id: number }).id;
-    assert.equal(replacementId, app.id, "test requires SQLite to reuse the deleted transaction ID");
+    const replacementId = (db.prepare(
+      "SELECT id FROM transactions WHERE wallet = ?",
+    ).get(transaction.wallet) as { id: number }).id;
+    assert.equal(replacementId, reimportedId, "test requires SQLite to reuse the replaced transaction ID");
     assert.equal(getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0].validation, null);
+  });
+});
+
+test("validation reconciliation consumes matches across the full range before paginating", () => {
+  withDatabase((db) => {
+    const first = {
+      date: "2026-07-01T09:00:00.000Z",
+      wallet: "Moon Purse",
+      type: "Expense",
+      categoryName: "Alchemy",
+      amount: -18.5,
+      currency: "CHF",
+      note: "First deterministic match",
+      labels: null,
+      author: "Nova",
+    };
+    const second = { ...first, note: "Second matching candidate" };
+    importTransactions(db, "same-posting-key.csv", [
+      { transaction: first, sourceRow: 2, raw: first },
+      { transaction: second, sourceRow: 3, raw: second },
+    ]);
+    const firstApp = getWalletValidationTransactions(db, first.wallet, "2026-07-01", "2026-07-01")[0];
+    const validationId = createValidation(db, {
+      wallet: first.wallet,
+      filename: "single-line-statement.pdf",
+      document,
+      rawOpenAI: {},
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-01",
+      thumbnail: Buffer.from("single-line"),
+      diff: {
+        matching: [{ document: document.transactions[0], app: firstApp }],
+        missingInApp: [],
+        missingInDocument: [getWalletValidationTransactions(
+          db,
+          first.wallet,
+          "2026-07-01",
+          "2026-07-01",
+        )[1]],
+      },
+      model: "fantasy-model",
+    })?.id;
+    const filters = { wallets: [first.wallet], types: [], categories: [], tags: [], authors: [] };
+
+    const newestPage = getFilteredTransactionPage(db, "transactions", filters, 1, 1);
+    assert.equal(newestPage.rows[0].note, second.note);
+    assert.equal(newestPage.rows[0].validation, null);
+
+    const oldestPage = getFilteredTransactionPage(db, "transactions", filters, 2, 1);
+    assert.equal(oldestPage.rows[0].note, first.note);
+    assert.deepEqual(oldestPage.rows[0].validation, {
+      id: validationId,
+      title: document.title,
+      description: document.transactions[0].description,
+    });
   });
 });
 

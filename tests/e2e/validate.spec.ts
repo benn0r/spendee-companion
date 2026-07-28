@@ -87,6 +87,26 @@ test("links matched transactions to their exact validation and document descript
   await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
   await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
 
+  const originalId = (await (await page.request.get("/api/transactions?pageSize=100")).json()).rows
+    .find((row: { note: string }) => row.note === `Nebula lunch ${variant}`).id;
+  const matchedWalletSnapshot = csv.split("\n").slice(0, 2).join("\n");
+  await importCsv(
+    page,
+    matchedWalletSnapshot,
+    `validation-link-full-reimport-${variant}.csv`,
+    /1 file processed · 1 imported · 0 duplicates separated · 2 previous transactions replaced/,
+    { fullImport: true },
+  );
+  const reimportedId = (await (await page.request.get("/api/transactions?pageSize=100")).json()).rows
+    .find((row: { note: string }) => row.note === `Nebula lunch ${variant}`).id;
+  expect(reimportedId).not.toBe(originalId);
+  await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
+  await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
+
+  await page.reload();
+  await expect(transactionRow.locator(".transaction-validation-description")).toHaveText("Nebula lunch");
+  await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
+
   await validationLink.click();
   await expect(page).toHaveURL(new RegExp(`/validate\\?validation=${matchedValidationId}$`));
   await expect(page.locator('.validation-history button[aria-pressed="true"]')).toHaveAttribute("data-validation-id", String(matchedValidationId));

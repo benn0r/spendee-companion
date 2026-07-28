@@ -6,6 +6,12 @@ import type { TransactionInput, TransactionRow, TransactionValidation } from "./
 import { calculateDayTotals } from "./day-groups";
 import { categorySlug } from "./category-slug";
 import { normalizeLocale, type AppLocale } from "./i18n";
+import { filterBlacklistedTransactions } from "./validation-blacklist";
+import { compareValidationTransactions } from "./validation-diff";
+import type {
+  ExtractedDocumentTransaction,
+  ValidationAppTransaction,
+} from "./validation-types";
 
 export type Db = Database.Database;
 let singleton: Db | undefined;
@@ -659,12 +665,52 @@ export function getFilteredTransactionPage(
   };
 }
 
-type ValidationCandidate = ValidationAppSnapshot & TransactionValidation;
+type LiveValidation = Pick<TransactionValidation, "id" | "title"> & {
+  wallet: string;
+  dateFrom: string;
+  dateTo: string;
+  extractedJson: string;
+};
 
-type ValidationAppSnapshot = Pick<
-  TransactionInput,
-  "date" | "wallet" | "type" | "categoryName" | "amount" | "currency" | "note"
-> & { transactionId: number };
+function parsedValidationTransactions(value: string): ExtractedDocumentTransaction[] | null {
+  try {
+    const document = JSON.parse(value) as { transactions?: unknown };
+    if (!Array.isArray(document.transactions)) return null;
+    if (!document.transactions.every((transaction): transaction is ExtractedDocumentTransaction => {
+      if (!transaction || typeof transaction !== "object") return false;
+      const candidate = transaction as Partial<ExtractedDocumentTransaction>;
+      return typeof candidate.date === "string"
+        && typeof candidate.description === "string"
+        && typeof candidate.amount === "number"
+        && Number.isFinite(candidate.amount)
+        && typeof candidate.currency === "string";
+    })) return null;
+    return document.transactions;
+  } catch {
+    // A malformed historical extraction must not break the transaction list.
+    return null;
+  }
+}
+
+function liveValidationTransactions(
+  db: Db,
+  wallet: string,
+  dateFrom: string,
+  dateTo: string,
+) {
+  const inclusiveStart = new Date(`${dateFrom}T00:00:00.000Z`);
+  const exclusiveEnd = new Date(`${dateTo}T00:00:00.000Z`);
+  if (!Number.isFinite(inclusiveStart.valueOf()) || !Number.isFinite(exclusiveEnd.valueOf())) return [];
+  exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+  return db.prepare(`
+    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency, note
+    FROM transactions
+    WHERE deleted_at IS NULL AND wallet = ?
+      AND LOWER(type) NOT IN ('transfer', 'incoming transfer', 'outgoing transfer')
+      AND date >= ? AND date < ?
+    ORDER BY date ASC, id ASC
+  `).all(wallet, inclusiveStart.toISOString(), exclusiveEnd.toISOString()) as ValidationAppTransaction[];
+}
 
 function attachValidationReferences(
   db: Db,
@@ -674,53 +720,48 @@ function attachValidationReferences(
   const withoutMatches = rows.map((row) => ({ ...row, validation: null }));
   if (source !== "transactions" || !rows.length) return withoutMatches;
 
-  const ids = rows.map((row) => row.id);
-  // Resolve validation JSON only after pagination. Joining json_each into the
-  // page query could duplicate a transaction that appears in several statements.
-  const candidates = db.prepare(`
-    SELECT validation.id, validation.title,
-      json_extract(match.value, '$.document.description') AS description,
-      CAST(json_extract(match.value, '$.app.id') AS INTEGER) AS transactionId,
-      json_extract(match.value, '$.app.date') AS date,
-      json_extract(match.value, '$.app.wallet') AS wallet,
-      json_extract(match.value, '$.app.type') AS type,
-      json_extract(match.value, '$.app.categoryName') AS categoryName,
-      json_extract(match.value, '$.app.amount') AS amount,
-      json_extract(match.value, '$.app.currency') AS currency,
-      json_extract(match.value, '$.app.note') AS note
-    FROM validation_runs validation
-    CROSS JOIN json_each(
-      CASE WHEN json_valid(validation.diff_json) THEN validation.diff_json ELSE '{"matching":[]}' END,
-      '$.matching'
-    ) match
-    WHERE validation.status = 'complete'
-      AND CAST(json_extract(match.value, '$.app.id') AS INTEGER) IN (${ids.map(() => "?").join(", ")})
-    ORDER BY validation.created_at DESC, validation.id DESC, CAST(match.key AS INTEGER) ASC
-  `).all(...ids) as ValidationCandidate[];
+  const wallets = Array.from(new Set(rows.map((row) => row.wallet)));
+  const dates = rows.map((row) => row.date.slice(0, 10)).sort();
+  const validations = db.prepare(`
+    SELECT id, title, wallet, date_from AS dateFrom, date_to AS dateTo,
+      extracted_json AS extractedJson
+    FROM validation_runs
+    WHERE status = 'complete'
+      AND wallet IN (${wallets.map(() => "?").join(", ")})
+      AND date_from <= ? AND date_to >= ?
+    ORDER BY created_at DESC, id DESC
+  `).all(...wallets, dates[dates.length - 1], dates[0]) as LiveValidation[];
 
-  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  const pageIds = new Set(rows.map((row) => row.id));
   const references = new Map<number, TransactionValidation>();
-  // Candidates arrive newest first; accepting only the first valid snapshot per row
-  // resolves multiple validations without multiplying transaction-list results.
-  for (const candidate of candidates) {
-    const row = rowsById.get(candidate.transactionId);
-    if (!row || references.has(row.id)) continue;
-    // Full imports delete and reinsert rows, and SQLite may reuse their numeric IDs.
-    // Verify the persisted validation snapshot so an unrelated replacement cannot inherit a stale link.
-    if (
-      candidate.date !== row.date ||
-      candidate.wallet !== row.wallet ||
-      candidate.type !== row.type ||
-      candidate.categoryName !== row.categoryName ||
-      candidate.amount !== row.amount ||
-      candidate.currency !== row.currency ||
-      candidate.note !== row.note
-    ) continue;
-    references.set(row.id, {
-      id: candidate.id,
-      title: candidate.title,
-      description: candidate.description,
-    });
+  const rangeTransactions = new Map<string, ValidationAppTransaction[]>();
+  // Re-run reconciliation against current wallet rows rather than trusting the
+  // transaction IDs captured in diff_json. Full imports replace those rows, so
+  // IDs are intentionally transient while statement posting fields stay stable.
+  for (const validation of validations) {
+    const extractedTransactions = parsedValidationTransactions(validation.extractedJson);
+    if (!extractedTransactions) continue;
+    const documentTransactions = filterBlacklistedTransactions(db, extractedTransactions);
+    const rangeKey = JSON.stringify([validation.wallet, validation.dateFrom, validation.dateTo]);
+    let appTransactions = rangeTransactions.get(rangeKey);
+    if (!appTransactions) {
+      appTransactions = liveValidationTransactions(
+        db,
+        validation.wallet,
+        validation.dateFrom,
+        validation.dateTo,
+      );
+      rangeTransactions.set(rangeKey, appTransactions);
+    }
+    const diff = compareValidationTransactions(documentTransactions, appTransactions);
+    for (const match of diff.matching) {
+      if (!pageIds.has(match.app.id) || references.has(match.app.id)) continue;
+      references.set(match.app.id, {
+        id: validation.id,
+        title: validation.title,
+        description: match.document.description,
+      });
+    }
   }
 
   return rows.map((row) => ({ ...row, validation: references.get(row.id) ?? null }));
