@@ -91,6 +91,7 @@ test("links matched transactions to their exact validation and document descript
   await expect(validationDescription).toHaveText("Nebula lunch");
   await expect(validationDescription).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(validationDescription).toHaveCSS("border-top-width", "0px");
+  await expect(validationDescription).toHaveCSS("text-overflow", "clip");
   await expect(validationLink).toHaveAttribute("href", `/validate?validation=${matchedValidationId}`);
   await expect(validationLink).toHaveText("↗");
   await expect(validationLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
