@@ -108,6 +108,8 @@ jobs:
           name: spendee-build-${{ gitea.run_id }}
       - name: Extract production build
         run: tar --extract --gzip --file spendee-build.tgz
+      - name: Rebuild native production dependency
+        run: npm rebuild better-sqlite3 --prefix build-artifact
       - name: End-to-end tests
         env:
           PLAYWRIGHT_USE_PRODUCTION_BUILD: "1"
