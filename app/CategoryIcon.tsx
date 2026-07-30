@@ -11,9 +11,15 @@ export default function CategoryIcon({
   const color = appearance?.color ?? "#1eadcf";
   return (
     <span className={className} style={{ backgroundColor: color }}>
-      {appearance?.iconId
-        ? <img alt="" aria-hidden="true" src={assetUrl(`/category-icons/cat_${appearance.iconId}.svg`)} />
-        : <b aria-hidden="true">#</b>}
+      {appearance?.iconId ? (
+        <img
+          alt=""
+          aria-hidden="true"
+          src={assetUrl(`/category-icons/cat_${appearance.iconId}.svg`)}
+        />
+      ) : (
+        <b aria-hidden="true">#</b>
+      )}
     </span>
   );
 }

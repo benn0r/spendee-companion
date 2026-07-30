@@ -4,12 +4,16 @@ export function fantasyData(testInfo: TestInfo, scenario: string) {
   const device = testInfo.project.name === "chromium" ? "Desktop" : "Mobile";
   const retry = testInfo.retry ? ` Retry ${testInfo.retry}` : "";
   const variant = `${scenario} ${device} Run ${testInfo.repeatEachIndex}${retry}`;
-  const dateParts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Europe/Zurich",
-    year: "numeric",
-  }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+  const dateParts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: "Europe/Zurich",
+      year: "numeric",
+    })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value]),
+  );
   const month = `${dateParts.year}-${dateParts.month}`;
   const dates = [`${month}-01`, `${month}-02`, `${month}-03`];
   const monthLabel = new Intl.DateTimeFormat("en-GB", {
@@ -41,7 +45,9 @@ export function fantasyData(testInfo: TestInfo, scenario: string) {
 export async function openDashboard(page: Page) {
   await page.addInitScript(() => localStorage.setItem("spendee-locale", "en"));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Transaction history" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Transaction history" }),
+  ).toBeVisible();
 }
 
 export async function importCsv(
@@ -59,5 +65,7 @@ export async function importCsv(
     mimeType: "text/csv",
     buffer: Buffer.from(csv),
   });
-  await expect(page.locator(".notice").filter({ hasText: expected })).toBeVisible();
+  await expect(
+    page.locator(".notice").filter({ hasText: expected }),
+  ).toBeVisible();
 }

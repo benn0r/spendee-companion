@@ -15,7 +15,11 @@ export default function PageSizeSelect({
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
       >
-        {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+        {[10, 25, 50, 100].map((size) => (
+          <option key={size} value={size}>
+            {size}
+          </option>
+        ))}
       </select>
     </label>
   );

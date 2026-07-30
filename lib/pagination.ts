@@ -19,7 +19,13 @@ export function parsePagination(
   }: PaginationOptions = {},
 ) {
   const page = Math.max(1, finiteInteger(searchParams.get("page"), 1));
-  const requestedPageSize = finiteInteger(searchParams.get("pageSize"), defaultPageSize);
-  const pageSize = Math.min(maxPageSize, Math.max(minPageSize, requestedPageSize));
+  const requestedPageSize = finiteInteger(
+    searchParams.get("pageSize"),
+    defaultPageSize,
+  );
+  const pageSize = Math.min(
+    maxPageSize,
+    Math.max(minPageSize, requestedPageSize),
+  );
   return { page, pageSize };
 }

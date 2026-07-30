@@ -10,8 +10,16 @@ export function SiteFooter({ build }: { build: string }) {
       <span>Spendee companion · build {build}</span>
       <label className="footer-language">
         <span>Language</span>
-        <select value={locale} onChange={(event) => setLocale(event.target.value as AppLocale)} aria-label="Language">
-          {supportedLocales.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
+        <select
+          value={locale}
+          onChange={(event) => setLocale(event.target.value as AppLocale)}
+          aria-label="Language"
+        >
+          {supportedLocales.map((item) => (
+            <option key={item.code} value={item.code}>
+              {item.label}
+            </option>
+          ))}
         </select>
       </label>
     </footer>

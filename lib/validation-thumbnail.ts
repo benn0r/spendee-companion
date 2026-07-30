@@ -15,15 +15,21 @@ export async function renderValidationThumbnail(pdf: Buffer): Promise<Buffer> {
   const output = join(directory, "thumbnail");
   try {
     await writeFile(input, pdf);
-    await run("pdftoppm", ["-f", "1", "-singlefile", "-scale-to", "640", "-png", input, output], {
-      timeout: 30_000,
-      maxBuffer: 1024 * 1024,
-    });
+    await run(
+      "pdftoppm",
+      ["-f", "1", "-singlefile", "-scale-to", "640", "-png", input, output],
+      {
+        timeout: 30_000,
+        maxBuffer: 1024 * 1024,
+      },
+    );
     return await readFile(`${output}.png`);
   } catch (error) {
-    throw new Error(error instanceof Error && /ENOENT/.test(error.message)
-      ? "PDF thumbnail support is unavailable."
-      : "Could not render the PDF thumbnail.");
+    throw new Error(
+      error instanceof Error && /ENOENT/.test(error.message)
+        ? "PDF thumbnail support is unavailable."
+        : "Could not render the PDF thumbnail.",
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

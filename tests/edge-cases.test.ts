@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { categoryIconIds, validCategoryColor } from "../lib/category-appearance";
+import {
+  categoryIconIds,
+  validCategoryColor,
+} from "../lib/category-appearance";
 import { categorySlug } from "../lib/category-slug";
 import { dayKey, formatDayLabel, groupRowsByDay } from "../lib/day-groups";
 import { parseImportFile } from "../lib/import-xlsx";
@@ -21,17 +24,20 @@ test("client filter queries round-trip through the API parser", () => {
     amount: "12.50",
   };
 
-  assert.deepEqual(parseTransactionFilters(new URLSearchParams(filterQuery(filters))), {
-    dateFrom: "2026-02-28",
-    dateTo: "2026-03-01",
-    wallets: ["Moon & Star"],
-    types: ["Expense"],
-    categories: ["Food / Potions"],
-    tags: ["50%_magic"],
-    authors: ["Nova Quill"],
-    amountOperator: "gt",
-    amount: 12.5,
-  });
+  assert.deepEqual(
+    parseTransactionFilters(new URLSearchParams(filterQuery(filters))),
+    {
+      dateFrom: "2026-02-28",
+      dateTo: "2026-03-01",
+      wallets: ["Moon & Star"],
+      types: ["Expense"],
+      categories: ["Food / Potions"],
+      tags: ["50%_magic"],
+      authors: ["Nova Quill"],
+      amountOperator: "gt",
+      amount: 12.5,
+    },
+  );
 
   const invalid = new URLSearchParams([
     ["dateFrom", "2026-02-30"],
@@ -64,15 +70,28 @@ test("pagination always returns finite integers inside the supported range", () 
     parsePagination(new URLSearchParams("page=2.9&pageSize=999")),
     { page: 2, pageSize: 100 },
   );
-  assert.deepEqual(
-    parsePagination(new URLSearchParams("page=-4&pageSize=0")),
-    { page: 1, pageSize: 10 },
-  );
-  assert.deepEqual(parsePagination(new URLSearchParams()), { page: 1, pageSize: 25 });
+  assert.deepEqual(parsePagination(new URLSearchParams("page=-4&pageSize=0")), {
+    page: 1,
+    pageSize: 10,
+  });
+  assert.deepEqual(parsePagination(new URLSearchParams()), {
+    page: 1,
+    pageSize: 25,
+  });
 });
 
 test("CSV parsing chooses one delimiter without shifting fields", async () => {
-  const header = ["Date", "Wallet", "Type", "Category name", "Amount", "Currency", "Note", "Labels", "Author"];
+  const header = [
+    "Date",
+    "Wallet",
+    "Type",
+    "Category name",
+    "Amount",
+    "Currency",
+    "Note",
+    "Labels",
+    "Author",
+  ];
   const fixtures = [
     {
       filename: "comma.csv",
@@ -98,36 +117,55 @@ test("CSV parsing chooses one delimiter without shifting fields", async () => {
   ];
 
   for (const fixture of fixtures) {
-    const rows = await parseImportFile(Buffer.from(fixture.contents), fixture.filename);
+    const rows = await parseImportFile(
+      Buffer.from(fixture.contents),
+      fixture.filename,
+    );
     assert.equal(rows.length, 1, fixture.filename);
-    assert.deepEqual(rows[0].transaction, {
-      date: "2026-07-01T08:00:00.000Z",
-      wallet: "Moon Purse",
-      type: "Expense",
-      categoryName: "Stardust Snacks",
-      amount: -24,
-      currency: "CHF",
-      note: fixture.filename === "comma.csv" ? "Moonberry; tea" : fixture.filename === "semicolon.csv"
-        ? "Moonberry, tea"
-        : "Moonberry, tea; chilled",
-      labels: "magic,pantry",
-      author: "Nova Quill",
-    }, fixture.filename);
+    assert.deepEqual(
+      rows[0].transaction,
+      {
+        date: "2026-07-01T08:00:00.000Z",
+        wallet: "Moon Purse",
+        type: "Expense",
+        categoryName: "Stardust Snacks",
+        amount: -24,
+        currency: "CHF",
+        note:
+          fixture.filename === "comma.csv"
+            ? "Moonberry; tea"
+            : fixture.filename === "semicolon.csv"
+              ? "Moonberry, tea"
+              : "Moonberry, tea; chilled",
+        labels: "magic,pantry",
+        author: "Nova Quill",
+      },
+      fixture.filename,
+    );
   }
 });
 
 test("imports reject blank amounts and currencies that would break formatting", async () => {
-  const header = "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author";
+  const header =
+    "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author";
   await assert.rejects(
-    () => parseImportFile(Buffer.from(
-      `${header}\n2026-07-01T08:00:00+00:00,Moon Purse,Expense,Potions,,CHF,,,Nova Quill`,
-    ), "blank-amount.csv"),
+    () =>
+      parseImportFile(
+        Buffer.from(
+          `${header}\n2026-07-01T08:00:00+00:00,Moon Purse,Expense,Potions,,CHF,,,Nova Quill`,
+        ),
+        "blank-amount.csv",
+      ),
     /invalid amount/,
   );
   await assert.rejects(
-    () => parseImportFile(Buffer.from(
-      `${header}\n2026-07-01T08:00:00+00:00,Moon Purse,Expense,Potions,-4,DRAGON,,,Nova Quill`,
-    ), "invalid-currency.csv"),
+    () =>
+      parseImportFile(
+        Buffer.from(
+          `${header}\n2026-07-01T08:00:00+00:00,Moon Purse,Expense,Potions,-4,DRAGON,,,Nova Quill`,
+        ),
+        "invalid-currency.csv",
+      ),
     /three-letter code/,
   );
 });
@@ -139,23 +177,26 @@ test("Zurich day grouping is independent of the host timezone", () => {
     const now = new Date("2026-03-29T22:30:00.000Z");
     assert.equal(dayKey(now), "2026-03-30");
     assert.equal(formatDayLabel("2026-03-29", now), "Yesterday");
-    assert.deepEqual(groupRowsByDay([
-      { id: 1, date: "2026-03-29T22:30:00.000Z" },
-      { id: 2, date: "2026-03-29T23:30:00.000Z" },
-      { id: 3, date: "2026-03-28T21:30:00.000Z" },
-    ]), [
-      {
-        key: "2026-03-30",
-        rows: [
-          { id: 1, date: "2026-03-29T22:30:00.000Z" },
-          { id: 2, date: "2026-03-29T23:30:00.000Z" },
-        ],
-      },
-      {
-        key: "2026-03-28",
-        rows: [{ id: 3, date: "2026-03-28T21:30:00.000Z" }],
-      },
-    ]);
+    assert.deepEqual(
+      groupRowsByDay([
+        { id: 1, date: "2026-03-29T22:30:00.000Z" },
+        { id: 2, date: "2026-03-29T23:30:00.000Z" },
+        { id: 3, date: "2026-03-28T21:30:00.000Z" },
+      ]),
+      [
+        {
+          key: "2026-03-30",
+          rows: [
+            { id: 1, date: "2026-03-29T22:30:00.000Z" },
+            { id: 2, date: "2026-03-29T23:30:00.000Z" },
+          ],
+        },
+        {
+          key: "2026-03-28",
+          rows: [{ id: 3, date: "2026-03-28T21:30:00.000Z" }],
+        },
+      ],
+    );
   } finally {
     if (previousTimeZone === undefined) delete process.env.TZ;
     else process.env.TZ = previousTimeZone;

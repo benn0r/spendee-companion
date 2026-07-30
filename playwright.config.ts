@@ -10,8 +10,18 @@ const validationMock = JSON.stringify({
   accountReference: "•• 4242",
   metadata: { statementType: "Card statement" },
   transactions: [
-    { date: "2026-07-01", description: "Nebula lunch", amount: -24, currency: "CHF" },
-    { date: "2026-07-03", description: "Comet bakery", amount: -18, currency: "CHF" },
+    {
+      date: "2026-07-01",
+      description: "Nebula lunch",
+      amount: -24,
+      currency: "CHF",
+    },
+    {
+      date: "2026-07-03",
+      description: "Comet bakery",
+      amount: -18,
+      currency: "CHF",
+    },
   ],
 });
 
@@ -22,10 +32,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI
-    ? [
-        ["line"],
-        ["html", { open: "never", outputFolder: "playwright-report" }],
-      ]
+    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]]
     : "list",
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
@@ -47,7 +54,8 @@ export default defineConfig({
       PORT: String(port),
       SQLITE_PATH: databasePath,
       OPENAI_VALIDATION_MOCK: validationMock,
-      VALIDATION_THUMBNAIL_MOCK_BASE64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      VALIDATION_THUMBNAIL_MOCK_BASE64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
     },
     reuseExistingServer: false,
     timeout: 120_000,

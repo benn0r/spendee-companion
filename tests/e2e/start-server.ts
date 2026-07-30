@@ -4,10 +4,14 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 const databasePath = process.env.SQLITE_PATH;
-if (!databasePath?.startsWith("/tmp/spendee-playwright-") || !databasePath.endsWith(".db")) {
+if (
+  !databasePath?.startsWith("/tmp/spendee-playwright-") ||
+  !databasePath.endsWith(".db")
+) {
   throw new Error("Refusing to reset an unexpected Playwright database path.");
 }
-for (const suffix of ["", "-shm", "-wal"]) rmSync(`${databasePath}${suffix}`, { force: true });
+for (const suffix of ["", "-shm", "-wal"])
+  rmSync(`${databasePath}${suffix}`, { force: true });
 
 const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION_BUILD === "1";
 const require = createRequire(import.meta.url);

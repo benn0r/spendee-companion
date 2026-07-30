@@ -5,5 +5,8 @@ export const runtime = "nodejs";
 
 export async function GET() {
   getDatabase().prepare("SELECT 1").get();
-  return NextResponse.json({ status: "ok", version: process.env.APP_VERSION ?? "dev" });
+  return NextResponse.json({
+    status: "ok",
+    version: process.env.APP_VERSION ?? "dev",
+  });
 }

@@ -3,9 +3,15 @@
 import { formatDayLabel, type DayTotal } from "@/lib/day-groups";
 import { useI18n } from "./I18nProvider";
 
-export default function DayHeader(
-  { day, totals, colSpan }: { day: string; totals: DayTotal[]; colSpan: number },
-) {
+export default function DayHeader({
+  day,
+  totals,
+  colSpan,
+}: {
+  day: string;
+  totals: DayTotal[];
+  colSpan: number;
+}) {
   const { intlLocale } = useI18n();
   return (
     <tr className="day-header">

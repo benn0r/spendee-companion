@@ -1,7 +1,7 @@
 # Spendee
 
 > [!IMPORTANT]
-> **This entire repository—including the application, design, tests, documentation, and deployment setup—was made with AI.**
+> **This entire repository, including the application, design, tests, documentation, and deployment setup was made with AI.**
 
 A private, self-hosted companion for Spendee transaction exports. Upload one or
 more `.xlsx` or `.csv` files, keep every exported field in SQLite, browse
@@ -13,7 +13,7 @@ exports.
 <details>
   <summary>Mobile layout</summary>
 
-  ![Spendee mobile interface with fictional wallets and transactions](docs/screenshots/spendee-mobile.png)
+![Spendee mobile interface with fictional wallets and transactions](docs/screenshots/spendee-mobile.png)
 </details>
 
 ## What it does

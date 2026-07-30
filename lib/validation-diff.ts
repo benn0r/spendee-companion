@@ -8,7 +8,11 @@ function calendarDate(value: string) {
   return value.slice(0, 10);
 }
 
-function transactionKey(transaction: { date: string; amount: number; currency: string }) {
+function transactionKey(transaction: {
+  date: string;
+  amount: number;
+  currency: string;
+}) {
   // Statements often shorten or alter descriptions, so reconciliation deliberately
   // uses only the stable posting fields and compares monetary values in whole cents.
   return `${calendarDate(transaction.date)}|${transaction.currency.toUpperCase()}|${Math.round(transaction.amount * 100)}`;
@@ -44,8 +48,13 @@ export function compareValidationTransactions(
   };
 }
 
-export function validationDateRange(transactions: ExtractedDocumentTransaction[]) {
-  if (!transactions.length) throw new Error("The document does not contain any transactions.");
-  const dates = transactions.map((transaction) => calendarDate(transaction.date)).sort();
+export function validationDateRange(
+  transactions: ExtractedDocumentTransaction[],
+) {
+  if (!transactions.length)
+    throw new Error("The document does not contain any transactions.");
+  const dates = transactions
+    .map((transaction) => calendarDate(transaction.date))
+    .sort();
   return { dateFrom: dates[0], dateTo: dates[dates.length - 1] };
 }

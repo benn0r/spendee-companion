@@ -1,7 +1,11 @@
 import { expect, test, type Locator, type Page } from "./fixture";
 import { openDashboard } from "./helpers";
 
-async function expectSharedDialog(page: Page, dialog: Locator, mobile: boolean) {
+async function expectSharedDialog(
+  page: Page,
+  dialog: Locator,
+  mobile: boolean,
+) {
   const styles = await dialog.evaluate((element) => {
     const bounds = element.getBoundingClientRect();
     const computed = getComputedStyle(element);
@@ -26,33 +30,58 @@ async function expectSharedDialog(page: Page, dialog: Locator, mobile: boolean) 
   expect(styles.bottom).toBeLessThanOrEqual(viewportHeight);
 }
 
-test("pages and modals share the same visual foundations", async ({ page }, testInfo) => {
+test("pages and modals share the same visual foundations", async ({
+  page,
+}, testInfo) => {
   const mobile = testInfo.project.name === "mobile-chromium";
 
   await openDashboard(page);
   await expect(page.locator(".ledger")).toHaveCSS("border-radius", "13px");
-  await expect(page.getByRole("heading", { name: "Transactions" })).toHaveCSS("font-size", "31px");
+  await expect(page.getByRole("heading", { name: "Transactions" })).toHaveCSS(
+    "font-size",
+    "31px",
+  );
 
   await page.getByRole("button", { name: "Import files" }).click();
-  const importDialog = page.getByRole("dialog", { name: "Choose export files" });
+  const importDialog = page.getByRole("dialog", {
+    name: "Choose export files",
+  });
   await expectSharedDialog(page, importDialog, mobile);
   await importDialog.getByRole("button", { name: "Close import" }).click();
 
   await page.getByRole("link", { name: "Validate" }).click();
-  await expect(page.getByRole("heading", { name: "Validate" })).toHaveCSS("font-size", "31px");
-  await expect(page.locator(".validation-history")).toHaveCSS("border-radius", "13px");
-  await expect(page.locator(".validation-results")).toHaveCSS("border-radius", "13px");
+  await expect(page.getByRole("heading", { name: "Validate" })).toHaveCSS(
+    "font-size",
+    "31px",
+  );
+  await expect(page.locator(".validation-history")).toHaveCSS(
+    "border-radius",
+    "13px",
+  );
+  await expect(page.locator(".validation-results")).toHaveCSS(
+    "border-radius",
+    "13px",
+  );
   await page.getByRole("button", { name: "Upload document" }).click();
-  const validationUpload = page.getByRole("dialog", { name: "Upload document" });
+  const validationUpload = page.getByRole("dialog", {
+    name: "Upload document",
+  });
   await expectSharedDialog(page, validationUpload, mobile);
   await validationUpload.getByRole("button", { name: "Close upload" }).click();
   await page.getByRole("button", { name: "Validation settings" }).click();
-  const validationSettings = page.getByRole("dialog", { name: "Ignored descriptions" });
+  const validationSettings = page.getByRole("dialog", {
+    name: "Ignored descriptions",
+  });
   await expectSharedDialog(page, validationSettings, mobile);
-  await validationSettings.getByRole("button", { name: "Close", exact: true }).click();
+  await validationSettings
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
 
   await page.getByRole("link", { name: "Monthy" }).click();
-  await expect(page.getByRole("heading", { name: "Monthy" })).toHaveCSS("font-size", "31px");
+  await expect(page.getByRole("heading", { name: "Monthy" })).toHaveCSS(
+    "font-size",
+    "31px",
+  );
   await page.getByRole("button", { name: "Monthy settings" }).click();
   const monthlySettings = page.getByRole("dialog", { name: "Table columns" });
   await expectSharedDialog(page, monthlySettings, mobile);
@@ -66,10 +95,15 @@ test("pages and modals share the same visual foundations", async ({ page }, test
 
   await page.goto("/categories/style-audit-category");
   await page.getByRole("button", { name: "Category settings" }).click();
-  const categorySettings = page.getByRole("dialog", { name: "Category settings" });
+  const categorySettings = page.getByRole("dialog", {
+    name: "Category settings",
+  });
   await expectSharedDialog(page, categorySettings, mobile);
   await categorySettings.getByRole("button", { name: "Cancel" }).click();
 
   await page.getByRole("link", { name: "Splits", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Past splits" })).toHaveCSS("font-size", "31px");
+  await expect(page.getByRole("heading", { name: "Past splits" })).toHaveCSS(
+    "font-size",
+    "31px",
+  );
 });

@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getCategoryDetails, getDatabase, resolveCategory, setCategoryTags } from "@/lib/db";
+import {
+  getCategoryDetails,
+  getDatabase,
+  resolveCategory,
+  setCategoryTags,
+} from "@/lib/db";
 import { parseTransactionFilters } from "@/lib/transaction-filters";
 import { categoryIconIds, validCategoryColor } from "@/lib/category-appearance";
 import { parsePagination } from "@/lib/pagination";
@@ -19,11 +24,26 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const { page, pageSize } = parsePagination(searchParams);
   const requestedMonth = searchParams.get("month");
-  if (requestedMonth && requestedMonth !== "all" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth)) {
-    return NextResponse.json({ error: "Select a valid month." }, { status: 400 });
+  if (
+    requestedMonth &&
+    requestedMonth !== "all" &&
+    !/^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth)
+  ) {
+    return NextResponse.json(
+      { error: "Select a valid month." },
+      { status: 400 },
+    );
   }
-  const chartMonth = requestedMonth === "all" ? null : requestedMonth ?? undefined;
-  const result = getCategoryDetails(db, category, page, pageSize, parseTransactionFilters(searchParams), chartMonth);
+  const chartMonth =
+    requestedMonth === "all" ? null : (requestedMonth ?? undefined);
+  const result = getCategoryDetails(
+    db,
+    category,
+    page,
+    pageSize,
+    parseTransactionFilters(searchParams),
+    chartMonth,
+  );
   return NextResponse.json(result);
 }
 
@@ -36,27 +56,66 @@ export async function PUT(
     const db = getDatabase();
     const category = resolveCategory(db, identifier);
     if (!category) {
-      return NextResponse.json({ error: "Category not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Category not found." },
+        { status: 404 },
+      );
     }
-    const body = await request.json() as { selectedTags?: unknown; spendingByTagEnabled?: unknown; iconId?: unknown; color?: unknown };
-    if (!Array.isArray(body.selectedTags) || !body.selectedTags.every((tag) => typeof tag === "string")) {
-      return NextResponse.json({ error: "Labels must be a list of label names." }, { status: 400 });
+    const body = (await request.json()) as {
+      selectedTags?: unknown;
+      spendingByTagEnabled?: unknown;
+      iconId?: unknown;
+      color?: unknown;
+    };
+    if (
+      !Array.isArray(body.selectedTags) ||
+      !body.selectedTags.every((tag) => typeof tag === "string")
+    ) {
+      return NextResponse.json(
+        { error: "Labels must be a list of label names." },
+        { status: 400 },
+      );
     }
     if (typeof body.spendingByTagEnabled !== "boolean") {
-      return NextResponse.json({ error: "spendingByTagEnabled must be a boolean." }, { status: 400 });
+      return NextResponse.json(
+        { error: "spendingByTagEnabled must be a boolean." },
+        { status: 400 },
+      );
     }
-    if (body.iconId !== null && (typeof body.iconId !== "number" || !categoryIconIds.includes(body.iconId))) {
-      return NextResponse.json({ error: "Select a valid category icon." }, { status: 400 });
+    if (
+      body.iconId !== null &&
+      (typeof body.iconId !== "number" ||
+        !categoryIconIds.includes(body.iconId))
+    ) {
+      return NextResponse.json(
+        { error: "Select a valid category icon." },
+        { status: 400 },
+      );
     }
     if (typeof body.color !== "string" || !validCategoryColor(body.color)) {
-      return NextResponse.json({ error: "Select a valid category color." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Select a valid category color." },
+        { status: 400 },
+      );
     }
     return NextResponse.json(
-      setCategoryTags(db, category, body.selectedTags, body.spendingByTagEnabled, body.iconId, body.color),
+      setCategoryTags(
+        db,
+        category,
+        body.selectedTags,
+        body.spendingByTagEnabled,
+        body.iconId,
+        body.color,
+      ),
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save label selection." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not save label selection.",
+      },
       { status: 400 },
     );
   }

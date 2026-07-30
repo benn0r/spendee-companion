@@ -12,7 +12,8 @@ export function dayKey(value: string | Date): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(new Date(value));
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
@@ -23,14 +24,20 @@ export function calculateDayTotals(
   for (const row of rows) {
     const key = dayKey(row.date);
     const currencies = totals.get(key) ?? new Map<string, number>();
-    currencies.set(row.currency, (currencies.get(row.currency) ?? 0) + row.amount);
+    currencies.set(
+      row.currency,
+      (currencies.get(row.currency) ?? 0) + row.amount,
+    );
     totals.set(key, currencies);
   }
-  return Object.fromEntries(Array.from(totals, ([key, currencies]) => [
-    key,
-    Array.from(currencies, ([currency, total]) => ({ currency, total }))
-      .sort((a, b) => a.currency.localeCompare(b.currency)),
-  ]));
+  return Object.fromEntries(
+    Array.from(totals, ([key, currencies]) => [
+      key,
+      Array.from(currencies, ([currency, total]) => ({ currency, total })).sort(
+        (a, b) => a.currency.localeCompare(b.currency),
+      ),
+    ]),
+  );
 }
 
 export function groupRowsByDay<T extends { date: string }>(rows: T[]) {
@@ -44,7 +51,11 @@ export function groupRowsByDay<T extends { date: string }>(rows: T[]) {
   return groups;
 }
 
-export function formatDayLabel(key: string, now = new Date(), locale = "en-GB"): string {
+export function formatDayLabel(
+  key: string,
+  now = new Date(),
+  locale = "en-GB",
+): string {
   const today = dayKey(now);
   const yesterdayDate = new Date(`${today}T12:00:00.000Z`);
   yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
@@ -55,6 +66,9 @@ export function formatDayLabel(key: string, now = new Date(), locale = "en-GB"):
   // Noon UTC keeps a date-only key away from either midnight boundary while the
   // locale formatter supplies only the month name.
   const date = new Date(Date.UTC(year, month - 1, day, 12));
-  const monthName = new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(date);
+  const monthName = new Intl.DateTimeFormat(locale, {
+    month: "long",
+    timeZone: "UTC",
+  }).format(date);
   return `${day}. ${monthName}`;
 }

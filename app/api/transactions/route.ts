@@ -8,7 +8,13 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { page, pageSize } = parsePagination(searchParams);
-  return NextResponse.json(getFilteredTransactionPage(
-    getDatabase(), "transactions", parseTransactionFilters(searchParams), page, pageSize,
-  ));
+  return NextResponse.json(
+    getFilteredTransactionPage(
+      getDatabase(),
+      "transactions",
+      parseTransactionFilters(searchParams),
+      page,
+      pageSize,
+    ),
+  );
 }

@@ -15,9 +15,15 @@ export async function POST(request: Request) {
 }
 
 export function GET() {
-  return Response.json({
-    jsonrpc: "2.0",
-    error: { code: -32000, message: "Method not allowed. Use Streamable HTTP POST requests." },
-    id: null,
-  }, { status: 405, headers: { Allow: "POST" } });
+  return Response.json(
+    {
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message: "Method not allowed. Use Streamable HTTP POST requests.",
+      },
+      id: null,
+    },
+    { status: 405, headers: { Allow: "POST" } },
+  );
 }

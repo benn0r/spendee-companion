@@ -10,7 +10,10 @@ export type FilterOptions = {
   tags: string[];
   authors: string[];
   categoryAppearances?: Record<string, CategoryAppearance>;
-  categoryMonthlyTotals?: Record<string, Array<{ currency: string; amount: number }>>;
+  categoryMonthlyTotals?: Record<
+    string,
+    Array<{ currency: string; amount: number }>
+  >;
   currentMonth?: string;
 };
 
@@ -69,11 +72,16 @@ function MultiFilter({
 }) {
   const [search, setSearch] = useState("");
   const visibleOptions = search
-    ? options.filter((option) => option.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+    ? options.filter((option) =>
+        option.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+      )
     : options;
   return (
     <details className="filter-multi">
-      <summary>{label}{selected.length > 0 && <b>{selected.length}</b>}</summary>
+      <summary>
+        {label}
+        {selected.length > 0 && <b>{selected.length}</b>}
+      </summary>
       <div>
         {searchable && options.length > 0 && (
           <input
@@ -85,19 +93,26 @@ function MultiFilter({
             onChange={(event) => setSearch(event.target.value)}
           />
         )}
-        {visibleOptions.length === 0 ? <span>{search ? "No matches" : "No options"}</span> : visibleOptions.map((option) => (
-          <label key={option}>
-            <input
-              checked={selected.includes(option)}
-              type="checkbox"
-              onChange={(event) => onChange(event.target.checked
-                ? [...selected, option]
-                : selected.filter((value) => value !== option)
-              )}
-            />
-            <span>{option}</span>
-          </label>
-        ))}
+        {visibleOptions.length === 0 ? (
+          <span>{search ? "No matches" : "No options"}</span>
+        ) : (
+          visibleOptions.map((option) => (
+            <label key={option}>
+              <input
+                checked={selected.includes(option)}
+                type="checkbox"
+                onChange={(event) =>
+                  onChange(
+                    event.target.checked
+                      ? [...selected, option]
+                      : selected.filter((value) => value !== option),
+                  )
+                }
+              />
+              <span>{option}</span>
+            </label>
+          ))
+        )}
       </div>
     </details>
   );
@@ -120,40 +135,80 @@ export default function TransactionFilters({
   onClear: () => void;
   hideCategories?: boolean;
 }) {
-  const update = (patch: Partial<FilterState>) => onChange({ ...value, ...patch });
+  const update = (patch: Partial<FilterState>) =>
+    onChange({ ...value, ...patch });
   const panelRef = useRef<HTMLElement>(null);
-  const closeMenus = () => panelRef.current?.querySelectorAll("details").forEach((details) => {
-    details.open = false;
-  });
+  const closeMenus = () =>
+    panelRef.current?.querySelectorAll("details").forEach((details) => {
+      details.open = false;
+    });
   useEffect(() => {
     const closeOnOtherClick = (event: PointerEvent) => {
-      panelRef.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach((details) => {
-        if (!details.contains(event.target as Node)) details.open = false;
-      });
+      panelRef.current
+        ?.querySelectorAll<HTMLDetailsElement>("details[open]")
+        .forEach((details) => {
+          if (!details.contains(event.target as Node)) details.open = false;
+        });
     };
     document.addEventListener("pointerdown", closeOnOtherClick);
     return () => document.removeEventListener("pointerdown", closeOnOtherClick);
   }, []);
   return (
-    <section className="transaction-filters" aria-label="Transaction filters" ref={panelRef}>
+    <section
+      className="transaction-filters"
+      aria-label="Transaction filters"
+      ref={panelRef}
+    >
       <div className="filter-row">
         <label className="filter-date">
           <span>From</span>
-          <input type="date" value={value.dateFrom} onChange={(event) => update({ dateFrom: event.target.value })} />
+          <input
+            type="date"
+            value={value.dateFrom}
+            onChange={(event) => update({ dateFrom: event.target.value })}
+          />
         </label>
         <label className="filter-date">
           <span>To</span>
-          <input type="date" value={value.dateTo} onChange={(event) => update({ dateTo: event.target.value })} />
+          <input
+            type="date"
+            value={value.dateTo}
+            onChange={(event) => update({ dateTo: event.target.value })}
+          />
         </label>
-        <MultiFilter label="Wallets" options={options.wallets} selected={value.wallets} onChange={(wallets) => update({ wallets })} />
-        {!hideCategories && <MultiFilter searchable label="Categories" options={options.categories} selected={value.categories} onChange={(categories) => update({ categories })} />}
-        <MultiFilter searchable label="Labels" options={options.tags} selected={value.tags} onChange={(tags) => update({ tags })} />
+        <MultiFilter
+          label="Wallets"
+          options={options.wallets}
+          selected={value.wallets}
+          onChange={(wallets) => update({ wallets })}
+        />
+        {!hideCategories && (
+          <MultiFilter
+            searchable
+            label="Categories"
+            options={options.categories}
+            selected={value.categories}
+            onChange={(categories) => update({ categories })}
+          />
+        )}
+        <MultiFilter
+          searchable
+          label="Labels"
+          options={options.tags}
+          selected={value.tags}
+          onChange={(tags) => update({ tags })}
+        />
       </div>
       <div className="filter-amount-row">
         <select
           aria-label="Amount comparison"
           value={value.amountOperator}
-          onChange={(event) => update({ amountOperator: event.target.value as FilterState["amountOperator"] })}
+          onChange={(event) =>
+            update({
+              amountOperator: event.target
+                .value as FilterState["amountOperator"],
+            })
+          }
         >
           <option value="">Any amount</option>
           <option value="gt">Greater than</option>
@@ -171,8 +226,26 @@ export default function TransactionFilters({
           onChange={(event) => update({ amount: event.target.value })}
         />
         <div className="filter-actions">
-          {active && <button className="clear-filters" onClick={() => { closeMenus(); onClear(); }}>Clear</button>}
-          <button className="apply-filters" onClick={() => { closeMenus(); onApply(); }}>Apply filters</button>
+          {active && (
+            <button
+              className="clear-filters"
+              onClick={() => {
+                closeMenus();
+                onClear();
+              }}
+            >
+              Clear
+            </button>
+          )}
+          <button
+            className="apply-filters"
+            onClick={() => {
+              closeMenus();
+              onApply();
+            }}
+          >
+            Apply filters
+          </button>
         </div>
       </div>
     </section>

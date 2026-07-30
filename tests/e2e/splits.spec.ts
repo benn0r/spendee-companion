@@ -1,15 +1,26 @@
 import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
-test("splits can be created, listed, downloaded as PDF, and deleted", async ({ page }, testInfo) => {
+test("splits can be created, listed, downloaded as PDF, and deleted", async ({
+  page,
+}, testInfo) => {
   const { csv, variant } = fantasyData(testInfo, "Splits");
   await openDashboard(page);
-  await importCsv(page, csv, `splits-${variant}.csv`, /1 file processed · 3 imported/);
+  await importCsv(
+    page,
+    csv,
+    `splits-${variant}.csv`,
+    /1 file processed · 3 imported/,
+  );
   await page.getByRole("button", { name: "Split transactions" }).click();
-  const selectedRow = page.getByRole("row").filter({ hasText: `Nebula lunch ${variant}` });
+  const selectedRow = page
+    .getByRole("row")
+    .filter({ hasText: `Nebula lunch ${variant}` });
   await selectedRow.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Split selected \(1\)/ }).click();
-  const dialog = page.getByRole("dialog", { name: "Review selected transactions" });
+  const dialog = page.getByRole("dialog", {
+    name: "Review selected transactions",
+  });
   await expect(dialog).toHaveClass(/dialog-surface/);
   await expect(dialog).toHaveCSS("border-radius", "14px");
   await expect(dialog).toHaveCSS("overflow-y", "auto");
@@ -22,14 +33,18 @@ test("splits can be created, listed, downloaded as PDF, and deleted", async ({ p
   await expect(dialog.locator(".split-summary")).toContainText("6.33");
   await dialog.getByRole("button", { name: "Save split" }).click();
   await expect(page).toHaveURL(/\/splits$/);
-  const savedSplit = page.getByRole("article").filter({ hasText: `Moon voyage ${variant}` });
+  const savedSplit = page
+    .getByRole("article")
+    .filter({ hasText: `Moon voyage ${variant}` });
   await expect(savedSplit).toBeVisible();
   await expect(savedSplit).toContainText("÷ 3");
   await expect(savedSplit).toContainText("1 transaction · 1 custom position");
   await expect(savedSplit).toContainText("English");
   await expect(savedSplit).toContainText("19.00");
   await expect(savedSplit).toContainText("6.33");
-  const pdfHref = await savedSplit.getByRole("link", { name: "Download PDF" }).getAttribute("href");
+  const pdfHref = await savedSplit
+    .getByRole("link", { name: "Download PDF" })
+    .getAttribute("href");
   expect(pdfHref).toMatch(/\/api\/splits\/\d+\/pdf/);
   const response = await page.request.get(pdfHref as string);
   expect(response.ok()).toBeTruthy();

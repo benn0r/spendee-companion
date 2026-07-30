@@ -49,18 +49,57 @@ test("persists unique transactions and separates every duplicate occurrence", ()
     labels: "lunch",
     author: "Nova",
   };
-  const first = importTransactions(db, "first.xlsx", [{ transaction, sourceRow: 2, raw: transaction }]);
+  const first = importTransactions(db, "first.xlsx", [
+    { transaction, sourceRow: 2, raw: transaction },
+  ]);
   const second = importTransactions(db, "second.xlsx", [
     { transaction, sourceRow: 2, raw: transaction },
     { transaction, sourceRow: 3, raw: transaction },
   ]);
-  assert.deepEqual(first, { importId: 1, total: 1, imported: 1, duplicates: 0, replaced: 0 });
-  assert.deepEqual(second, { importId: 2, total: 2, imported: 0, duplicates: 2, replaced: 0 });
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions").get() as { count: number }).count, 1);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 2);
-  const duplicateIds = (db.prepare("SELECT id FROM duplicates ORDER BY id").all() as Array<{ id: number }>).map((row) => row.id);
+  assert.deepEqual(first, {
+    importId: 1,
+    total: 1,
+    imported: 1,
+    duplicates: 0,
+    replaced: 0,
+  });
+  assert.deepEqual(second, {
+    importId: 2,
+    total: 2,
+    imported: 0,
+    duplicates: 2,
+    replaced: 0,
+  });
+  assert.equal(
+    (
+      db.prepare("SELECT COUNT(*) count FROM transactions").get() as {
+        count: number;
+      }
+    ).count,
+    1,
+  );
+  assert.equal(
+    (
+      db.prepare("SELECT COUNT(*) count FROM duplicates").get() as {
+        count: number;
+      }
+    ).count,
+    2,
+  );
+  const duplicateIds = (
+    db.prepare("SELECT id FROM duplicates ORDER BY id").all() as Array<{
+      id: number;
+    }>
+  ).map((row) => row.id);
   assert.equal(deleteDuplicates(db, duplicateIds.slice(0, 1)), 1);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates").get() as { count: number }).count, 1);
+  assert.equal(
+    (
+      db.prepare("SELECT COUNT(*) count FROM duplicates").get() as {
+        count: number;
+      }
+    ).count,
+    1,
+  );
   db.close();
 });
 
@@ -93,7 +132,11 @@ test("full imports atomically replace one wallet without affecting other wallets
     author: "Nova",
   };
   const missing = { ...base, date: "2026-04-02T11:58:51.000Z", amount: -20 };
-  const otherWallet = { ...base, date: "2026-04-03T11:58:51.000Z", wallet: "Vault" };
+  const otherWallet = {
+    ...base,
+    date: "2026-04-03T11:58:51.000Z",
+    wallet: "Vault",
+  };
   importTransactions(db, "initial.xlsx", [
     { transaction: base, sourceRow: 2, raw: base },
     { transaction: missing, sourceRow: 3, raw: missing },
@@ -107,11 +150,51 @@ test("full imports atomically replace one wallet without affecting other wallets
     [{ transaction: changed, sourceRow: 2, raw: changed }],
     { fullImport: true },
   );
-  assert.deepEqual(result, { importId: 2, total: 1, imported: 1, duplicates: 0, replaced: 2 });
-  assert.equal((db.prepare("SELECT amount FROM transactions WHERE date = ?").get(base.date) as { amount: number }).amount, -15.75);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE wallet = 'Account'").get() as { count: number }).count, 1);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM transactions WHERE wallet = 'Vault'").get() as { count: number }).count, 1);
-  assert.equal((db.prepare("SELECT COUNT(*) count FROM duplicates WHERE wallet = 'Account'").get() as { count: number }).count, 0);
+  assert.deepEqual(result, {
+    importId: 2,
+    total: 1,
+    imported: 1,
+    duplicates: 0,
+    replaced: 2,
+  });
+  assert.equal(
+    (
+      db
+        .prepare("SELECT amount FROM transactions WHERE date = ?")
+        .get(base.date) as { amount: number }
+    ).amount,
+    -15.75,
+  );
+  assert.equal(
+    (
+      db
+        .prepare(
+          "SELECT COUNT(*) count FROM transactions WHERE wallet = 'Account'",
+        )
+        .get() as { count: number }
+    ).count,
+    1,
+  );
+  assert.equal(
+    (
+      db
+        .prepare(
+          "SELECT COUNT(*) count FROM transactions WHERE wallet = 'Vault'",
+        )
+        .get() as { count: number }
+    ).count,
+    1,
+  );
+  assert.equal(
+    (
+      db
+        .prepare(
+          "SELECT COUNT(*) count FROM duplicates WHERE wallet = 'Account'",
+        )
+        .get() as { count: number }
+    ).count,
+    0,
+  );
   db.close();
 });
 
@@ -130,35 +213,46 @@ test("calculates active wallet totals and paginated wallet details", () => {
     labels: null,
     author: "Nova",
   };
-  const expense = { ...base, date: "2026-04-02T11:58:51.000Z", type: "Expense", amount: -35 };
+  const expense = {
+    ...base,
+    date: "2026-04-02T11:58:51.000Z",
+    type: "Expense",
+    amount: -35,
+  };
   importTransactions(db, "wallet.xlsx", [
     { transaction: base, sourceRow: 2, raw: base },
     { transaction: expense, sourceRow: 3, raw: expense },
   ]);
-  assert.deepEqual(getWalletSummaries(db), [{
-    wallet: "Daily cash",
-    transactionCount: 2,
-    currency: "CHF",
-    transactionTotal: 65,
-    startingAmount: 0,
-    total: 65,
-  }]);
+  assert.deepEqual(getWalletSummaries(db), [
+    {
+      wallet: "Daily cash",
+      transactionCount: 2,
+      currency: "CHF",
+      transactionTotal: 65,
+      startingAmount: 0,
+      total: 65,
+    },
+  ]);
   const details = getWalletTransactions(db, "Daily cash", 1, 10);
   assert.equal(details.total, 2);
-  assert.deepEqual(details.totals, [{
-    currency: "CHF",
-    transactionTotal: 65,
-    startingAmount: 0,
-    total: 65,
-  }]);
+  assert.deepEqual(details.totals, [
+    {
+      currency: "CHF",
+      transactionTotal: 65,
+      startingAmount: 0,
+      total: 65,
+    },
+  ]);
   assert.equal(details.rows.length, 2);
   setWalletStartingBalance(db, "Daily cash", "CHF", 250);
-  assert.deepEqual(getWalletTransactions(db, "Daily cash", 1, 10).totals, [{
-    currency: "CHF",
-    transactionTotal: 65,
-    startingAmount: 250,
-    total: 315,
-  }]);
+  assert.deepEqual(getWalletTransactions(db, "Daily cash", 1, 10).totals, [
+    {
+      currency: "CHF",
+      transactionTotal: 65,
+      startingAmount: 250,
+      total: 315,
+    },
+  ]);
   db.close();
 });
 
@@ -204,7 +298,14 @@ test("aggregates category spending by tag across wallets", () => {
     { transaction: untagged, sourceRow: 4, raw: untagged },
     { transaction: refund, sourceRow: 5, raw: refund },
   ]);
-  const details = getCategoryDetails(db, "Food & Drink", 1, 10, undefined, "2026-04");
+  const details = getCategoryDetails(
+    db,
+    "Food & Drink",
+    1,
+    10,
+    undefined,
+    "2026-04",
+  );
   assert.equal(details.total, 4);
   assert.deepEqual(details.wallets, [
     { wallet: "Account", transactionCount: 2 },
@@ -220,9 +321,19 @@ test("aggregates category spending by tag across wallets", () => {
     { tag: "work", currency: "CHF", amount: -15, transactionCount: 1 },
     { tag: "lunch", currency: "CHF", amount: -25, transactionCount: 3 },
   ]);
-  assert.equal(details.segments.reduce((sum, segment) => sum + segment.amount, 0), -50);
+  assert.equal(
+    details.segments.reduce((sum, segment) => sum + segment.amount, 0),
+    -50,
+  );
   setCategoryTags(db, "Food & Drink", ["work"], false, 3, "#12c48b");
-  const configured = getCategoryDetails(db, "Food & Drink", 1, 10, undefined, "2026-04");
+  const configured = getCategoryDetails(
+    db,
+    "Food & Drink",
+    1,
+    10,
+    undefined,
+    "2026-04",
+  );
   assert.deepEqual(configured.selectedTags, ["work"]);
   assert.equal(configured.tagConfigSaved, true);
   assert.equal(configured.spendingByTagEnabled, false);
@@ -270,17 +381,28 @@ test("builds and persists merged monthly category columns", () => {
   const rows = [
     makeTransaction("2025-01-04T10:00:00.000Z", "Groceries", -50),
     makeTransaction("2025-01-08T10:00:00.000Z", "Restaurants", -30),
-    { ...makeTransaction("2025-01-10T10:00:00.000Z", "Groceries", 15), type: "Income" },
+    {
+      ...makeTransaction("2025-01-10T10:00:00.000Z", "Groceries", 15),
+      type: "Income",
+    },
     makeTransaction("2025-02-03T10:00:00.000Z", "Groceries", -20),
     makeTransaction("2025-02-05T10:00:00.000Z", "Utilities", -100),
   ];
-  importTransactions(db, "monthly.xlsx", rows.map((transaction, index) => ({
-    transaction,
-    sourceRow: index + 2,
-    raw: transaction,
-  })));
+  importTransactions(
+    db,
+    "monthly.xlsx",
+    rows.map((transaction, index) => ({
+      transaction,
+      sourceRow: index + 2,
+      raw: transaction,
+    })),
+  );
   const defaults = getMonthlyReport(db);
-  assert.deepEqual(defaults.categories, ["Groceries", "Restaurants", "Utilities"]);
+  assert.deepEqual(defaults.categories, [
+    "Groceries",
+    "Restaurants",
+    "Utilities",
+  ]);
   assert.equal(defaults.configured, false);
 
   setMonthlyReportColumns(db, [
@@ -289,10 +411,17 @@ test("builds and persists merged monthly category columns", () => {
   ]);
   const report = getMonthlyReport(db);
   assert.equal(report.configured, true);
-  assert.deepEqual(report.columns.map(({ name, categories, budget }) => ({ name, categories, budget })), [
-    { name: "Food", categories: ["Groceries", "Restaurants"], budget: 75 },
-    { name: "Bills", categories: ["Utilities"], budget: null },
-  ]);
+  assert.deepEqual(
+    report.columns.map(({ name, categories, budget }) => ({
+      name,
+      categories,
+      budget,
+    })),
+    [
+      { name: "Food", categories: ["Groceries", "Restaurants"], budget: 75 },
+      { name: "Bills", categories: ["Utilities"], budget: null },
+    ],
+  );
   assert.deepEqual(report.months, [
     {
       month: "2025-02",
@@ -324,7 +453,9 @@ test("creates readable category slugs and resolves them to exact category names"
     labels: null,
     author: "Nova",
   };
-  importTransactions(db, "category.xlsx", [{ transaction, sourceRow: 2, raw: transaction }]);
+  importTransactions(db, "category.xlsx", [
+    { transaction, sourceRow: 2, raw: transaction },
+  ]);
   assert.equal(categorySlug("Food & Drink"), "food-and-drink");
   assert.equal(resolveCategory(db, "food-and-drink"), "Food & Drink");
   assert.equal(resolveCategory(db, "Food%20%26%20Drink"), "Food & Drink");
@@ -348,14 +479,32 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
   };
   const rows: TransactionInput[] = [
     base,
-    { ...base, date: "2026-04-02T10:00:00.000Z", wallet: "Cash", amount: -12, labels: "food", author: "Orion" },
-    { ...base, date: "2026-05-02T10:00:00.000Z", type: "Income", categoryName: "Salary", amount: 500, labels: null },
+    {
+      ...base,
+      date: "2026-04-02T10:00:00.000Z",
+      wallet: "Cash",
+      amount: -12,
+      labels: "food",
+      author: "Orion",
+    },
+    {
+      ...base,
+      date: "2026-05-02T10:00:00.000Z",
+      type: "Income",
+      categoryName: "Salary",
+      amount: 500,
+      labels: null,
+    },
   ];
-  importTransactions(db, "filters.xlsx", rows.map((transaction, index) => ({
-    transaction,
-    sourceRow: index + 2,
-    raw: transaction,
-  })));
+  importTransactions(
+    db,
+    "filters.xlsx",
+    rows.map((transaction, index) => ({
+      transaction,
+      sourceRow: index + 2,
+      raw: transaction,
+    })),
+  );
   const params = new URLSearchParams([
     ["dateFrom", "2026-04-01"],
     ["dateTo", "2026-04-30"],
@@ -369,27 +518,34 @@ test("filters paginated transactions by multi-value fields, dates, tags, and amo
     ["amount", "40"],
   ]);
   const page = getFilteredTransactionPage(
-    db, "transactions", parseTransactionFilters(params), 1, 25,
+    db,
+    "transactions",
+    parseTransactionFilters(params),
+    1,
+    25,
   );
   assert.equal(page.total, 1);
   assert.equal((page.rows[0] as { amount: number }).amount, -45);
   assert.deepEqual(Object.keys(page.dayTotals), ["2026-04-01"]);
   const filterOptions = getTransactionFilterOptions(db);
-  assert.deepEqual({
-    wallets: filterOptions.wallets,
-    types: filterOptions.types,
-    categories: filterOptions.categories,
-    tags: filterOptions.tags,
-    authors: filterOptions.authors,
-    categoryAppearances: filterOptions.categoryAppearances,
-  }, {
-    wallets: ["Account", "Cash"],
-    types: ["Expense", "Income"],
-    categories: ["Food & Drink", "Salary"],
-    tags: ["food", "work"],
-    authors: ["Nova", "Orion"],
-    categoryAppearances: {},
-  });
+  assert.deepEqual(
+    {
+      wallets: filterOptions.wallets,
+      types: filterOptions.types,
+      categories: filterOptions.categories,
+      tags: filterOptions.tags,
+      authors: filterOptions.authors,
+      categoryAppearances: filterOptions.categoryAppearances,
+    },
+    {
+      wallets: ["Account", "Cash"],
+      types: ["Expense", "Income"],
+      categories: ["Food & Drink", "Salary"],
+      tags: ["food", "work"],
+      authors: ["Nova", "Orion"],
+      categoryAppearances: {},
+    },
+  );
   assert.match(filterOptions.currentMonth, /^\d{4}-\d{2}$/);
   db.close();
 });
@@ -409,14 +565,28 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
     labels: null,
     author: "Nova",
   };
-  const second = { ...base, date: "2026-04-02T10:00:00.000Z", amount: -20, note: "Bakery" };
+  const second = {
+    ...base,
+    date: "2026-04-02T10:00:00.000Z",
+    amount: -20,
+    note: "Bakery",
+  };
   importTransactions(db, "split.xlsx", [
     { transaction: base, sourceRow: 2, raw: base },
     { transaction: second, sourceRow: 3, raw: second },
   ]);
-  const ids = (db.prepare("SELECT id FROM transactions ORDER BY id").all() as Array<{ id: number }>)
-    .map((row) => row.id);
-  const split = createSplit(db, "Mountain weekend", ids, [{ description: "Refund", amount: 10 }], 2);
+  const ids = (
+    db.prepare("SELECT id FROM transactions ORDER BY id").all() as Array<{
+      id: number;
+    }>
+  ).map((row) => row.id);
+  const split = createSplit(
+    db,
+    "Mountain weekend",
+    ids,
+    [{ description: "Refund", amount: 10 }],
+    2,
+  );
   assert.ok(split);
   assert.equal(split?.title, "Mountain weekend");
   assert.equal(split?.totalAmount, -50);
@@ -442,8 +612,17 @@ test("persists split snapshots, custom positions, totals, deletion, and a valid 
   }
   assert.equal(deleteSplit(db, split!.id), true);
   assert.equal(getSplit(db, split!.id), null);
-  assert.equal((db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as { count: number }).count, 0);
-  db.prepare("UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?").run(ids[0]);
+  assert.equal(
+    (
+      db.prepare("SELECT COUNT(*) AS count FROM split_entries").get() as {
+        count: number;
+      }
+    ).count,
+    0,
+  );
+  db.prepare(
+    "UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+  ).run(ids[0]);
   assert.throws(
     () => createSplit(db, "Hidden transaction", [ids[0]], [], 2),
     /no longer exist/,
@@ -482,50 +661,86 @@ test("parses semicolon-delimited CSV exports", async () => {
 });
 
 test("rejects malformed and unsupported import files with useful errors", async () => {
-  await assert.rejects(() => parseImportFile(Buffer.from(""), "empty.csv"), /readable transaction table/);
-  await assert.rejects(() => parseImportFile(Buffer.from("Date,Wallet\n"), "missing.csv"), /Missing required columns/);
-  const header = "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author";
   await assert.rejects(
-    () => parseImportFile(Buffer.from(`${header}\nnot-a-date,Moon Purse,Expense,Potions,-4,CHF,,,Nova Quill`), "date.csv"),
+    () => parseImportFile(Buffer.from(""), "empty.csv"),
+    /readable transaction table/,
+  );
+  await assert.rejects(
+    () => parseImportFile(Buffer.from("Date,Wallet\n"), "missing.csv"),
+    /Missing required columns/,
+  );
+  const header =
+    "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author";
+  await assert.rejects(
+    () =>
+      parseImportFile(
+        Buffer.from(
+          `${header}\nnot-a-date,Moon Purse,Expense,Potions,-4,CHF,,,Nova Quill`,
+        ),
+        "date.csv",
+      ),
     /Invalid date/,
   );
   await assert.rejects(
-    () => parseImportFile(Buffer.from(`${header}\n2026-07-01,Moon Purse,Expense,Potions,dragon,CHF,,,Nova Quill`), "amount.csv"),
+    () =>
+      parseImportFile(
+        Buffer.from(
+          `${header}\n2026-07-01,Moon Purse,Expense,Potions,dragon,CHF,,,Nova Quill`,
+        ),
+        "amount.csv",
+      ),
     /invalid amount/,
   );
   await assert.rejects(
-    () => parseImportFile(Buffer.from(`${header}\n2026-07-01,,Expense,Potions,-4,CHF,,,Nova Quill`), "wallet.csv"),
+    () =>
+      parseImportFile(
+        Buffer.from(
+          `${header}\n2026-07-01,,Expense,Potions,-4,CHF,,,Nova Quill`,
+        ),
+        "wallet.csv",
+      ),
     /wallet, type and currency are required/,
   );
-  await assert.rejects(() => parseImportFile(Buffer.from("fantasy"), "ledger.json"), /Only .xlsx and .csv/);
-  assert.deepEqual(await parseImportFile(Buffer.from(`${header}\n`), "header-only.csv"), []);
+  await assert.rejects(
+    () => parseImportFile(Buffer.from("fantasy"), "ledger.json"),
+    /Only .xlsx and .csv/,
+  );
+  assert.deepEqual(
+    await parseImportFile(Buffer.from(`${header}\n`), "header-only.csv"),
+    [],
+  );
 });
 
 test("parses a synthetic fantasy XLSX export", async () => {
-  const rows = await parseWorkbook(readFileSync("tests/fixtures/fantasy-transactions.xlsx"));
+  const rows = await parseWorkbook(
+    readFileSync("tests/fixtures/fantasy-transactions.xlsx"),
+  );
   assert.equal(rows.length, 2);
-  assert.deepEqual(rows.map((row) => row.transaction), [
-    {
-      date: "2026-07-14T09:30:00.000Z",
-      wallet: "Crystal Satchel",
-      type: "Expense",
-      categoryName: "Potion Supplies",
-      amount: -18.5,
-      currency: "CHF",
-      note: "Silverleaf tonic",
-      labels: "alchemy, quest",
-      author: "Nova Quill",
-    },
-    {
-      date: "2026-07-15T12:00:00.000Z",
-      wallet: "Crystal Satchel",
-      type: "Income",
-      categoryName: "Guild Rewards",
-      amount: 75,
-      currency: "CHF",
-      note: "Wyvern mission",
-      labels: "quest",
-      author: "Orion Vale",
-    },
-  ]);
+  assert.deepEqual(
+    rows.map((row) => row.transaction),
+    [
+      {
+        date: "2026-07-14T09:30:00.000Z",
+        wallet: "Crystal Satchel",
+        type: "Expense",
+        categoryName: "Potion Supplies",
+        amount: -18.5,
+        currency: "CHF",
+        note: "Silverleaf tonic",
+        labels: "alchemy, quest",
+        author: "Nova Quill",
+      },
+      {
+        date: "2026-07-15T12:00:00.000Z",
+        wallet: "Crystal Satchel",
+        type: "Income",
+        categoryName: "Guild Rewards",
+        amount: 75,
+        currency: "CHF",
+        note: "Wyvern mission",
+        labels: "quest",
+        author: "Orion Vale",
+      },
+    ],
+  );
 });

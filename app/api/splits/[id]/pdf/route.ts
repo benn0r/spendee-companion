@@ -9,8 +9,11 @@ export async function GET(
 ) {
   const id = Number((await params).id);
   const split = Number.isInteger(id) ? getSplit(getDatabase(), id) : null;
-  if (!split) return Response.json({ error: "Split not found." }, { status: 404 });
-  const pdf = await createSplitPdf(split as Parameters<typeof createSplitPdf>[0]);
+  if (!split)
+    return Response.json({ error: "Split not found." }, { status: 404 });
+  const pdf = await createSplitPdf(
+    split as Parameters<typeof createSplitPdf>[0],
+  );
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

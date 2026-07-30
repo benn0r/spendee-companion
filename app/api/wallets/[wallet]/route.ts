@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getDatabase, getWalletTransactions, setWalletStartingBalance } from "@/lib/db";
+import {
+  getDatabase,
+  getWalletTransactions,
+  setWalletStartingBalance,
+} from "@/lib/db";
 import { parsePagination } from "@/lib/pagination";
 
 export const runtime = "nodejs";
@@ -24,22 +28,35 @@ export async function PUT(
 ) {
   try {
     const wallet = (await params).wallet;
-    const body = await request.json() as { currency?: unknown; startingAmount?: unknown };
-    const currency = typeof body.currency === "string" ? body.currency.trim() : "";
-    const startingAmount = typeof body.startingAmount === "number"
-      ? body.startingAmount
-      : typeof body.startingAmount === "string" && body.startingAmount.trim()
-        ? Number(body.startingAmount)
-        : Number.NaN;
+    const body = (await request.json()) as {
+      currency?: unknown;
+      startingAmount?: unknown;
+    };
+    const currency =
+      typeof body.currency === "string" ? body.currency.trim() : "";
+    const startingAmount =
+      typeof body.startingAmount === "number"
+        ? body.startingAmount
+        : typeof body.startingAmount === "string" && body.startingAmount.trim()
+          ? Number(body.startingAmount)
+          : Number.NaN;
     if (!currency || !Number.isFinite(startingAmount)) {
-      return NextResponse.json({ error: "Currency and a valid starting amount are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Currency and a valid starting amount are required." },
+        { status: 400 },
+      );
     }
     return NextResponse.json(
       setWalletStartingBalance(getDatabase(), wallet, currency, startingAmount),
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save the starting amount." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not save the starting amount.",
+      },
       { status: 400 },
     );
   }

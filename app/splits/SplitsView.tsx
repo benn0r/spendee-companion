@@ -4,7 +4,12 @@ import Link from "next/link";
 import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
 import { useCallback, useEffect, useState } from "react";
-import { intlLocale, normalizeLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
+import {
+  intlLocale,
+  normalizeLocale,
+  supportedLocales,
+  type AppLocale,
+} from "@/lib/i18n";
 
 type SplitSummary = {
   id: number;
@@ -21,10 +26,14 @@ type SplitSummary = {
 };
 
 function money(amount: number, currency: string, locale: AppLocale) {
-  return new Intl.NumberFormat(intlLocale(locale), { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat(intlLocale(locale), {
+    style: "currency",
+    currency,
+  }).format(amount);
 }
 
-const languageLabel = (locale: AppLocale) => supportedLocales.find((item) => item.code === locale)?.label ?? locale;
+const languageLabel = (locale: AppLocale) =>
+  supportedLocales.find((item) => item.code === locale)?.label ?? locale;
 
 export default function SplitsView() {
   const [splits, setSplits] = useState<SplitSummary[]>([]);
@@ -35,20 +44,25 @@ export default function SplitsView() {
     setLoading(true);
     try {
       const response = await fetch("/api/splits", { cache: "no-store" });
-      const result = await response.json() as { splits: SplitSummary[] };
+      const result = (await response.json()) as { splits: SplitSummary[] };
       setSplits(result.splits);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function remove(split: SplitSummary) {
-    if (!window.confirm(`Delete "${split.title}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${split.title}"? This cannot be undone.`))
+      return;
     setDeleting(split.id);
     try {
-      const response = await fetch(`/api/splits/${split.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/splits/${split.id}`, {
+        method: "DELETE",
+      });
       if (!response.ok) throw new Error("Could not delete split.");
       await load();
     } finally {
@@ -74,32 +88,77 @@ export default function SplitsView() {
         </section>
         <section className="ledger splits-list">
           <div className="ledger-head">
-            <div><h2>Split history</h2><p>Newest first</p></div>
-            <span>{splits.length} {splits.length === 1 ? "split" : "splits"}</span>
+            <div>
+              <h2>Split history</h2>
+              <p>Newest first</p>
+            </div>
+            <span>
+              {splits.length} {splits.length === 1 ? "split" : "splits"}
+            </span>
           </div>
           {loading ? (
             <div className="empty">Loading splits…</div>
           ) : splits.length === 0 ? (
             <div className="empty">
               <p>No saved splits yet.</p>
-              <Link className="back-home" href="/">Select transactions to create one</Link>
+              <Link className="back-home" href="/">
+                Select transactions to create one
+              </Link>
             </div>
           ) : (
             <div className="split-history-grid">
               {splits.map((split) => (
                 <article className="split-history-card" key={split.id}>
                   <div className="split-card-head">
-                    <div><span>{split.title}</span><small>{new Intl.DateTimeFormat(intlLocale(normalizeLocale(split.locale)), { dateStyle: "medium", timeStyle: "short" }).format(new Date(split.createdAt))} · {languageLabel(normalizeLocale(split.locale))}</small></div>
+                    <div>
+                      <span>{split.title}</span>
+                      <small>
+                        {new Intl.DateTimeFormat(
+                          intlLocale(normalizeLocale(split.locale)),
+                          { dateStyle: "medium", timeStyle: "short" },
+                        ).format(new Date(split.createdAt))}{" "}
+                        · {languageLabel(normalizeLocale(split.locale))}
+                      </small>
+                    </div>
                     <b>÷ {split.splitCount}</b>
                   </div>
                   <div className="split-card-values">
-                    <span><small>Total</small><b>{money(split.totalAmount, split.currency, normalizeLocale(split.locale))}</b></span>
-                    <span><small>Split amount</small><strong>{money(split.splitAmount, split.currency, normalizeLocale(split.locale))}</strong></span>
+                    <span>
+                      <small>Total</small>
+                      <b>
+                        {money(
+                          split.totalAmount,
+                          split.currency,
+                          normalizeLocale(split.locale),
+                        )}
+                      </b>
+                    </span>
+                    <span>
+                      <small>Split amount</small>
+                      <strong>
+                        {money(
+                          split.splitAmount,
+                          split.currency,
+                          normalizeLocale(split.locale),
+                        )}
+                      </strong>
+                    </span>
                   </div>
-                  <p>{split.transactionCount} {split.transactionCount === 1 ? "transaction" : "transactions"}{split.customCount ? ` · ${split.customCount} custom ${split.customCount === 1 ? "position" : "positions"}` : ""}</p>
+                  <p>
+                    {split.transactionCount}{" "}
+                    {split.transactionCount === 1
+                      ? "transaction"
+                      : "transactions"}
+                    {split.customCount
+                      ? ` · ${split.customCount} custom ${split.customCount === 1 ? "position" : "positions"}`
+                      : ""}
+                  </p>
                   <div className="split-card-actions">
                     <a href={`/api/splits/${split.id}/pdf`}>Download PDF</a>
-                    <button disabled={deleting === split.id} onClick={() => void remove(split)}>
+                    <button
+                      disabled={deleting === split.id}
+                      onClick={() => void remove(split)}
+                    >
                       {deleting === split.id ? "Deleting…" : "Delete"}
                     </button>
                   </div>

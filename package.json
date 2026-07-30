@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "eslint . --max-warnings=0",
     "build": "next build",
     "start": "next start",
     "test": "node --test --import tsx tests/*.test.ts",
@@ -28,6 +31,9 @@
     "@types/pdfkit": "^0.17.6",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.12",
+    "prettier": "^3.9.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

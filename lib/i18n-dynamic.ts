@@ -2,7 +2,10 @@ type Locale = "pt-BR" | "fr" | "it";
 
 type Forms = [singular: string, plural: string];
 type DynamicConfig = {
-  nouns: Record<"transaction" | "wallet" | "category" | "duplicate" | "split" | "column", Forms>;
+  nouns: Record<
+    "transaction" | "wallet" | "category" | "duplicate" | "split" | "column",
+    Forms
+  >;
   selectedTransactions: Forms;
   customPositions: Forms;
   activeTransactions: Forms;
@@ -27,14 +30,26 @@ type DynamicConfig = {
   deleteDuplicates: Forms;
   verifiedThrough: (date: string) => string;
   verificationCleared: string;
-  importSummary: (files: string, imported: string, duplicates: string, replaced?: string) => string;
+  importSummary: (
+    files: string,
+    imported: string,
+    duplicates: string,
+    replaced?: string,
+  ) => string;
   page: (page: string, pages: string) => string;
   range: (from: string, to: string, total: string) => string;
 };
 
 const configs: Record<Locale, DynamicConfig> = {
   "pt-BR": {
-    nouns: { transaction: ["transação", "transações"], wallet: ["carteira", "carteiras"], category: ["categoria", "categorias"], duplicate: ["duplicata", "duplicatas"], split: ["rateio", "rateios"], column: ["coluna", "colunas"] },
+    nouns: {
+      transaction: ["transação", "transações"],
+      wallet: ["carteira", "carteiras"],
+      category: ["categoria", "categorias"],
+      duplicate: ["duplicata", "duplicatas"],
+      split: ["rateio", "rateios"],
+      column: ["coluna", "colunas"],
+    },
     selectedTransactions: ["transação selecionada", "transações selecionadas"],
     customPositions: ["item personalizado", "itens personalizados"],
     activeTransactions: ["transação ativa", "transações ativas"],
@@ -54,18 +69,35 @@ const configs: Record<Locale, DynamicConfig> = {
     selectTransaction: (id) => `Selecionar transação ${id}`,
     categoryIcon: (id) => `Ícone da categoria ${id}`,
     pieChart: (currency) => `Gráfico de pizza de gastos em ${currency}`,
-    repeatedWallet: (wallet) => `A carteira “${wallet}” aparece em mais de um arquivo de importação completa.`,
-    deleteTitle: (title) => `Excluir “${title}”? Esta ação não pode ser desfeita.`,
-    deleteDuplicates: ["duplicata selecionada? Esta ação não pode ser desfeita.", "duplicatas selecionadas? Esta ação não pode ser desfeita."],
-    verifiedThrough: (date) => `As transações até ${date} estão marcadas como verificadas.`,
+    repeatedWallet: (wallet) =>
+      `A carteira “${wallet}” aparece em mais de um arquivo de importação completa.`,
+    deleteTitle: (title) =>
+      `Excluir “${title}”? Esta ação não pode ser desfeita.`,
+    deleteDuplicates: [
+      "duplicata selecionada? Esta ação não pode ser desfeita.",
+      "duplicatas selecionadas? Esta ação não pode ser desfeita.",
+    ],
+    verifiedThrough: (date) =>
+      `As transações até ${date} estão marcadas como verificadas.`,
     verificationCleared: "A data de verificação das transações foi removida.",
-    importSummary: (files, imported, duplicates, replaced) => `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas${replaced ? ` · ${replaced} transações anteriores substituídas` : ""}`,
+    importSummary: (files, imported, duplicates, replaced) =>
+      `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas${replaced ? ` · ${replaced} transações anteriores substituídas` : ""}`,
     page: (page, pages) => `Página ${page} de ${pages}`,
     range: (from, to, total) => `${from}–${to} de ${total}`,
   },
   fr: {
-    nouns: { transaction: ["transaction", "transactions"], wallet: ["portefeuille", "portefeuilles"], category: ["catégorie", "catégories"], duplicate: ["doublon", "doublons"], split: ["répartition", "répartitions"], column: ["colonne", "colonnes"] },
-    selectedTransactions: ["transaction sélectionnée", "transactions sélectionnées"],
+    nouns: {
+      transaction: ["transaction", "transactions"],
+      wallet: ["portefeuille", "portefeuilles"],
+      category: ["catégorie", "catégories"],
+      duplicate: ["doublon", "doublons"],
+      split: ["répartition", "répartitions"],
+      column: ["colonne", "colonnes"],
+    },
+    selectedTransactions: [
+      "transaction sélectionnée",
+      "transactions sélectionnées",
+    ],
     customPositions: ["élément personnalisé", "éléments personnalisés"],
     activeTransactions: ["transaction active", "transactions actives"],
     selection: (selected, total) => `${selected} sur ${total} sélectionnés`,
@@ -84,18 +116,36 @@ const configs: Record<Locale, DynamicConfig> = {
     selectTransaction: (id) => `Sélectionner la transaction ${id}`,
     categoryIcon: (id) => `Icône de catégorie ${id}`,
     pieChart: (currency) => `Diagramme circulaire des dépenses en ${currency}`,
-    repeatedWallet: (wallet) => `Le portefeuille « ${wallet} » figure dans plusieurs fichiers d’importation complète.`,
-    deleteTitle: (title) => `Supprimer « ${title} » ? Cette action est irréversible.`,
-    deleteDuplicates: ["doublon sélectionné ? Cette action est irréversible.", "doublons sélectionnés ? Cette action est irréversible."],
-    verifiedThrough: (date) => `Les transactions jusqu’au ${date} sont marquées comme vérifiées.`,
-    verificationCleared: "La date de vérification des transactions a été supprimée.",
-    importSummary: (files, imported, duplicates, replaced) => `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés${replaced ? ` · ${replaced} transactions précédentes remplacées` : ""}`,
+    repeatedWallet: (wallet) =>
+      `Le portefeuille « ${wallet} » figure dans plusieurs fichiers d’importation complète.`,
+    deleteTitle: (title) =>
+      `Supprimer « ${title} » ? Cette action est irréversible.`,
+    deleteDuplicates: [
+      "doublon sélectionné ? Cette action est irréversible.",
+      "doublons sélectionnés ? Cette action est irréversible.",
+    ],
+    verifiedThrough: (date) =>
+      `Les transactions jusqu’au ${date} sont marquées comme vérifiées.`,
+    verificationCleared:
+      "La date de vérification des transactions a été supprimée.",
+    importSummary: (files, imported, duplicates, replaced) =>
+      `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés${replaced ? ` · ${replaced} transactions précédentes remplacées` : ""}`,
     page: (page, pages) => `Page ${page} sur ${pages}`,
     range: (from, to, total) => `${from}–${to} sur ${total}`,
   },
   it: {
-    nouns: { transaction: ["transazione", "transazioni"], wallet: ["portafoglio", "portafogli"], category: ["categoria", "categorie"], duplicate: ["duplicato", "duplicati"], split: ["ripartizione", "ripartizioni"], column: ["colonna", "colonne"] },
-    selectedTransactions: ["transazione selezionata", "transazioni selezionate"],
+    nouns: {
+      transaction: ["transazione", "transazioni"],
+      wallet: ["portafoglio", "portafogli"],
+      category: ["categoria", "categorie"],
+      duplicate: ["duplicato", "duplicati"],
+      split: ["ripartizione", "ripartizioni"],
+      column: ["colonna", "colonne"],
+    },
+    selectedTransactions: [
+      "transazione selezionata",
+      "transazioni selezionate",
+    ],
     customPositions: ["voce personalizzata", "voci personalizzate"],
     activeTransactions: ["transazione attiva", "transazioni attive"],
     selection: (selected, total) => `${selected} di ${total} selezionati`,
@@ -114,12 +164,20 @@ const configs: Record<Locale, DynamicConfig> = {
     selectTransaction: (id) => `Seleziona la transazione ${id}`,
     categoryIcon: (id) => `Icona categoria ${id}`,
     pieChart: (currency) => `Grafico a torta delle spese in ${currency}`,
-    repeatedWallet: (wallet) => `Il portafoglio «${wallet}» compare in più file di importazione completa.`,
-    deleteTitle: (title) => `Eliminare «${title}»? Questa operazione non può essere annullata.`,
-    deleteDuplicates: ["duplicato selezionato? Questa operazione non può essere annullata.", "duplicati selezionati? Questa operazione non può essere annullata."],
-    verifiedThrough: (date) => `Le transazioni fino al ${date} sono contrassegnate come verificate.`,
-    verificationCleared: "La data di verifica delle transazioni è stata rimossa.",
-    importSummary: (files, imported, duplicates, replaced) => `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati${replaced ? ` · ${replaced} transazioni precedenti sostituite` : ""}`,
+    repeatedWallet: (wallet) =>
+      `Il portafoglio «${wallet}» compare in più file di importazione completa.`,
+    deleteTitle: (title) =>
+      `Eliminare «${title}»? Questa operazione non può essere annullata.`,
+    deleteDuplicates: [
+      "duplicato selezionato? Questa operazione non può essere annullata.",
+      "duplicati selezionati? Questa operazione non può essere annullata.",
+    ],
+    verifiedThrough: (date) =>
+      `Le transazioni fino al ${date} sono contrassegnate come verificate.`,
+    verificationCleared:
+      "La data di verifica delle transazioni è stata rimossa.",
+    importSummary: (files, imported, duplicates, replaced) =>
+      `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati${replaced ? ` · ${replaced} transazioni precedenti sostituite` : ""}`,
     page: (page, pages) => `Pagina ${page} di ${pages}`,
     range: (from, to, total) => `${from}–${to} di ${total}`,
   },
@@ -131,15 +189,28 @@ function form(forms: Forms, count: string) {
 
 export function translateDynamicUi(locale: Locale, text: string): string {
   const c = configs[locale];
-  let match = text.match(/^(\d+) (transaction|transactions|wallet|wallets|category|categories|duplicate|duplicates|split|splits|column|columns)$/);
+  let match = text.match(
+    /^(\d+) (transaction|transactions|wallet|wallets|category|categories|duplicate|duplicates|split|splits|column|columns)$/,
+  );
   if (match) {
-    const kind = ({ transactions: "transaction", wallets: "wallet", categories: "category", duplicates: "duplicate", splits: "split", columns: "column" } as Record<string, keyof DynamicConfig["nouns"]>)[match[2]] ?? match[2] as keyof DynamicConfig["nouns"];
+    const kind =
+      (
+        {
+          transactions: "transaction",
+          wallets: "wallet",
+          categories: "category",
+          duplicates: "duplicate",
+          splits: "split",
+          columns: "column",
+        } as Record<string, keyof DynamicConfig["nouns"]>
+      )[match[2]] ?? (match[2] as keyof DynamicConfig["nouns"]);
     return `${match[1]} ${form(c.nouns[kind], match[1])}`;
   }
   match = text.match(/^(\d+) selected transactions?$/);
   if (match) return `${match[1]} ${form(c.selectedTransactions, match[1])}`;
   match = text.match(/^(· )?(\d+) custom positions?$/);
-  if (match) return `${match[1] ?? ""}${match[2]} ${form(c.customPositions, match[2])}`;
+  if (match)
+    return `${match[1] ?? ""}${match[2]} ${form(c.customPositions, match[2])}`;
   match = text.match(/^(\d+) active transactions?$/);
   if (match) return `${match[1]} ${form(c.activeTransactions, match[1])}`;
   match = text.match(/^(\d+) of (\d+) selected$/);
@@ -148,28 +219,53 @@ export function translateDynamicUi(locale: Locale, text: string): string {
   if (match) return `${match[1]} ${form(c.separatedDuplicates, match[1])}`;
   match = text.match(/^(\d+) duplicates? deleted\.$/);
   if (match) return `${match[1]} ${form(c.deletedDuplicates, match[1])}`;
-  match = text.match(/^Delete selected \((\d+)\)$/); if (match) return c.deleteSelected(match[1]);
-  match = text.match(/^Split selected \((\d+)\)$/); if (match) return c.splitSelected(match[1]);
-  match = text.match(/^matches #(\d+)$/); if (match) return c.matches(match[1]);
-  match = text.match(/^Position (\d+) description$/); if (match) return c.positionDescription(match[1]);
-  match = text.match(/^Position (\d+) amount$/); if (match) return c.positionAmount(match[1]);
-  match = text.match(/^Remove position (\d+)$/); if (match) return c.removePosition(match[1]);
-  match = text.match(/^Remove (.+)$/); if (match) return c.removeNamed(match[1]);
-  match = text.match(/^Selected categories: (.+)$/); if (match) return c.selectedCategories(match[1]);
-  match = text.match(/^Starting amount in (.+)$/); if (match) return c.startingAmount(match[1]);
-  match = text.match(/^Select duplicate (\d+)$/); if (match) return c.selectDuplicate(match[1]);
-  match = text.match(/^Select transaction (\d+)$/); if (match) return c.selectTransaction(match[1]);
-  match = text.match(/^Category icon (\d+)$/); if (match) return c.categoryIcon(match[1]);
-  match = text.match(/^(.+) spending pie chart$/); if (match) return c.pieChart(match[1]);
-  match = text.match(/^Wallet "(.+)" appears in more than one full-import file\.$/); if (match) return c.repeatedWallet(match[1]);
-  match = text.match(/^Delete "(.+)"\? This cannot be undone\.$/); if (match) return c.deleteTitle(match[1]);
-  match = text.match(/^Delete (\d+) selected duplicates?\? This cannot be undone\.$/);
+  match = text.match(/^Delete selected \((\d+)\)$/);
+  if (match) return c.deleteSelected(match[1]);
+  match = text.match(/^Split selected \((\d+)\)$/);
+  if (match) return c.splitSelected(match[1]);
+  match = text.match(/^matches #(\d+)$/);
+  if (match) return c.matches(match[1]);
+  match = text.match(/^Position (\d+) description$/);
+  if (match) return c.positionDescription(match[1]);
+  match = text.match(/^Position (\d+) amount$/);
+  if (match) return c.positionAmount(match[1]);
+  match = text.match(/^Remove position (\d+)$/);
+  if (match) return c.removePosition(match[1]);
+  match = text.match(/^Remove (.+)$/);
+  if (match) return c.removeNamed(match[1]);
+  match = text.match(/^Selected categories: (.+)$/);
+  if (match) return c.selectedCategories(match[1]);
+  match = text.match(/^Starting amount in (.+)$/);
+  if (match) return c.startingAmount(match[1]);
+  match = text.match(/^Select duplicate (\d+)$/);
+  if (match) return c.selectDuplicate(match[1]);
+  match = text.match(/^Select transaction (\d+)$/);
+  if (match) return c.selectTransaction(match[1]);
+  match = text.match(/^Category icon (\d+)$/);
+  if (match) return c.categoryIcon(match[1]);
+  match = text.match(/^(.+) spending pie chart$/);
+  if (match) return c.pieChart(match[1]);
+  match = text.match(
+    /^Wallet "(.+)" appears in more than one full-import file\.$/,
+  );
+  if (match) return c.repeatedWallet(match[1]);
+  match = text.match(/^Delete "(.+)"\? This cannot be undone\.$/);
+  if (match) return c.deleteTitle(match[1]);
+  match = text.match(
+    /^Delete (\d+) selected duplicates?\? This cannot be undone\.$/,
+  );
   if (match) return `${match[1]} ${form(c.deleteDuplicates, match[1])}`;
-  match = text.match(/^Transactions through (.+) are marked as verified\.$/); if (match) return c.verifiedThrough(match[1]);
-  if (text === "Transaction verification date cleared.") return c.verificationCleared;
-  match = text.match(/^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/);
+  match = text.match(/^Transactions through (.+) are marked as verified\.$/);
+  if (match) return c.verifiedThrough(match[1]);
+  if (text === "Transaction verification date cleared.")
+    return c.verificationCleared;
+  match = text.match(
+    /^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/,
+  );
   if (match) return c.importSummary(match[1], match[2], match[3], match[4]);
-  match = text.match(/^Page (\d+) of (\d+)$/); if (match) return c.page(match[1], match[2]);
-  match = text.match(/^(\d+)[–-](\d+) of (\d+)$/); if (match) return c.range(match[1], match[2], match[3]);
+  match = text.match(/^Page (\d+) of (\d+)$/);
+  if (match) return c.page(match[1], match[2]);
+  match = text.match(/^(\d+)[–-](\d+) of (\d+)$/);
+  if (match) return c.range(match[1], match[2], match[3]);
   return text;
 }

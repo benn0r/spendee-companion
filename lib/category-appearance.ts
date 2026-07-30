@@ -1,5 +1,7 @@
-export const categoryIconIds = Array.from({ length: 58 }, (_, index) => index + 1)
-  .filter((id) => id !== 47 && id !== 48);
+export const categoryIconIds = Array.from(
+  { length: 58 },
+  (_, index) => index + 1,
+).filter((id) => id !== 47 && id !== 48);
 
 export const defaultCategoryColor = "#1eadcf";
 

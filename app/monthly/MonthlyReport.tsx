@@ -1,12 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/I18nProvider";
 
-type Column = { id?: number; name: string; categories: string[]; budget?: number | null };
+type Column = {
+  id?: number;
+  name: string;
+  categories: string[];
+  budget?: number | null;
+};
 type Cell = Array<{ currency: string; amount: number }>;
 type Report = {
   categories: string[];
@@ -15,12 +19,19 @@ type Report = {
   configured: boolean;
 };
 
-const emptyReport: Report = { categories: [], columns: [], months: [], configured: false };
+const emptyReport: Report = {
+  categories: [],
+  columns: [],
+  months: [],
+  configured: false,
+};
 
 function monthLabel(value: string, locale: string) {
   const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" })
-    .format(new Date(year, month - 1, 1));
+  return new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, 1));
 }
 
 function money(amount: number, currency: string, locale: string) {
@@ -34,7 +45,10 @@ function money(amount: number, currency: string, locale: string) {
 
 function budgetClass(cell: Cell, budget?: number | null) {
   if (budget == null) return "";
-  const spend = cell.reduce((total, value) => total + Math.max(0, -value.amount), 0);
+  const spend = cell.reduce(
+    (total, value) => total + Math.max(0, -value.amount),
+    0,
+  );
   if (spend <= budget) return "budget-ok";
   if (spend <= budget * 1.2) return "budget-warning";
   return "budget-over";
@@ -52,8 +66,10 @@ export default function MonthlyReport() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/monthly-report", { cache: "no-store" });
-      const data = await response.json() as Report;
+      const response = await fetch("/api/monthly-report", {
+        cache: "no-store",
+      });
+      const data = (await response.json()) as Report;
       setReport(data);
       setColumns(data.columns);
     } finally {
@@ -61,12 +77,16 @@ export default function MonthlyReport() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function updateColumn(index: number, patch: Partial<Column>) {
-    setColumns((current) => current.map((column, columnIndex) =>
-      columnIndex === index ? { ...column, ...patch } : column
-    ));
+    setColumns((current) =>
+      current.map((column, columnIndex) =>
+        columnIndex === index ? { ...column, ...patch } : column,
+      ),
+    );
   }
 
   function openSettings() {
@@ -88,14 +108,17 @@ export default function MonthlyReport() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ columns }),
       });
-      const result = await response.json() as Report & { error?: string };
-      if (!response.ok) throw new Error(result.error ?? "Could not save the columns.");
+      const result = (await response.json()) as Report & { error?: string };
+      if (!response.ok)
+        throw new Error(result.error ?? "Could not save the columns.");
       setReport(result);
       setColumns(result.columns);
       setEditing(false);
       setMessage("Monthly report columns saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save the columns.");
+      setMessage(
+        error instanceof Error ? error.message : "Could not save the columns.",
+      );
     } finally {
       setSaving(false);
     }
@@ -114,15 +137,29 @@ export default function MonthlyReport() {
           <div>
             <p className="eyebrow">SPENDING OVER TIME</p>
             <h1>Monthy</h1>
-            <p>Compare net category totals by month and combine categories into custom columns.</p>
+            <p>
+              Compare net category totals by month and combine categories into
+              custom columns.
+            </p>
           </div>
-          <button aria-label="Monthy settings" className="settings-cog-button" onClick={openSettings} title="Monthy settings">⚙</button>
+          <button
+            aria-label="Monthy settings"
+            className="settings-cog-button"
+            onClick={openSettings}
+            title="Monthy settings"
+          >
+            ⚙
+          </button>
         </section>
 
         {message && <div className="notice success">{message}</div>}
 
         {editing && (
-          <div className="dialog-backdrop" role="presentation" onMouseDown={closeSettings}>
+          <div
+            className="dialog-backdrop"
+            role="presentation"
+            onMouseDown={closeSettings}
+          >
             <section
               aria-labelledby="monthy-settings-title"
               aria-modal="true"
@@ -134,73 +171,110 @@ export default function MonthlyReport() {
                 <div>
                   <p className="eyebrow">MONTHY</p>
                   <h2 id="monthy-settings-title">Table columns</h2>
-                  <span>Name each column, set its budget, and select the categories it includes.</span>
+                  <span>
+                    Name each column, set its budget, and select the categories
+                    it includes.
+                  </span>
                 </div>
-                <button aria-label="Close settings" onClick={closeSettings}>×</button>
+                <button aria-label="Close settings" onClick={closeSettings}>
+                  ×
+                </button>
               </div>
               <div className="monthy-settings-body">
                 <div className="report-column-list">
-              {columns.map((column, index) => (
-                <article
-                  aria-label={`Column settings: ${column.name}`}
-                  className="report-column-editor"
-                  key={`${column.id ?? "new"}-${index}`}
-                >
-                  <div className="report-column-head">
-                    <label>
-                      <span>Column name</span>
-                      <input
-                        value={column.name}
-                        onChange={(event) => updateColumn(index, { name: event.target.value })}
-                      />
-                    </label>
-                    <button
-                      aria-label={`Remove ${column.name}`}
-                      disabled={columns.length === 1}
-                      onClick={() => setColumns((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                    >×</button>
-                  </div>
-                  <label className="report-budget">
-                    <span>Monthly budget</span>
-                    <input
-                      min="1"
-                      placeholder="No budget"
-                      step="1"
-                      type="number"
-                      value={column.budget ?? ""}
-                      onChange={(event) => updateColumn(index, {
-                        budget: event.target.value === "" ? null : Number(event.target.value),
-                      })}
-                    />
-                  </label>
-                  <div className="report-category-options">
-                    {report.categories.map((category) => (
-                      <label key={category}>
+                  {columns.map((column, index) => (
+                    <article
+                      aria-label={`Column settings: ${column.name}`}
+                      className="report-column-editor"
+                      key={`${column.id ?? "new"}-${index}`}
+                    >
+                      <div className="report-column-head">
+                        <label>
+                          <span>Column name</span>
+                          <input
+                            value={column.name}
+                            onChange={(event) =>
+                              updateColumn(index, { name: event.target.value })
+                            }
+                          />
+                        </label>
+                        <button
+                          aria-label={`Remove ${column.name}`}
+                          disabled={columns.length === 1}
+                          onClick={() =>
+                            setColumns((current) =>
+                              current.filter(
+                                (_, itemIndex) => itemIndex !== index,
+                              ),
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <label className="report-budget">
+                        <span>Monthly budget</span>
                         <input
-                          type="checkbox"
-                          checked={column.categories.includes(category)}
-                          onChange={(event) => updateColumn(index, {
-                            categories: event.target.checked
-                              ? [...column.categories, category]
-                              : column.categories.filter((item) => item !== category),
-                          })}
+                          min="1"
+                          placeholder="No budget"
+                          step="1"
+                          type="number"
+                          value={column.budget ?? ""}
+                          onChange={(event) =>
+                            updateColumn(index, {
+                              budget:
+                                event.target.value === ""
+                                  ? null
+                                  : Number(event.target.value),
+                            })
+                          }
                         />
-                        {category}
                       </label>
-                    ))}
-                  </div>
-                </article>
-              ))}
+                      <div className="report-category-options">
+                        {report.categories.map((category) => (
+                          <label key={category}>
+                            <input
+                              type="checkbox"
+                              checked={column.categories.includes(category)}
+                              onChange={(event) =>
+                                updateColumn(index, {
+                                  categories: event.target.checked
+                                    ? [...column.categories, category]
+                                    : column.categories.filter(
+                                        (item) => item !== category,
+                                      ),
+                                })
+                              }
+                            />
+                            {category}
+                          </label>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
                 </div>
                 <button
                   className="add-report-column"
-                  onClick={() => setColumns((current) => [...current, { name: "New column", categories: [], budget: null }])}
-                >＋ Add column</button>
+                  onClick={() =>
+                    setColumns((current) => [
+                      ...current,
+                      { name: "New column", categories: [], budget: null },
+                    ])
+                  }
+                >
+                  ＋ Add column
+                </button>
               </div>
               {message && <p className="dialog-message">{message}</p>}
               <div className="dialog-actions">
-                <button className="cancel" onClick={closeSettings}>Cancel</button>
-                <button className="save" disabled={saving} onClick={() => void save()}>
+                <button className="cancel" onClick={closeSettings}>
+                  Cancel
+                </button>
+                <button
+                  className="save"
+                  disabled={saving}
+                  onClick={() => void save()}
+                >
                   {saving ? "Saving…" : "Save columns"}
                 </button>
               </div>
@@ -210,8 +284,16 @@ export default function MonthlyReport() {
 
         <section className="ledger monthly-report">
           <div className="ledger-head">
-            <div><h2>Monthly totals</h2><p>Expenses plus income across all active transactions and wallets</p></div>
-            <span>{report.columns.length} {report.columns.length === 1 ? "column" : "columns"}</span>
+            <div>
+              <h2>Monthly totals</h2>
+              <p>
+                Expenses plus income across all active transactions and wallets
+              </p>
+            </div>
+            <span>
+              {report.columns.length}{" "}
+              {report.columns.length === 1 ? "column" : "columns"}
+            </span>
           </div>
           <div className="table-wrap">
             <table>
@@ -228,7 +310,10 @@ export default function MonthlyReport() {
                           tabIndex={0}
                         >
                           <span aria-hidden="true">ⓘ</span>
-                          <span className="category-tooltip-content" role="tooltip">
+                          <span
+                            className="category-tooltip-content"
+                            role="tooltip"
+                          >
                             <b>Selected categories</b>
                             {column.categories.join(", ")}
                           </span>
@@ -240,32 +325,67 @@ export default function MonthlyReport() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>Loading report…</td></tr>
+                  <tr>
+                    <td
+                      className="empty"
+                      colSpan={Math.max(1, report.columns.length + 1)}
+                    >
+                      Loading report…
+                    </td>
+                  </tr>
                 ) : report.months.length === 0 ? (
-                  <tr><td className="empty" colSpan={Math.max(1, report.columns.length + 1)}>No categorized transactions yet.</td></tr>
-                ) : report.months.map((row, rowIndex) => {
-                  const year = row.month.slice(0, 4);
-                  const previousYear = report.months[rowIndex - 1]?.month.slice(0, 4);
-                  return (
-                    <Fragment key={row.month}>
-                      {year !== previousYear && (
-                        <tr className="monthly-year-row">
-                          <td colSpan={report.columns.length + 1}><strong>{year}</strong></td>
-                        </tr>
-                      )}
-                      <tr>
-                        <td><strong>{monthLabel(row.month, intlLocale)}</strong></td>
-                        {row.cells.map((cell, index) => (
-                          <td className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`} key={index}>
-                            {cell.length ? cell.map((value) => (
-                              <strong key={value.currency}>{money(value.amount, value.currency, intlLocale)}</strong>
-                            )) : <span>—</span>}
+                  <tr>
+                    <td
+                      className="empty"
+                      colSpan={Math.max(1, report.columns.length + 1)}
+                    >
+                      No categorized transactions yet.
+                    </td>
+                  </tr>
+                ) : (
+                  report.months.map((row, rowIndex) => {
+                    const year = row.month.slice(0, 4);
+                    const previousYear = report.months[
+                      rowIndex - 1
+                    ]?.month.slice(0, 4);
+                    return (
+                      <Fragment key={row.month}>
+                        {year !== previousYear && (
+                          <tr className="monthly-year-row">
+                            <td colSpan={report.columns.length + 1}>
+                              <strong>{year}</strong>
+                            </td>
+                          </tr>
+                        )}
+                        <tr>
+                          <td>
+                            <strong>{monthLabel(row.month, intlLocale)}</strong>
                           </td>
-                        ))}
-                      </tr>
-                    </Fragment>
-                  );
-                })}
+                          {row.cells.map((cell, index) => (
+                            <td
+                              className={`right monthly-value ${budgetClass(cell, report.columns[index]?.budget)}`}
+                              key={index}
+                            >
+                              {cell.length ? (
+                                cell.map((value) => (
+                                  <strong key={value.currency}>
+                                    {money(
+                                      value.amount,
+                                      value.currency,
+                                      intlLocale,
+                                    )}
+                                  </strong>
+                                ))
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      </Fragment>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
