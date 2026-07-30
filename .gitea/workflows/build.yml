@@ -100,6 +100,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
       - name: Install dependencies
         run: npm ci
       - name: Download production build
@@ -108,8 +112,6 @@ jobs:
           name: spendee-build-${{ gitea.run_id }}
       - name: Extract production build
         run: tar --extract --gzip --file spendee-build.tgz
-      - name: Rebuild native production dependency
-        run: npm rebuild better-sqlite3 --prefix build-artifact
       - name: End-to-end tests
         env:
           PLAYWRIGHT_USE_PRODUCTION_BUILD: "1"
