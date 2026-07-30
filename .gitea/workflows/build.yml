@@ -84,6 +84,12 @@ jobs:
 
   test-e2e:
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chromium
+          - mobile-chromium
     runs-on: ubuntu-latest-slim
     container: node:22.13.0-bookworm
     timeout-minutes: 15
@@ -103,12 +109,12 @@ jobs:
       - name: End-to-end tests
         env:
           PLAYWRIGHT_USE_PRODUCTION_BUILD: "1"
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=${{ matrix.project }}
       - name: Upload end-to-end results
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: spendee-e2e-${{ gitea.run_id }}
+          name: spendee-e2e-${{ gitea.run_id }}-${{ matrix.project }}
           path: |
             playwright-report
             test-results
