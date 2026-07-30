@@ -91,7 +91,7 @@ jobs:
           - chromium
           - mobile-chromium
     runs-on: ubuntu-latest-slim
-    container: node:22.13.0-bookworm
+    container: mcr.microsoft.com/playwright:v1.62.0-noble
     timeout-minutes: 15
     steps:
       - name: Check out repository
@@ -104,8 +104,6 @@ jobs:
           name: spendee-build-${{ gitea.run_id }}
       - name: Extract production build
         run: tar --extract --gzip --file spendee-build.tgz
-      - name: Install end-to-end browser
-        run: npx playwright install --with-deps chromium
       - name: End-to-end tests
         env:
           PLAYWRIGHT_USE_PRODUCTION_BUILD: "1"
