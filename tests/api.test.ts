@@ -374,11 +374,11 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
           sourceRow: 4,
           raw: {},
           transaction: {
-            date: "2026-07-03T09:00:00+00:00",
+            date: "2026-07-02T09:00:00+00:00",
             wallet: "Moon Purse",
             type: "Expense",
             categoryName: "Food",
-            amount: -19,
+            amount: -18,
             currency: "CHF",
             note: "Comet cafe",
             labels: "cosmic",

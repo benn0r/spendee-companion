@@ -33,6 +33,10 @@ function dayNumber(value: string) {
   return Date.parse(`${value.slice(0, 10)}T00:00:00.000Z`) / 86_400_000;
 }
 
+function amountInCents(value: number) {
+  return Math.round(value * 100);
+}
+
 function words(value: string | null) {
   return new Set(
     (value ?? "")
@@ -59,14 +63,11 @@ export function bestValidationCandidate(
       (candidate) =>
         candidate.fingerprint &&
         candidate.currency.toUpperCase() === document.currency.toUpperCase() &&
-        Math.sign(candidate.amount) === Math.sign(document.amount),
+        amountInCents(candidate.amount) === amountInCents(document.amount),
     )
     .map((candidate) => ({
       candidate,
       score:
-        (Math.abs(candidate.amount - document.amount) /
-          Math.max(1, Math.abs(document.amount))) *
-          50 +
         Math.abs(dayNumber(candidate.date) - dayNumber(document.date)) * 2 +
         descriptionDistance(document.description, candidate.note) * 10,
     }))

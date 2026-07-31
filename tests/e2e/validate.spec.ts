@@ -38,7 +38,7 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await openDashboard(page);
   await importCsv(page, csv, `validation-${variant}.csv`, /3 imported/);
   const header = csv.split("\n")[0];
-  const candidateRow = `2026-07-03T09:00:00+00:00,${wallet},Expense,${expenseCategories[0]},-19,CHF,Comet cafe ${variant},cosmic,Nova Quill`;
+  const candidateRow = `2026-07-02T09:00:00+00:00,${wallet},Expense,${expenseCategories[0]},-18,CHF,Comet cafe ${variant},cosmic,Nova Quill`;
   await importCsv(
     page,
     [header, candidateRow].join("\n"),

@@ -553,11 +553,11 @@ test("validation reconciliation consumes matches across the full range before pa
 test("manual validation matches and transaction links survive full wallet replacement", () => {
   withDatabase((db) => {
     const candidate = {
-      date: "2026-07-03T09:00:00.000Z",
+      date: "2026-07-02T09:00:00.000Z",
       wallet: "Moon Purse",
       type: "Expense",
       categoryName: "Food",
-      amount: -19,
+      amount: -18,
       currency: "CHF",
       note: "Comet cafe",
       labels: null,
@@ -574,8 +574,8 @@ test("manual validation matches and transaction links survive full wallet replac
     const app = getWalletValidationTransactions(
       db,
       candidate.wallet,
-      "2026-07-03",
-      "2026-07-03",
+      "2026-07-02",
+      "2026-07-02",
     )[0];
     const statementTransaction = {
       date: "2026-07-03",
@@ -588,7 +588,7 @@ test("manual validation matches and transaction links survive full wallet replac
       filename: "comet-statement.pdf",
       document: { ...document, transactions: [statementTransaction] },
       rawOpenAI: {},
-      dateFrom: "2026-07-03",
+      dateFrom: "2026-07-02",
       dateTo: "2026-07-03",
       thumbnail: Buffer.from("thumbnail"),
       diff: {

@@ -99,7 +99,7 @@ test("manual validation matching ranks plausible candidates and consumes both si
       wallet: "Moon Purse",
       type: "Expense",
       categoryName: "Food",
-      amount: -19,
+      amount: -18,
       currency: "CHF",
       note: "Comet cafe",
     },
@@ -116,6 +116,13 @@ test("manual validation matching ranks plausible candidates and consumes both si
     },
   ];
   assert.equal(bestValidationCandidate(document, candidates)?.id, 2);
+  assert.equal(
+    bestValidationCandidate(document, [
+      { ...candidates[1], amount: -18.01 },
+      { ...candidates[1], id: 4, amount: -17.99 },
+    ]),
+    undefined,
+  );
 
   const initial = applyStoredValidationMatches(
     { matching: [], missingInApp: [document], missingInDocument: candidates },
