@@ -2405,23 +2405,33 @@ td small {
 .monthly-value.budget-over {
   background: #ffebeb;
 }
-.monthly-year-row,
-.monthly-year-row:hover {
-  background: #eef3f5;
+.monthly-report .monthly-year-row td,
+.monthly-report .monthly-year-row:hover td {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  border-top: 1px solid #cce8df;
+  border-bottom: 1px solid #cce8df;
+  background: var(--green-soft);
 }
-.monthly-year-row td {
-  border-top: 1px solid #dce4e8;
-  background: #eef3f5;
-}
-.monthly-year-row td:first-child {
-  position: static;
-  padding: 8px;
+.monthly-report .monthly-year-row td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
   text-align: left;
 }
 .monthly-year-row td:first-child strong {
-  color: var(--slate);
-  font-size: 11px;
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--white);
+  background: var(--green-dark);
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.08em;
+}
+.monthly-report .monthly-year-row .monthly-value strong {
+  color: var(--slate);
+  font-weight: 600;
 }
 .splits-list .ledger-head > span {
   color: var(--muted);
