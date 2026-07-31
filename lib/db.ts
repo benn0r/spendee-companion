@@ -12,6 +12,10 @@ import { categorySlug } from "./category-slug";
 import { normalizeLocale, type AppLocale } from "./i18n";
 import { filterBlacklistedTransactions } from "./validation-blacklist";
 import { compareValidationTransactions } from "./validation-diff";
+import {
+  applyStoredValidationMatches,
+  type StoredValidationMatch,
+} from "./validation-manual-matches";
 import type {
   ExtractedDocumentTransaction,
   ValidationAppTransaction,
@@ -164,6 +168,17 @@ export function openDatabase(
       normalized_description TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS validation_manual_matches (
+      id INTEGER PRIMARY KEY,
+      validation_id INTEGER NOT NULL,
+      document_key TEXT NOT NULL,
+      app_fingerprint TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(validation_id, document_key),
+      FOREIGN KEY(validation_id) REFERENCES validation_runs(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS validation_manual_matches_validation_idx
+      ON validation_manual_matches(validation_id);
   `);
   ensureColumn(
     db,
@@ -1015,7 +1030,7 @@ function liveValidationTransactions(
   return db
     .prepare(
       `
-    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency, note
+    SELECT id, fingerprint, date, wallet, type, category_name AS categoryName, amount, currency, note
     FROM transactions
     WHERE deleted_at IS NULL AND wallet = ?
       AND LOWER(type) NOT IN ('transfer', 'incoming transfer', 'outgoing transfer')
@@ -1084,9 +1099,15 @@ function attachValidationReferences(
       );
       rangeTransactions.set(rangeKey, appTransactions);
     }
-    const diff = compareValidationTransactions(
-      documentTransactions,
-      appTransactions,
+    const storedMatches = db
+      .prepare(
+        `SELECT document_key AS documentKey, app_fingerprint AS appFingerprint
+         FROM validation_manual_matches WHERE validation_id = ? ORDER BY id`,
+      )
+      .all(validation.id) as StoredValidationMatch[];
+    const { diff } = applyStoredValidationMatches(
+      compareValidationTransactions(documentTransactions, appTransactions),
+      storedMatches,
     );
     for (const match of diff.matching) {
       if (!pageIds.has(match.app.id) || references.has(match.app.id)) continue;

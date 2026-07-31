@@ -4,6 +4,12 @@ import type {
   ValidationAppTransaction,
   ValidationDiff,
 } from "./validation-types";
+import { filterBlacklistedTransactions } from "./validation-blacklist";
+import { compareValidationTransactions } from "./validation-diff";
+import {
+  applyStoredValidationMatches,
+  type StoredValidationMatch,
+} from "./validation-manual-matches";
 
 function parseJson<T>(value: string): T {
   return JSON.parse(value) as T;
@@ -20,7 +26,7 @@ export function getWalletValidationTransactions(
   return db
     .prepare(
       `
-    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency, note
+    SELECT id, fingerprint, date, wallet, type, category_name AS categoryName, amount, currency, note
     FROM transactions
     WHERE deleted_at IS NULL AND wallet = ?
       AND LOWER(type) NOT IN ('transfer', 'incoming transfer', 'outgoing transfer')
@@ -193,12 +199,41 @@ export function getValidation(db: Db, id: number) {
     | undefined;
   if (!row) return null;
   const { metadataJson, extractedJson, rawOpenAIJson, diffJson, ...data } = row;
+  const extracted = parseJson<ExtractedDocument>(extractedJson);
+  let diff = parseJson<ValidationDiff>(diffJson);
+  let suggestions = [] as ReturnType<
+    typeof applyStoredValidationMatches
+  >["suggestions"];
+  if (data.status === "complete") {
+    const base = compareValidationTransactions(
+      filterBlacklistedTransactions(db, extracted.transactions),
+      getWalletValidationTransactions(
+        db,
+        String(data.wallet),
+        String(data.dateFrom),
+        String(data.dateTo),
+      ),
+    );
+    const stored = db
+      .prepare(
+        `SELECT document_key AS documentKey, app_fingerprint AS appFingerprint
+         FROM validation_manual_matches WHERE validation_id = ? ORDER BY id`,
+      )
+      .all(id) as StoredValidationMatch[];
+    const applied = applyStoredValidationMatches(base, stored);
+    suggestions = applied.suggestions;
+    // Historical runs retain the exact persisted extraction diff. Once a user
+    // creates a manual link, reconcile against current imports so that stable
+    // fingerprints can carry that link across full wallet replacements.
+    if (stored.length) diff = applied.diff;
+  }
   return {
     ...data,
     metadata: parseJson<Record<string, string>>(metadataJson),
-    extracted: parseJson<ExtractedDocument>(extractedJson),
+    extracted,
     rawOpenAI: parseJson<unknown>(rawOpenAIJson),
-    diff: parseJson<ValidationDiff>(diffJson),
+    diff,
+    suggestions,
   };
 }
 
@@ -216,4 +251,40 @@ export function updateValidationDiff(db: Db, id: number, diff: ValidationDiff) {
     JSON.stringify(diff),
     id,
   );
+}
+
+export function createValidationManualMatch(
+  db: Db,
+  validationId: number,
+  documentKey: string,
+  appFingerprint: string,
+) {
+  const validation = getValidation(db, validationId);
+  const suggestion = validation?.suggestions.find(
+    (item) =>
+      item.documentKey === documentKey &&
+      item.app.fingerprint === appFingerprint,
+  );
+  if (!suggestion)
+    throw new Error("Suggested transaction is no longer available.");
+  db.prepare(
+    `INSERT INTO validation_manual_matches (validation_id, document_key, app_fingerprint)
+     VALUES (?, ?, ?)
+     ON CONFLICT(validation_id, document_key) DO UPDATE
+     SET app_fingerprint = excluded.app_fingerprint, created_at = CURRENT_TIMESTAMP`,
+  ).run(validationId, documentKey, appFingerprint);
+  const updated = getValidation(db, validationId);
+  if (updated) updateValidationDiff(db, validationId, updated.diff);
+  return updated;
+}
+
+export function deleteValidation(db: Db, id: number) {
+  return db.transaction(() => {
+    db.prepare(
+      "DELETE FROM validation_manual_matches WHERE validation_id = ?",
+    ).run(id);
+    return (
+      db.prepare("DELETE FROM validation_runs WHERE id = ?").run(id).changes > 0
+    );
+  })();
 }

@@ -17,6 +17,7 @@ export type ExtractedDocument = {
 
 export type ValidationAppTransaction = {
   id: number;
+  fingerprint?: string;
   date: string;
   wallet: string;
   type: string;
@@ -27,6 +28,13 @@ export type ValidationAppTransaction = {
 };
 
 export type ValidationMatch = {
+  document: ExtractedDocumentTransaction;
+  app: ValidationAppTransaction;
+  manual?: boolean;
+};
+
+export type ValidationMatchSuggestion = {
+  documentKey: string;
   document: ExtractedDocumentTransaction;
   app: ValidationAppTransaction;
 };

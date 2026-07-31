@@ -2851,6 +2851,23 @@ td small {
   align-items: center;
   gap: 8px;
 }
+.validation-delete-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 18px;
+}
+.validation-delete-button:hover {
+  color: #b54343;
+  border-color: #f0bcbc;
+  background: var(--danger-soft);
+}
 .validation-status-badge {
   width: fit-content;
   padding: 5px 8px;
@@ -2920,6 +2937,51 @@ td small {
   color: #a33f38;
   border-color: #e9aaa5;
   background: #fff5f4;
+}
+.validation-ledger .validation-match-suggestion td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  font-size: 10px;
+}
+.validation-match-suggestion td:nth-child(2) {
+  position: relative;
+  padding-left: 28px;
+}
+.validation-match-suggestion td:nth-child(2)::before {
+  content: "↳";
+  position: absolute;
+  left: 13px;
+  color: #9ca5ac;
+}
+.validation-match-suggestion td:nth-child(2) span {
+  margin-right: 7px;
+  color: #87919a;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.validation-match-suggestion td:nth-child(2) strong {
+  margin-right: 7px;
+  color: var(--slate);
+  font-weight: 600;
+}
+.validation-match-suggestion td:last-child strong {
+  margin-right: 8px;
+  color: var(--slate);
+  font-variant-numeric: tabular-nums;
+}
+.validation-match-suggestion button {
+  padding: 4px 7px;
+  border: 1px solid #9ddac6;
+  border-radius: 6px;
+  color: #087b59;
+  background: var(--green-soft);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
 }
 .validation-settings-dialog {
   width: min(560px, 100%);

@@ -370,6 +370,21 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
             author: "Nova Quill",
           },
         },
+        {
+          sourceRow: 4,
+          raw: {},
+          transaction: {
+            date: "2026-07-03T09:00:00+00:00",
+            wallet: "Moon Purse",
+            type: "Expense",
+            categoryName: "Food",
+            amount: -19,
+            currency: "CHF",
+            note: "Comet cafe",
+            labels: "cosmic",
+            author: "Nova Quill",
+          },
+        },
       ]);
       const route = await import("../app/api/validations/route");
       const form = new FormData();
@@ -403,7 +418,7 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
       assert.equal(completed.title, "Moon Guild Statement");
       assert.equal(completed.diff.matching.length, 1);
       assert.equal(completed.diff.missingInApp.length, 1);
-      assert.equal(completed.diff.missingInDocument.length, 1);
+      assert.equal(completed.diff.missingInDocument.length, 2);
       assert.equal(completed.rawOpenAI.output.title, "Moon Guild Statement");
       const thumbnail =
         await import("../app/api/validations/[id]/thumbnail/route");
@@ -489,6 +504,35 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
         (await body(await detail.GET(new Request("http://test"), params))).diff
           .missingInApp.length,
         1,
+      );
+      const withSuggestion = await body(
+        await detail.GET(new Request("http://test"), params),
+      );
+      assert.equal(withSuggestion.suggestions[0].app.note, "Comet cafe");
+      const manuallyMatched = await body(
+        await detail.POST(
+          jsonRequest("http://test", "POST", {
+            documentKey: withSuggestion.suggestions[0].documentKey,
+            appFingerprint: withSuggestion.suggestions[0].app.fingerprint,
+          }),
+          params,
+        ),
+      );
+      assert.equal(manuallyMatched.diff.matching.length, 2);
+      assert.equal(manuallyMatched.diff.missingInApp.length, 0);
+
+      assert.equal(
+        (await detail.POST(jsonRequest("http://test", "POST", {}), params))
+          .status,
+        400,
+      );
+      assert.equal(
+        (await detail.DELETE(new Request("http://test"), params)).status,
+        200,
+      );
+      assert.equal(
+        (await detail.DELETE(new Request("http://test"), params)).status,
+        404,
       );
     },
   );

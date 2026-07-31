@@ -31,19 +31,34 @@ async function uploadMockStatement(
 test("validates a PDF against a wallet and persists the mocked OpenAI result", async ({
   page,
 }, testInfo) => {
-  const { csv, wallet, variant } = fantasyData(testInfo, "Document validation");
+  const { csv, expenseCategories, wallet, variant } = fantasyData(
+    testInfo,
+    "Document validation",
+  );
   await openDashboard(page);
   await importCsv(page, csv, `validation-${variant}.csv`, /3 imported/);
+  const header = csv.split("\n")[0];
+  const candidateRow = `2026-07-03T09:00:00+00:00,${wallet},Expense,${expenseCategories[0]},-19,CHF,Comet cafe ${variant},cosmic,Nova Quill`;
+  await importCsv(
+    page,
+    [header, candidateRow].join("\n"),
+    `validation-candidate-${variant}.csv`,
+    /1 imported/,
+  );
   await page.getByRole("link", { name: "Validate" }).click();
   await expect(page.getByRole("heading", { name: "Validate" })).toBeVisible();
 
-  await uploadMockStatement(page, wallet, "moon-guild-statement.pdf");
+  const validationId = await uploadMockStatement(
+    page,
+    wallet,
+    "moon-guild-statement.pdf",
+  );
   await expect(page.locator(".validation-counts")).toContainText("1 Matching");
   await expect(page.locator(".validation-counts")).toContainText(
     "1 Missing in Spendee",
   );
   await expect(page.locator(".validation-counts")).toContainText(
-    "1 Only in Spendee",
+    "2 Only in Spendee",
   );
   const matchedRow = page
     .locator(".validation-status-badge.matched")
@@ -53,7 +68,8 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
     .locator("xpath=ancestor::tr");
   const missingDocumentRow = page
     .locator(".validation-status-badge.missing-document")
-    .locator("xpath=ancestor::tr");
+    .locator("xpath=ancestor::tr")
+    .filter({ hasText: "Dragon bounty" });
   await expect(
     matchedRow.getByText("Nebula lunch", { exact: true }),
   ).toBeVisible();
@@ -77,7 +93,7 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   await expect(page.locator(".validation-transaction")).toHaveCount(2);
   await page.getByLabel("Matching").uncheck();
   await page.getByLabel("Missing in Spendee").uncheck();
-  await expect(page.locator(".validation-transaction")).toHaveCount(3);
+  await expect(page.locator(".validation-transaction")).toHaveCount(4);
 
   page.once("dialog", (confirmation) => confirmation.accept());
   await page.getByRole("button", { name: "Blacklist Comet bakery" }).click();
@@ -94,13 +110,61 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   );
   await page.getByRole("button", { name: "Close settings" }).click();
 
-  await page.reload();
+  const suggestion = page.locator(".validation-match-suggestion");
+  await expect(suggestion).toContainText(`Comet cafe ${variant}`);
+  await expect(suggestion).toContainText("CHF");
+  await suggestion.getByRole("button", { name: "Match", exact: true }).click();
+  await expect(page.locator(".validation-counts")).toContainText("2 Matching");
+  await expect(page.locator(".validation-counts")).toContainText(
+    "0 Missing in Spendee",
+  );
+  await expect(page.locator(".validation-counts")).toContainText(
+    "1 Only in Spendee",
+  );
+  await expect(suggestion).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Transactions" }).click();
+  const walletSnapshot = [
+    header,
+    ...csv
+      .split("\n")
+      .slice(1)
+      .filter((row) => row.includes(`,${wallet},`)),
+    candidateRow,
+  ].join("\n");
+  await importCsv(
+    page,
+    walletSnapshot,
+    `validation-full-reimport-${variant}.csv`,
+    /3 imported · 0 duplicates separated · 3 previous transactions replaced/,
+    { fullImport: true },
+  );
+  await page.goto(`/validate?validation=${validationId}`);
   await expect(
     page.getByRole("heading", { name: "Moon Guild Card Statement" }),
   ).toBeVisible();
+  await expect(page.locator(".validation-counts")).toContainText("2 Matching");
+  await expect(page.locator(".validation-counts")).toContainText(
+    "0 Missing in Spendee",
+  );
+  const candidateTransaction = page
+    .getByRole("row")
+    .filter({ hasText: `Comet cafe ${variant}` });
+  await page.getByRole("link", { name: "Transactions" }).click();
   await expect(
-    page.getByText("Moon Guild Card Statement").first(),
+    candidateTransaction.getByRole("link", {
+      name: "Open validation Moon Guild Card Statement",
+    }),
+  ).toHaveAttribute("href", `/validate?validation=${validationId}`);
+
+  await page.goto(`/validate?validation=${validationId}`);
+  page.once("dialog", (confirmation) => confirmation.accept());
+  await page.getByRole("button", { name: "Delete validation" }).click();
+  await expect(page.getByText("No validations yet.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "No validation selected" }),
   ).toBeVisible();
+  await expect(page).toHaveURL(/\/validate$/);
 });
 
 test("links matched transactions to their exact validation and document description", async ({

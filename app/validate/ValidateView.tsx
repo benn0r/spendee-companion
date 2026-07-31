@@ -13,7 +13,10 @@ import {
   useState,
 } from "react";
 import { calculateDayTotals, groupRowsByDay } from "@/lib/day-groups";
-import type { ValidationDiff } from "@/lib/validation-types";
+import type {
+  ValidationDiff,
+  ValidationMatchSuggestion,
+} from "@/lib/validation-types";
 import type { CategoryAppearance } from "@/lib/category-appearance";
 
 type Status = "processing" | "complete" | "failed";
@@ -41,6 +44,7 @@ type Detail = Summary & {
   metadata: Record<string, string>;
   model: string;
   diff: ValidationDiff;
+  suggestions: ValidationMatchSuggestion[];
   rawOpenAI: unknown;
 };
 type ResultRow = {
@@ -52,6 +56,7 @@ type ResultRow = {
   categoryName: string | null;
   documentDescription: string | null;
   status: "matched" | "missing-app" | "missing-document";
+  suggestion: ValidationMatchSuggestion | null;
 };
 type BlacklistEntry = { id: number; description: string; createdAt: string };
 
@@ -63,6 +68,18 @@ const date = (value: string) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
     new Date(`${value.slice(0, 10)}T12:00:00Z`),
   );
+
+function sameDocumentTransaction(
+  left: ValidationMatchSuggestion["document"],
+  right: ValidationMatchSuggestion["document"],
+) {
+  return (
+    left.date === right.date &&
+    left.description === right.description &&
+    left.amount === right.amount &&
+    left.currency === right.currency
+  );
+}
 
 export default function ValidateView() {
   const [wallets, setWallets] = useState<string[]>([]);
@@ -203,6 +220,49 @@ export default function ValidateView() {
     }
   }
 
+  async function deleteSelectedValidation() {
+    if (
+      !selected ||
+      !window.confirm(`Delete validation "${selected.title}" permanently?`)
+    )
+      return;
+    const response = await fetch(`/api/validations/${selected.id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      window.alert("Could not delete validation.");
+      return;
+    }
+    const remaining = await refreshList();
+    const next = remaining[0];
+    if (next) {
+      window.history.replaceState(null, "", `/validate?validation=${next.id}`);
+      await selectValidation(next.id);
+    } else {
+      window.history.replaceState(null, "", "/validate");
+      setSelected(null);
+    }
+  }
+
+  async function saveSuggestedMatch(suggestion: ValidationMatchSuggestion) {
+    if (!selected || !suggestion.app.fingerprint) return;
+    const response = await fetch(`/api/validations/${selected.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        documentKey: suggestion.documentKey,
+        appFingerprint: suggestion.app.fingerprint,
+      }),
+    });
+    const result = (await response.json()) as Detail & { error?: string };
+    if (!response.ok) {
+      window.alert(result.error || "Could not save match.");
+      return;
+    }
+    setSelected(result);
+    await refreshList();
+  }
+
   const rows = useMemo<ResultRow[]>(() => {
     if (!selected || selected.status !== "complete") return [];
     return [
@@ -215,6 +275,7 @@ export default function ValidateView() {
         categoryName: item.app.categoryName,
         documentDescription: item.document.description,
         status: "matched" as const,
+        suggestion: null,
       })),
       ...selected.diff.missingInApp.map((item, index) => ({
         key: `app-${index}`,
@@ -225,6 +286,10 @@ export default function ValidateView() {
         categoryName: null,
         documentDescription: item.description,
         status: "missing-app" as const,
+        suggestion:
+          selected.suggestions.find((suggestion) =>
+            sameDocumentTransaction(suggestion.document, item),
+          ) ?? null,
       })),
       ...selected.diff.missingInDocument.map((item) => ({
         key: `document-${item.id}`,
@@ -235,6 +300,7 @@ export default function ValidateView() {
         categoryName: item.categoryName,
         documentDescription: null,
         status: "missing-document" as const,
+        suggestion: null,
       })),
     ].sort(
       (a, b) => b.date.localeCompare(a.date) || a.key.localeCompare(b.key),
@@ -271,6 +337,16 @@ export default function ValidateView() {
             </p>
           </div>
           <div className="validation-heading-actions">
+            {selected && (
+              <button
+                aria-label="Delete validation"
+                className="validation-delete-button"
+                onClick={() => void deleteSelectedValidation()}
+                title="Delete validation"
+              >
+                ×
+              </button>
+            )}
             <button
               aria-label="Validation settings"
               className="settings-cog-button"
@@ -467,61 +543,95 @@ export default function ValidateView() {
                               totals={totals[group.key] || []}
                             />
                             {group.rows.map((row) => (
-                              <tr
-                                className="validation-transaction"
-                                key={row.key}
-                              >
-                                <td>
-                                  <span
-                                    className={`validation-status-badge ${row.status}`}
+                              <Fragment key={row.key}>
+                                <tr className="validation-transaction">
+                                  <td>
+                                    <span
+                                      className={`validation-status-badge ${row.status}`}
+                                    >
+                                      {row.status === "matched"
+                                        ? "Match"
+                                        : row.status === "missing-app"
+                                          ? "Missing in Spendee"
+                                          : "Only in Spendee"}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span className="validation-description">
+                                      <strong>{row.description}</strong>
+                                      {row.documentDescription && (
+                                        <button
+                                          title="Ignore this description"
+                                          aria-label={`Blacklist ${row.documentDescription}`}
+                                          onClick={() =>
+                                            void blacklistDescription(
+                                              row.documentDescription!,
+                                            )
+                                          }
+                                        >
+                                          ⊘
+                                        </button>
+                                      )}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {row.categoryName ? (
+                                      <span className="validation-category">
+                                        <CategoryIcon
+                                          appearance={
+                                            appearances[row.categoryName]
+                                          }
+                                        />
+                                        {row.categoryName}
+                                      </span>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
+                                  <td
+                                    className={`right validation-amount ${row.amount < 0 ? "negative" : "positive"}`}
                                   >
-                                    {row.status === "matched"
-                                      ? "Match"
-                                      : row.status === "missing-app"
-                                        ? "Missing in Spendee"
-                                        : "Only in Spendee"}
-                                  </span>
-                                </td>
-                                <td>
-                                  <span className="validation-description">
-                                    <strong>{row.description}</strong>
-                                    {row.documentDescription && (
+                                    <strong>
+                                      {money(row.amount, row.currency)}
+                                    </strong>
+                                  </td>
+                                </tr>
+                                {row.suggestion && (
+                                  <tr className="validation-match-suggestion">
+                                    <td />
+                                    <td>
+                                      <span>Possible match</span>
+                                      <strong>
+                                        {row.suggestion.app.note ||
+                                          row.suggestion.app.type}
+                                      </strong>
+                                      <small>
+                                        {date(row.suggestion.app.date)}
+                                      </small>
+                                    </td>
+                                    <td>
+                                      {row.suggestion.app.categoryName || "—"}
+                                    </td>
+                                    <td className="right">
+                                      <strong>
+                                        {money(
+                                          row.suggestion.app.amount,
+                                          row.suggestion.app.currency,
+                                        )}
+                                      </strong>
                                       <button
-                                        title="Ignore this description"
-                                        aria-label={`Blacklist ${row.documentDescription}`}
                                         onClick={() =>
-                                          void blacklistDescription(
-                                            row.documentDescription!,
+                                          void saveSuggestedMatch(
+                                            row.suggestion!,
                                           )
                                         }
                                       >
-                                        ⊘
+                                        Match
                                       </button>
-                                    )}
-                                  </span>
-                                </td>
-                                <td>
-                                  {row.categoryName ? (
-                                    <span className="validation-category">
-                                      <CategoryIcon
-                                        appearance={
-                                          appearances[row.categoryName]
-                                        }
-                                      />
-                                      {row.categoryName}
-                                    </span>
-                                  ) : (
-                                    "—"
-                                  )}
-                                </td>
-                                <td
-                                  className={`right validation-amount ${row.amount < 0 ? "negative" : "positive"}`}
-                                >
-                                  <strong>
-                                    {money(row.amount, row.currency)}
-                                  </strong>
-                                </td>
-                              </tr>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
                             ))}
                           </Fragment>
                         ))}

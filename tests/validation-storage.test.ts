@@ -19,7 +19,9 @@ import type {
 } from "../lib/validation-types";
 import {
   completeValidation,
+  createValidationManualMatch,
   createValidation,
+  deleteValidation,
   enqueueValidation,
   failValidation,
   getValidation,
@@ -544,6 +546,110 @@ test("validation reconciliation consumes matches across the full range before pa
       title: document.title,
       description: document.transactions[0].description,
     });
+  });
+});
+
+test("manual validation matches and transaction links survive full wallet replacement", () => {
+  withDatabase((db) => {
+    const candidate = {
+      date: "2026-07-03T09:00:00.000Z",
+      wallet: "Moon Purse",
+      type: "Expense",
+      categoryName: "Food",
+      amount: -19,
+      currency: "CHF",
+      note: "Comet cafe",
+      labels: null,
+      author: "Nova",
+    };
+    const importCandidate = (fullImport = false) =>
+      importTransactions(
+        db,
+        fullImport ? "fresh-wallet.csv" : "wallet.csv",
+        [{ transaction: candidate, sourceRow: 2, raw: candidate }],
+        { fullImport },
+      );
+    importCandidate();
+    const app = getWalletValidationTransactions(
+      db,
+      candidate.wallet,
+      "2026-07-03",
+      "2026-07-03",
+    )[0];
+    const statementTransaction = {
+      date: "2026-07-03",
+      description: "Comet bakery",
+      amount: -18,
+      currency: "CHF",
+    };
+    const validation = createValidation(db, {
+      wallet: candidate.wallet,
+      filename: "comet-statement.pdf",
+      document: { ...document, transactions: [statementTransaction] },
+      rawOpenAI: {},
+      dateFrom: "2026-07-03",
+      dateTo: "2026-07-03",
+      thumbnail: Buffer.from("thumbnail"),
+      diff: {
+        matching: [],
+        missingInApp: [statementTransaction],
+        missingInDocument: [app],
+      },
+      model: "fantasy-model",
+    });
+    assert.ok(validation);
+    assert.equal(validation.suggestions[0].app.id, app.id);
+    const matched = createValidationManualMatch(
+      db,
+      validation.id,
+      validation.suggestions[0].documentKey,
+      String(validation.suggestions[0].app.fingerprint),
+    );
+    assert.equal(matched?.diff.matching[0].manual, true);
+    assert.equal(matched?.diff.missingInApp.length, 0);
+
+    const other = { ...candidate, wallet: "Cloud Vault", note: "Anchor row" };
+    importTransactions(db, "other-wallet.csv", [
+      { transaction: other, sourceRow: 2, raw: other },
+    ]);
+    importCandidate(true);
+    const fresh = getValidation(db, validation.id);
+    assert.notEqual(fresh?.diff.matching[0].app.id, app.id);
+    assert.equal(fresh?.diff.matching[0].manual, true);
+    const filters = {
+      wallets: [candidate.wallet],
+      types: [],
+      categories: [],
+      tags: [],
+      authors: [],
+    };
+    assert.deepEqual(
+      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
+        .validation,
+      {
+        id: validation.id,
+        title: document.title,
+        description: statementTransaction.description,
+      },
+    );
+
+    assert.equal(deleteValidation(db, validation.id), true);
+    assert.equal(getValidation(db, validation.id), null);
+    assert.equal(
+      (
+        db
+          .prepare(
+            "SELECT COUNT(*) AS count FROM validation_manual_matches WHERE validation_id = ?",
+          )
+          .get(validation.id) as { count: number }
+      ).count,
+      0,
+    );
+    assert.equal(
+      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
+        .validation,
+      null,
+    );
   });
 });
 
