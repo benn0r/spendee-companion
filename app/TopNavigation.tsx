@@ -54,7 +54,7 @@ export default function TopNavigation({
         Splits
       </Link>
       <Link className={active === "monthly" ? "active" : ""} href="/monthly">
-        Monthy
+        Monthly
       </Link>
       <Link className={active === "validate" ? "active" : ""} href="/validate">
         Validate

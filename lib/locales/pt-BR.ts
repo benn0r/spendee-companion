@@ -20,7 +20,7 @@ export const ptBrUi: Record<string, string> = {
   Transactions: "Transações",
   Duplicates: "Duplicatas",
   Splits: "Rateios",
-  Monthy: "Mensal",
+  Monthly: "Mensal",
   "TRANSACTION ARCHIVE": "ARQUIVO DE TRANSAÇÕES",
   "Import and review your Spendee exports in one place.":
     "Importe e revise suas exportações do Spendee em um só lugar.",
@@ -183,7 +183,7 @@ export const ptBrUi: Record<string, string> = {
   "Category color": "Cor da categoria",
   "No category icon": "Sem ícone de categoria",
   "Primary navigation": "Navegação principal",
-  "Monthy settings": "Configurações mensais",
+  "Monthly settings": "Configurações mensais",
   "Rows per page": "Linhas por página",
   "Select all duplicates on this page":
     "Selecionar todas as duplicatas desta página",
@@ -286,7 +286,7 @@ export const ptBrUi: Record<string, string> = {
   Page: "Página",
   of: "de",
   "Close category settings": "Fechar configurações da categoria",
-  "Monthy · Spendee companion": "Mensal · Assistente do Spendee",
+  "Monthly · Spendee companion": "Mensal · Assistente do Spendee",
   "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.":
     "Importe exportações XLSX e CSV do Spendee para um arquivo permanente que identifica duplicatas.",
   "from transactions": "proveniente das transações",

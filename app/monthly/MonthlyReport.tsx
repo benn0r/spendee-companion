@@ -16,6 +16,7 @@ type Report = {
   categories: string[];
   columns: Column[];
   months: Array<{ month: string; cells: Cell[] }>;
+  years: Array<{ year: string; cells: Cell[] }>;
   configured: boolean;
 };
 
@@ -23,6 +24,7 @@ const emptyReport: Report = {
   categories: [],
   columns: [],
   months: [],
+  years: [],
   configured: false,
 };
 
@@ -136,17 +138,17 @@ export default function MonthlyReport() {
         <section className="page-heading">
           <div>
             <p className="eyebrow">SPENDING OVER TIME</p>
-            <h1>Monthy</h1>
+            <h1>Monthly</h1>
             <p>
               Compare net category totals by month and combine categories into
               custom columns.
             </p>
           </div>
           <button
-            aria-label="Monthy settings"
+            aria-label="Monthly settings"
             className="settings-cog-button"
             onClick={openSettings}
-            title="Monthy settings"
+            title="Monthly settings"
           >
             ⚙
           </button>
@@ -169,7 +171,7 @@ export default function MonthlyReport() {
             >
               <div className="dialog-head">
                 <div>
-                  <p className="eyebrow">MONTHY</p>
+                  <p className="eyebrow">MONTHLY</p>
                   <h2 id="monthy-settings-title">Table columns</h2>
                   <span>
                     Name each column, set its budget, and select the categories
@@ -348,13 +350,33 @@ export default function MonthlyReport() {
                     const previousYear = report.months[
                       rowIndex - 1
                     ]?.month.slice(0, 4);
+                    const yearTotals = report.years.find(
+                      (totals) => totals.year === year,
+                    );
                     return (
                       <Fragment key={row.month}>
                         {year !== previousYear && (
                           <tr className="monthly-year-row">
-                            <td colSpan={report.columns.length + 1}>
+                            <td>
                               <strong>{year}</strong>
                             </td>
+                            {yearTotals?.cells.map((cell, index) => (
+                              <td className="right monthly-value" key={index}>
+                                {cell.length ? (
+                                  cell.map((value) => (
+                                    <strong key={value.currency}>
+                                      {money(
+                                        value.amount,
+                                        value.currency,
+                                        intlLocale,
+                                      )}
+                                    </strong>
+                                  ))
+                                ) : (
+                                  <span>—</span>
+                                )}
+                              </td>
+                            ))}
                           </tr>
                         )}
                         <tr>

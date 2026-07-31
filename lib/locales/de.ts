@@ -19,7 +19,7 @@ export const deUi: Record<string, string> = {
   Transactions: "Transaktionen",
   Duplicates: "Duplikate",
   Splits: "Aufteilungen",
-  Monthy: "Monate",
+  Monthly: "Monate",
   "TRANSACTION ARCHIVE": "TRANSAKTIONSARCHIV",
   "Import and review your Spendee exports in one place.":
     "Spendee-Exporte an einem Ort importieren und prüfen.",
@@ -182,7 +182,7 @@ export const deUi: Record<string, string> = {
   "Category color": "Kategoriefarbe",
   "No category icon": "Kein Kategoriesymbol",
   "Primary navigation": "Hauptnavigation",
-  "Monthy settings": "Monatseinstellungen",
+  "Monthly settings": "Monatseinstellungen",
   "Rows per page": "Zeilen pro Seite",
   "Select all duplicates on this page":
     "Alle Duplikate auf dieser Seite auswählen",

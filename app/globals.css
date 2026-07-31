@@ -2409,14 +2409,16 @@ td small {
 .monthly-year-row:hover {
   background: #eef3f5;
 }
+.monthly-year-row td {
+  border-top: 1px solid #dce4e8;
+  background: #eef3f5;
+}
 .monthly-year-row td:first-child {
   position: static;
   padding: 8px;
-  border-top: 1px solid #dce4e8;
-  background: #eef3f5;
   text-align: left;
 }
-.monthly-year-row strong {
+.monthly-year-row td:first-child strong {
   color: var(--slate);
   font-size: 11px;
   letter-spacing: 0.08em;

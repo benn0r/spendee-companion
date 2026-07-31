@@ -21,7 +21,7 @@ export const frUi: Record<string, string> = {
   Transactions: "Transactions",
   Duplicates: "Doublons",
   Splits: "Répartitions",
-  Monthy: "Mensuel",
+  Monthly: "Mensuel",
   "TRANSACTION ARCHIVE": "ARCHIVE DES TRANSACTIONS",
   "Import and review your Spendee exports in one place.":
     "Importez et vérifiez vos exports Spendee au même endroit.",
@@ -185,7 +185,7 @@ export const frUi: Record<string, string> = {
   "Category color": "Couleur de la catégorie",
   "No category icon": "Aucune icône de catégorie",
   "Primary navigation": "Navigation principale",
-  "Monthy settings": "Paramètres mensuels",
+  "Monthly settings": "Paramètres mensuels",
   "Rows per page": "Lignes par page",
   "Select all duplicates on this page":
     "Sélectionner tous les doublons de cette page",
@@ -269,7 +269,7 @@ export const frUi: Record<string, string> = {
   Page: "Page",
   of: "sur",
   "Close category settings": "Fermer les paramètres de la catégorie",
-  "Monthy · Spendee companion": "Mensuel · Compagnon Spendee",
+  "Monthly · Spendee companion": "Mensuel · Compagnon Spendee",
   "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.":
     "Importez les exports XLSX et CSV de Spendee dans une archive durable qui détecte les doublons.",
 

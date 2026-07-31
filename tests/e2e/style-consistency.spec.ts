@@ -77,12 +77,11 @@ test("pages and modals share the same visual foundations", async ({
     .getByRole("button", { name: "Close", exact: true })
     .click();
 
-  await page.getByRole("link", { name: "Monthy" }).click();
-  await expect(page.getByRole("heading", { name: "Monthy" })).toHaveCSS(
-    "font-size",
-    "31px",
-  );
-  await page.getByRole("button", { name: "Monthy settings" }).click();
+  await page.getByRole("link", { name: "Monthly", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Monthly", exact: true }),
+  ).toHaveCSS("font-size", "31px");
+  await page.getByRole("button", { name: "Monthly settings" }).click();
   const monthlySettings = page.getByRole("dialog", { name: "Table columns" });
   await expectSharedDialog(page, monthlySettings, mobile);
   await monthlySettings.getByRole("button", { name: "Cancel" }).click();

@@ -15,9 +15,11 @@ test("Monthly columns can merge categories and persist a budget", async ({
     `monthly-${variant}.csv`,
     /1 file processed · 3 imported/,
   );
-  await page.getByRole("link", { name: "Monthy" }).click();
-  await expect(page.getByRole("heading", { name: "Monthy" })).toBeVisible();
-  await page.getByRole("button", { name: "Monthy settings" }).click();
+  await page.getByRole("link", { name: "Monthly", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Monthly", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Monthly settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Table columns" });
   await dialog.getByRole("button", { name: "＋ Add column" }).click();
   const newEditor = dialog.getByRole("article", {
@@ -45,12 +47,15 @@ test("Monthly columns can merge categories and persist a budget", async ({
   const budgetCell = monthRow.getByRole("cell").nth(columnIndex);
   await expect(budgetCell).toHaveClass(/budget-over/);
   await expect(budgetCell).toContainText("69");
+  const year = monthLabel.match(/\d{4}/)?.[0] ?? "";
+  const yearRow = page.locator(".monthly-year-row").filter({ hasText: year });
+  await expect(yearRow.getByRole("cell").nth(columnIndex)).toContainText("69");
 
   await page.reload();
   await expect(
     page.getByRole("columnheader", { name: new RegExp(columnName) }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Monthy settings" }).click();
+  await page.getByRole("button", { name: "Monthly settings" }).click();
   const savedDialog = page.getByRole("dialog", { name: "Table columns" });
   const savedEditor = savedDialog.getByRole("article", {
     name: `Column settings: ${columnName}`,
@@ -72,7 +77,7 @@ test("Monthly columns can merge categories and persist a budget", async ({
     page.getByRole("columnheader", { name: new RegExp(unsavedName) }),
   ).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Monthy settings" }).click();
+  await page.getByRole("button", { name: "Monthly settings" }).click();
   const cleanupDialog = page.getByRole("dialog", { name: "Table columns" });
   const persistedEditor = cleanupDialog.getByRole("article", {
     name: `Column settings: ${columnName}`,
@@ -90,7 +95,9 @@ test("Monthly columns can merge categories and persist a budget", async ({
   ).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Monthy" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Monthly", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("columnheader", { name: new RegExp(columnName) }),
   ).toHaveCount(0);

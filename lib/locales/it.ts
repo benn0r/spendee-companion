@@ -43,7 +43,7 @@ export const itUi: Record<string, string> = {
   Transactions: "Transazioni",
   Duplicates: "Duplicati",
   Splits: "Ripartizioni",
-  Monthy: "Mensile",
+  Monthly: "Mensile",
   "TRANSACTION ARCHIVE": "ARCHIVIO TRANSAZIONI",
   "Import and review your Spendee exports in one place.":
     "Importa e controlla le esportazioni Spendee in un unico posto.",
@@ -205,7 +205,7 @@ export const itUi: Record<string, string> = {
   "Category color": "Colore della categoria",
   "No category icon": "Nessuna icona della categoria",
   "Primary navigation": "Navigazione principale",
-  "Monthy settings": "Impostazioni mensili",
+  "Monthly settings": "Impostazioni mensili",
   "Rows per page": "Righe per pagina",
   "Select all duplicates on this page":
     "Seleziona tutti i duplicati in questa pagina",

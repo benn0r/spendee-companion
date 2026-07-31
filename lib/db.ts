@@ -747,7 +747,38 @@ export function getMonthlyReport(db: Db) {
         ).sort((a, b) => a.currency.localeCompare(b.currency)),
       ),
     }));
-  return { categories, columns, months, configured: savedRows.length > 0 };
+  const yearValues = new Map<string, Map<number, Map<string, number>>>();
+  for (const month of months) {
+    const year = month.month.slice(0, 4);
+    const columnsByIndex = yearValues.get(year) ?? new Map();
+    month.cells.forEach((cell, index) => {
+      const currencies = columnsByIndex.get(index) ?? new Map();
+      for (const value of cell) {
+        currencies.set(
+          value.currency,
+          (currencies.get(value.currency) ?? 0) + value.amount,
+        );
+      }
+      columnsByIndex.set(index, currencies);
+    });
+    yearValues.set(year, columnsByIndex);
+  }
+  const years = Array.from(yearValues, ([year, columnsByIndex]) => ({
+    year,
+    cells: columns.map((_, index) =>
+      Array.from(columnsByIndex.get(index) ?? [], ([currency, amount]) => ({
+        currency,
+        amount,
+      })).sort((a, b) => a.currency.localeCompare(b.currency)),
+    ),
+  })).sort((a, b) => b.year.localeCompare(a.year));
+  return {
+    categories,
+    columns,
+    months,
+    years,
+    configured: savedRows.length > 0,
+  };
 }
 
 export function setMonthlyReportColumns(
