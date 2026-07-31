@@ -64,6 +64,10 @@ export default function MonthlyReport() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const unassignedCategories = report.categories.filter(
+    (category) =>
+      !columns.some((column) => column.categories.includes(category)),
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -266,6 +270,16 @@ export default function MonthlyReport() {
                 >
                   ＋ Add column
                 </button>
+                {unassignedCategories.length > 0 && (
+                  <div
+                    aria-live="polite"
+                    className="unassigned-categories-notice"
+                    role="status"
+                  >
+                    <strong>Categories without a column</strong>
+                    <span>{unassignedCategories.join(", ")}</span>
+                  </div>
+                )}
               </div>
               {message && <p className="dialog-message">{message}</p>}
               <div className="dialog-actions">

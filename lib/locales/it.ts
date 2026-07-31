@@ -126,6 +126,7 @@ export const itUi: Record<string, string> = {
   "Monthly budget": "Budget mensile",
   "No budget": "Nessun budget",
   "Add column": "Aggiungi colonna",
+  "Categories without a column": "Categorie senza colonna",
   "Save columns": "Salva colonne",
   "SAVED CALCULATIONS": "CALCOLI SALVATI",
   "Past splits": "Ripartizioni precedenti",

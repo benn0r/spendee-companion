@@ -21,6 +21,26 @@ test("Monthly columns can merge categories and persist a budget", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Monthly settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Table columns" });
+  const unassignedNotice = dialog.getByRole("status");
+  await expect(unassignedNotice).toHaveCount(0);
+  for (const category of expenseCategories) {
+    const sourceEditor = dialog.getByRole("article", {
+      name: `Column settings: ${category}`,
+    });
+    await sourceEditor.getByLabel(category, { exact: true }).uncheck();
+  }
+  await expect(unassignedNotice).toBeVisible();
+  await expect(unassignedNotice).toContainText("Categories without a column");
+  for (const category of expenseCategories) {
+    await expect(unassignedNotice).toContainText(category);
+  }
+  for (const category of expenseCategories) {
+    const sourceEditor = dialog.getByRole("article", {
+      name: `Column settings: ${category}`,
+    });
+    await sourceEditor.getByLabel(category, { exact: true }).check();
+  }
+  await expect(unassignedNotice).toHaveCount(0);
   await dialog.getByRole("button", { name: "＋ Add column" }).click();
   const newEditor = dialog.getByRole("article", {
     name: "Column settings: New column",

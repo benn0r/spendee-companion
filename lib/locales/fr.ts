@@ -105,6 +105,7 @@ export const frUi: Record<string, string> = {
   "Monthly budget": "Budget mensuel",
   "No budget": "Aucun budget",
   "Add column": "Ajouter une colonne",
+  "Categories without a column": "Catégories sans colonne",
   "Save columns": "Enregistrer les colonnes",
   "SAVED CALCULATIONS": "CALCULS ENREGISTRÉS",
   "Past splits": "Répartitions précédentes",

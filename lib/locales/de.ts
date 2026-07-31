@@ -102,6 +102,7 @@ export const deUi: Record<string, string> = {
   "Monthly budget": "Monatsbudget",
   "No budget": "Kein Budget",
   "Add column": "Spalte hinzufügen",
+  "Categories without a column": "Kategorien ohne Spalte",
   "Save columns": "Spalten speichern",
   "SAVED CALCULATIONS": "GESPEICHERTE BERECHNUNGEN",
   "Past splits": "Bisherige Aufteilungen",

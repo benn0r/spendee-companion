@@ -104,6 +104,7 @@ export const ptBrUi: Record<string, string> = {
   "Monthly budget": "Orçamento mensal",
   "No budget": "Sem orçamento",
   "Add column": "Adicionar coluna",
+  "Categories without a column": "Categorias sem coluna",
   "＋ Add column": "＋ Adicionar coluna",
   "Save columns": "Salvar colunas",
   "SAVED CALCULATIONS": "CÁLCULOS SALVOS",
