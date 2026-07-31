@@ -2945,35 +2945,32 @@ td small {
   background: var(--surface-subtle);
   font-size: 10px;
 }
-.validation-match-suggestion td:nth-child(2) {
-  position: relative;
-  padding-left: 28px;
-}
-.validation-match-suggestion td:nth-child(2)::before {
-  content: "↳";
-  position: absolute;
-  left: 13px;
-  color: #9ca5ac;
-}
-.validation-match-suggestion td:nth-child(2) span {
-  margin-right: 7px;
-  color: #87919a;
+.validation-suggestion-label {
+  width: fit-content;
+  padding: 4px 7px;
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: var(--muted);
+  background: var(--surface);
   font-size: 9px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
-.validation-match-suggestion td:nth-child(2) strong {
-  margin-right: 7px;
+.validation-suggestion-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.validation-suggestion-details strong {
   color: var(--slate);
   font-weight: 600;
 }
-.validation-match-suggestion td:last-child strong {
-  margin-right: 8px;
-  color: var(--slate);
-  font-variant-numeric: tabular-nums;
+.validation-suggestion-details small {
+  color: var(--muted);
+  white-space: nowrap;
 }
-.validation-match-suggestion button {
+.validation-suggestion-details button {
   padding: 4px 7px;
   border: 1px solid #9ddac6;
   border-radius: 6px;

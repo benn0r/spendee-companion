@@ -598,36 +598,43 @@ export default function ValidateView() {
                                 </tr>
                                 {row.suggestion && (
                                   <tr className="validation-match-suggestion">
-                                    <td />
                                     <td>
-                                      <span>Possible match</span>
-                                      <strong>
-                                        {row.suggestion.app.note ||
-                                          row.suggestion.app.type}
-                                      </strong>
-                                      <small>
-                                        {date(row.suggestion.app.date)}
-                                      </small>
+                                      <span className="validation-suggestion-label">
+                                        Possible match
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className="validation-suggestion-details">
+                                        <strong>
+                                          {row.suggestion.app.note ||
+                                            row.suggestion.app.type}
+                                        </strong>
+                                        <small>
+                                          {date(row.suggestion.app.date)}
+                                        </small>
+                                        <button
+                                          onClick={() =>
+                                            void saveSuggestedMatch(
+                                              row.suggestion!,
+                                            )
+                                          }
+                                        >
+                                          Match
+                                        </button>
+                                      </span>
                                     </td>
                                     <td>
                                       {row.suggestion.app.categoryName || "—"}
                                     </td>
-                                    <td className="right">
+                                    <td
+                                      className={`right validation-amount ${row.suggestion.app.amount < 0 ? "negative" : "positive"}`}
+                                    >
                                       <strong>
                                         {money(
                                           row.suggestion.app.amount,
                                           row.suggestion.app.currency,
                                         )}
                                       </strong>
-                                      <button
-                                        onClick={() =>
-                                          void saveSuggestedMatch(
-                                            row.suggestion!,
-                                          )
-                                        }
-                                      >
-                                        Match
-                                      </button>
                                     </td>
                                   </tr>
                                 )}

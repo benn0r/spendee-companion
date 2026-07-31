@@ -113,6 +113,15 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
   const suggestion = page.locator(".validation-match-suggestion");
   await expect(suggestion).toContainText(`Comet cafe ${variant}`);
   await expect(suggestion).toContainText("CHF");
+  const suggestionCells = suggestion.getByRole("cell");
+  await expect(suggestionCells.nth(0)).toHaveText("Possible match");
+  await expect(
+    suggestionCells.nth(1).getByRole("button", {
+      name: "Match",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(suggestionCells.nth(3)).toHaveCSS("text-align", "right");
   await suggestion.getByRole("button", { name: "Match", exact: true }).click();
   await expect(page.locator(".validation-counts")).toContainText("2 Matching");
   await expect(page.locator(".validation-counts")).toContainText(
