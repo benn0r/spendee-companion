@@ -22,6 +22,7 @@ import {
   createValidationManualMatch,
   createValidation,
   deleteValidation,
+  deleteValidationManualMatch,
   enqueueValidation,
   failValidation,
   getValidation,
@@ -607,6 +608,20 @@ test("manual validation matches and transaction links survive full wallet replac
     );
     assert.equal(matched?.diff.matching[0].manual, true);
     assert.equal(matched?.diff.missingInApp.length, 0);
+    const unmatched = deleteValidationManualMatch(
+      db,
+      validation.id,
+      validation.suggestions[0].documentKey,
+    );
+    assert.equal(unmatched?.diff.matching.length, 0);
+    assert.equal(unmatched?.diff.missingInApp.length, 1);
+    assert.equal(unmatched?.suggestions[0].app.note, candidate.note);
+    createValidationManualMatch(
+      db,
+      validation.id,
+      unmatched!.suggestions[0].documentKey,
+      String(unmatched!.suggestions[0].app.fingerprint),
+    );
 
     const other = { ...candidate, wallet: "Cloud Vault", note: "Anchor row" };
     importTransactions(db, "other-wallet.csv", [

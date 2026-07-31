@@ -31,6 +31,7 @@ export type ValidationMatch = {
   document: ExtractedDocumentTransaction;
   app: ValidationAppTransaction;
   manual?: boolean;
+  documentKey?: string;
 };
 
 export type ValidationMatchSuggestion = {

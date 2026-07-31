@@ -57,6 +57,7 @@ type ResultRow = {
   documentDescription: string | null;
   status: "matched" | "missing-app" | "missing-document";
   suggestion: ValidationMatchSuggestion | null;
+  manualMatchKey: string | null;
 };
 type BlacklistEntry = { id: number; description: string; createdAt: string };
 
@@ -263,6 +264,22 @@ export default function ValidateView() {
     await refreshList();
   }
 
+  async function removeManualMatch(documentKey: string) {
+    if (!selected) return;
+    const response = await fetch(`/api/validations/${selected.id}/matches`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentKey }),
+    });
+    const result = (await response.json()) as Detail & { error?: string };
+    if (!response.ok) {
+      window.alert(result.error || "Could not remove match.");
+      return;
+    }
+    setSelected(result);
+    await refreshList();
+  }
+
   const rows = useMemo<ResultRow[]>(() => {
     if (!selected || selected.status !== "complete") return [];
     return [
@@ -276,6 +293,7 @@ export default function ValidateView() {
         documentDescription: item.document.description,
         status: "matched" as const,
         suggestion: null,
+        manualMatchKey: item.manual ? item.documentKey || null : null,
       })),
       ...selected.diff.missingInApp.map((item, index) => ({
         key: `app-${index}`,
@@ -290,6 +308,7 @@ export default function ValidateView() {
           selected.suggestions.find((suggestion) =>
             sameDocumentTransaction(suggestion.document, item),
           ) ?? null,
+        manualMatchKey: null,
       })),
       ...selected.diff.missingInDocument.map((item) => ({
         key: `document-${item.id}`,
@@ -301,6 +320,7 @@ export default function ValidateView() {
         documentDescription: null,
         status: "missing-document" as const,
         suggestion: null,
+        manualMatchKey: null,
       })),
     ].sort(
       (a, b) => b.date.localeCompare(a.date) || a.key.localeCompare(b.key),
@@ -546,14 +566,27 @@ export default function ValidateView() {
                               <Fragment key={row.key}>
                                 <tr className="validation-transaction">
                                   <td>
-                                    <span
-                                      className={`validation-status-badge ${row.status}`}
-                                    >
-                                      {row.status === "matched"
-                                        ? "Match"
-                                        : row.status === "missing-app"
-                                          ? "Missing in Spendee"
-                                          : "Only in Spendee"}
+                                    <span className="validation-status-actions">
+                                      <span
+                                        className={`validation-status-badge ${row.status}`}
+                                      >
+                                        {row.status === "matched"
+                                          ? "Match"
+                                          : row.status === "missing-app"
+                                            ? "Missing in Spendee"
+                                            : "Only in Spendee"}
+                                      </span>
+                                      {row.manualMatchKey && (
+                                        <button
+                                          onClick={() =>
+                                            void removeManualMatch(
+                                              row.manualMatchKey!,
+                                            )
+                                          }
+                                        >
+                                          Unmatch
+                                        </button>
+                                      )}
                                     </span>
                                   </td>
                                   <td>

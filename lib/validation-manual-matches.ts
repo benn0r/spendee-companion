@@ -99,7 +99,12 @@ export function applyStoredValidationMatches(
     if (!app) continue;
     consumedDocuments.add(item.documentKey);
     consumedApps.add(app.id);
-    manualMatches.push({ document: item.document, app, manual: true });
+    manualMatches.push({
+      document: item.document,
+      app,
+      manual: true,
+      documentKey: item.documentKey,
+    });
   }
 
   const remainingDocuments = keyed.filter(

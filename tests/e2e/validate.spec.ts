@@ -131,6 +131,14 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
     "1 Only in Spendee",
   );
   await expect(suggestion).toHaveCount(0);
+  await page.getByRole("button", { name: "Unmatch" }).click();
+  await expect(page.locator(".validation-counts")).toContainText("1 Matching");
+  await expect(page.locator(".validation-counts")).toContainText(
+    "1 Missing in Spendee",
+  );
+  await expect(suggestion).toContainText(`Comet cafe ${variant}`);
+  await suggestion.getByRole("button", { name: "Match", exact: true }).click();
+  await expect(page.locator(".validation-counts")).toContainText("2 Matching");
 
   await page.getByRole("link", { name: "Transactions" }).click();
   const walletSnapshot = [

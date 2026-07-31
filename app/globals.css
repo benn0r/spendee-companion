@@ -2879,6 +2879,25 @@ td small {
   font-weight: 700;
   white-space: nowrap;
 }
+.validation-status-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.validation-status-actions > button {
+  padding: 3px 5px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+  text-decoration: underline;
+  text-decoration-color: #adb5bb;
+  text-underline-offset: 2px;
+}
+.validation-status-actions > button:hover {
+  color: #b54343;
+}
 .validation-status-badge.matched {
   color: #087b59;
   border-color: #9ddac6;

@@ -520,6 +520,26 @@ test("API routes cover the complete fantasy-data workflow", async (t) => {
       );
       assert.equal(manuallyMatched.diff.matching.length, 2);
       assert.equal(manuallyMatched.diff.missingInApp.length, 0);
+      const matches = await import("../app/api/validations/[id]/matches/route");
+      const removedMatch = await body(
+        await matches.DELETE(
+          jsonRequest("http://test", "DELETE", {
+            documentKey: withSuggestion.suggestions[0].documentKey,
+          }),
+          params,
+        ),
+      );
+      assert.equal(removedMatch.diff.matching.length, 1);
+      assert.equal(removedMatch.diff.missingInApp.length, 1);
+      assert.equal(
+        (
+          await matches.DELETE(
+            jsonRequest("http://test", "DELETE", { documentKey: "missing" }),
+            params,
+          )
+        ).status,
+        404,
+      );
 
       assert.equal(
         (await detail.POST(jsonRequest("http://test", "POST", {}), params))

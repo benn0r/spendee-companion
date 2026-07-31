@@ -278,6 +278,38 @@ export function createValidationManualMatch(
   return updated;
 }
 
+export function deleteValidationManualMatch(
+  db: Db,
+  validationId: number,
+  documentKey: string,
+) {
+  const current = getValidation(db, validationId) as {
+    status: unknown;
+    wallet: unknown;
+    dateFrom: unknown;
+    dateTo: unknown;
+    extracted: ExtractedDocument;
+  } | null;
+  if (!current || current.status !== "complete") return null;
+  const deleted = db
+    .prepare(
+      "DELETE FROM validation_manual_matches WHERE validation_id = ? AND document_key = ?",
+    )
+    .run(validationId, documentKey).changes;
+  if (!deleted) return null;
+  const base = compareValidationTransactions(
+    filterBlacklistedTransactions(db, current.extracted.transactions),
+    getWalletValidationTransactions(
+      db,
+      String(current.wallet),
+      String(current.dateFrom),
+      String(current.dateTo),
+    ),
+  );
+  updateValidationDiff(db, validationId, base);
+  return getValidation(db, validationId);
+}
+
 export function deleteValidation(db: Db, id: number) {
   return db.transaction(() => {
     db.prepare(
