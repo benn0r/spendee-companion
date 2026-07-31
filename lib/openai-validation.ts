@@ -2,7 +2,8 @@ import type { ExtractedDocument } from "./validation-types";
 
 export const validationModel =
   process.env.OPENAI_VALIDATION_MODEL || "gpt-5.6-sol";
-const retryableStatuses = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+const maximumAttempts = 5;
+const retryableStatuses = new Set([408, 409, 425, 429]);
 
 const extractionSchema = {
   type: "object",
@@ -70,6 +71,24 @@ function responseText(payload: any): string | undefined {
   return undefined;
 }
 
+function isRetryableStatus(status: number) {
+  // OpenAI can be reached through an upstream proxy, whose transient 5xx codes
+  // include non-standard responses such as Cloudflare's 520.
+  return status >= 500 || retryableStatuses.has(status);
+}
+
+function retryDelay(response: Response | undefined, attempt: number) {
+  const retryAfter = response?.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+
+    const date = Date.parse(retryAfter);
+    if (Number.isFinite(date)) return Math.max(0, date - Date.now());
+  }
+  return 1_000 * 2 ** attempt;
+}
+
 export async function requestExtraction(
   apiKey: string,
   requestBody: unknown,
@@ -77,9 +96,10 @@ export async function requestExtraction(
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
 ) {
   let lastError = "OpenAI extraction failed.";
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+    let response: Response | undefined;
     try {
-      const response = await fetch("https://api.openai.com/v1/responses", {
+      response = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -95,8 +115,11 @@ export async function requestExtraction(
         payload = JSON.parse(responseBody);
       } catch {
         lastError = `OpenAI returned an unexpected non-JSON response (HTTP ${response.status}, ${contentType}).`;
-        if (attempt < 2) {
-          await pause(500 * (attempt + 1));
+        if (
+          isRetryableStatus(response.status) &&
+          attempt < maximumAttempts - 1
+        ) {
+          await pause(retryDelay(response, attempt));
           continue;
         }
         throw new Error(lastError);
@@ -105,18 +128,18 @@ export async function requestExtraction(
       lastError =
         payload.error?.message ||
         `OpenAI extraction failed (${response.status}).`;
-      if (retryableStatuses.has(response.status) && attempt < 2) {
-        await pause(500 * (attempt + 1));
+      if (isRetryableStatus(response.status) && attempt < maximumAttempts - 1) {
+        await pause(retryDelay(response, attempt));
         continue;
       }
       throw new Error(lastError);
     } catch (error) {
       lastError = error instanceof Error ? error.message : lastError;
       if (
-        attempt < 2 &&
+        attempt < maximumAttempts - 1 &&
         /fetch failed|network|socket|ECONNRESET/i.test(lastError)
       ) {
-        await pause(500 * (attempt + 1));
+        await pause(retryDelay(response, attempt));
         continue;
       }
       throw error;

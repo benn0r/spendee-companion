@@ -187,26 +187,36 @@ test("live extraction reports missing configuration and missing structured outpu
 });
 
 test("OpenAI requests retry transient failures but preserve final upstream errors", async (t) => {
-  await t.test("HTML gateway followed by success", async () => {
-    let calls = 0;
-    globalThis.fetch = async () => {
-      calls += 1;
-      if (calls === 1)
-        return new Response("<!DOCTYPE html><title>Bad gateway</title>", {
-          status: 502,
-          headers: { "Content-Type": "text/html" },
-        });
-      return Response.json({ output_text: "{}" });
-    };
+  await t.test(
+    "non-standard HTML gateway response followed by success",
+    async () => {
+      const pauses: number[] = [];
+      let calls = 0;
+      globalThis.fetch = async () => {
+        calls += 1;
+        if (calls === 1)
+          return new Response("<!DOCTYPE html><title>Bad gateway</title>", {
+            status: 520,
+            headers: {
+              "Content-Type": "text/html",
+              "Retry-After": "3",
+            },
+          });
+        return Response.json({ output_text: "{}" });
+      };
 
-    const payload = (await requestExtraction(
-      "fantasy-api-key",
-      {},
-      async () => undefined,
-    )) as { output_text: string };
-    assert.equal(payload.output_text, "{}");
-    assert.equal(calls, 2);
-  });
+      const payload = (await requestExtraction(
+        "fantasy-api-key",
+        {},
+        async (milliseconds) => {
+          pauses.push(milliseconds);
+        },
+      )) as { output_text: string };
+      assert.equal(payload.output_text, "{}");
+      assert.equal(calls, 2);
+      assert.deepEqual(pauses, [3000]);
+    },
+  );
 
   await t.test("retryable HTTP status", async () => {
     const pauses: number[] = [];
@@ -230,7 +240,7 @@ test("OpenAI requests retry transient failures but preserve final upstream error
     )) as { output_text: string };
     assert.equal(payload.output_text, "{}");
     assert.equal(calls, 2);
-    assert.deepEqual(pauses, [500]);
+    assert.deepEqual(pauses, [1000]);
   });
 
   await t.test("network failure", async () => {
@@ -246,7 +256,7 @@ test("OpenAI requests retry transient failures but preserve final upstream error
       pauses.push(milliseconds);
     });
     assert.equal(calls, 2);
-    assert.deepEqual(pauses, [500]);
+    assert.deepEqual(pauses, [1000]);
   });
 
   await t.test("non-retryable status", async () => {
@@ -281,6 +291,6 @@ test("OpenAI requests retry transient failures but preserve final upstream error
         }),
       /unexpected non-JSON response \(HTTP 502, text\/html\)/,
     );
-    assert.deepEqual(pauses, [500, 1000]);
+    assert.deepEqual(pauses, [1000, 2000, 4000, 8000]);
   });
 });
