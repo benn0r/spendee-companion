@@ -2409,9 +2409,9 @@ td small {
 .monthly-report .monthly-year-row:hover td {
   padding-top: 9px;
   padding-bottom: 9px;
-  border-top: 1px solid #cce8df;
-  border-bottom: 1px solid #cce8df;
-  background: var(--green-soft);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--canvas);
 }
 .monthly-report .monthly-year-row td:first-child {
   position: sticky;
@@ -2424,7 +2424,7 @@ td small {
   padding: 3px 7px;
   border-radius: 999px;
   color: var(--white);
-  background: var(--green-dark);
+  background: var(--slate);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;

@@ -52,16 +52,16 @@ test("Monthly columns can merge categories and persist a budget", async ({
   const yearCells = yearRow.getByRole("cell");
   await expect(yearCells.first()).toHaveCSS(
     "background-color",
-    "rgb(231, 249, 243)",
+    "rgb(246, 248, 250)",
   );
   await expect(yearCells.nth(columnIndex)).toHaveCSS(
     "background-color",
-    "rgb(231, 249, 243)",
+    "rgb(246, 248, 250)",
   );
   await expect(yearCells.nth(columnIndex)).toContainText("69");
   await expect(yearCells.first().locator("strong")).toHaveCSS(
     "background-color",
-    "rgb(10, 168, 121)",
+    "rgb(52, 69, 84)",
   );
 
   await page.reload();
