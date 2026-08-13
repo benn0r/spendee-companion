@@ -72,6 +72,10 @@ Requires Node.js 22 or newer and an accessible Actual Budget server.
 5. Optionally set `ACTUAL_BUDGET_ID` when the local budget ID differs from the
    sync ID. `ACTUAL_DEFAULT_CURRENCY` may also be set as a safety check; when it
    is omitted, the budget's Actual preference is used.
+6. Set both `SPENDEE_BASIC_AUTH_USERNAME` and
+   `SPENDEE_BASIC_AUTH_PASSWORD` for every network-accessible deployment. Both
+   may be left empty for local development; a partial configuration fails
+   closed.
 
 Do not put real server URLs, identifiers, passwords, tokens, or budget exports
 in tracked files. Configuration errors intentionally name the missing variable
@@ -149,15 +153,17 @@ Configure these Gitea repository secrets:
 - `COOLIFY_API_TOKEN`: token allowed to deploy the configured resource.
 
 In Coolify, create a separate environment in the existing project, point its
-application at the normalized branch image tag, configure the `ACTUAL_*`
-runtime variables there, and mount persistent storage at `/data`. The deploy
-job sends only the configured resource identifier to Coolify and suppresses the
-API response so identifiers and tokens are not printed in CI logs.
+application at the normalized branch image tag, configure the `ACTUAL_*` and
+`SPENDEE_BASIC_AUTH_*` runtime variables there, and mount persistent storage at
+`/data`. The deploy job sends only the configured resource identifier to
+Coolify and suppresses the API response so identifiers and tokens are not
+printed in CI logs.
 
-The application deliberately has no login screen of its own. Before exposing a
-deployment, protect the Coolify route with HTTP Basic Authentication or an
-equivalent private access policy. This is required because the UI and MCP route
-can read financial data, and the import endpoints can write to Actual.
+The application enforces HTTP Basic Authentication at the request boundary
+when both Spendee authentication variables are present. It protects the UI,
+financial APIs, and MCP endpoint while leaving only `/api/ready` and static
+assets public for orchestration and rendering. Use an additional private access
+policy when stronger identity controls are required.
 
 ## MCP server
 
@@ -172,6 +178,8 @@ read the synchronized Actual snapshot, while split tools read SQLite. The
 `import_transaction_files` tool accepts one to ten XLSX/CSV files as base64
 using `{ filename, contentBase64 }`. Setting `full: true` validates that each
 file maps to one Actual account; it never replaces that account's ledger.
+When application authentication is configured, MCP clients must send the same
+credentials in the standard HTTP `Authorization: Basic ...` header.
 
 ## License
 

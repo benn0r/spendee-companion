@@ -206,7 +206,7 @@ jobs:
       - name: Install deployment client
         run: |
           apt-get update
-          apt-get install --yes --no-install-recommends ca-certificates curl
+          apt-get install --yes --no-install-recommends ca-certificates curl jq
 
       - name: Validate deployment configuration
         run: |
@@ -224,17 +224,88 @@ jobs:
             exit 1
           }
 
-      - name: Trigger Coolify deployment
+      - name: Trigger and verify Coolify deployment
         run: |
           set -eu
           api_origin="${COOLIFY_API_URL%/}"
+          trigger_response="$(mktemp)"
+          deployment_response="$(mktemp)"
+          trap 'rm -f "${trigger_response}" "${deployment_response}"' EXIT
+
           curl \
             --fail \
             --silent \
             --show-error \
-            --output /dev/null \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --output "${trigger_response}" \
             --get \
             --url "${api_origin}/api/v1/deploy" \
             --header "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
             --data-urlencode "uuid=${COOLIFY_RESOURCE_UUID}" \
             --data-urlencode "force=false"
+
+          if ! deployment_uuid="$(
+            jq --exit-status --raw-output \
+              '.deployments[0].deployment_uuid | select(type == "string" and length > 0)' \
+              "${trigger_response}"
+          )"; then
+            echo "Coolify did not return a deployment reference" >&2
+            exit 1
+          fi
+
+          poll_started_at="$(date +%s)"
+          poll_timeout_seconds=420
+          previous_status=""
+
+          while :; do
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --connect-timeout 10 \
+              --max-time 20 \
+              --output "${deployment_response}" \
+              --url "${api_origin}/api/v1/deployments/${deployment_uuid}" \
+              --header "Authorization: Bearer ${COOLIFY_API_TOKEN}"
+
+            if ! deployment_status="$(
+              jq --exit-status --raw-output \
+                '.status | select(type == "string" and length > 0)' \
+                "${deployment_response}"
+            )"; then
+              echo "Coolify returned a deployment without a valid status" >&2
+              exit 1
+            fi
+
+            if [ "${deployment_status}" != "${previous_status}" ]; then
+              echo "Coolify deployment status: ${deployment_status}"
+              previous_status="${deployment_status}"
+            fi
+
+            case "${deployment_status}" in
+              finished)
+                echo "Coolify deployment finished successfully"
+                exit 0
+                ;;
+              failed | cancelled-by-user)
+                echo "Coolify deployment ended with status: ${deployment_status}" >&2
+                exit 1
+                ;;
+              queued | in_progress)
+                ;;
+              *)
+                echo "Coolify returned an unexpected deployment status" >&2
+                exit 1
+                ;;
+            esac
+
+            current_time="$(date +%s)"
+            elapsed_seconds=$((current_time - poll_started_at))
+            if [ "${elapsed_seconds}" -ge "${poll_timeout_seconds}" ]; then
+              echo "Timed out waiting for Coolify deployment" >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
