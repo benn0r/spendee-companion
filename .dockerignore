@@ -1,7 +1,14 @@
 node_modules
 .next
 .git
+.env
+.env.*
+!.env.example
+*.actual
 docs
 tests
+data
 *.db
+*.db-shm
+*.db-wal
 *.log

@@ -4,8 +4,11 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
+    env_file:
+      - .env
     environment:
       SQLITE_PATH: /data/spendee.db
+      ACTUAL_DATA_DIR: /data/actual
     volumes:
       - spendee-data:/data
 

@@ -36,6 +36,47 @@ test("pages and modals share the same visual foundations", async ({
   const mobile = testInfo.project.name === "mobile-chromium";
 
   await openDashboard(page);
+  const palette = await page.evaluate(() => {
+    const styles = getComputedStyle(document.documentElement);
+    return {
+      accent: styles.getPropertyValue("--accent").trim(),
+      canvas: styles.getPropertyValue("--canvas").trim(),
+      line: styles.getPropertyValue("--line").trim(),
+      negative: styles.getPropertyValue("--negative").trim(),
+      positive: styles.getPropertyValue("--positive").trim(),
+      primary: styles.getPropertyValue("--primary").trim(),
+      primaryHover: styles.getPropertyValue("--primary-hover").trim(),
+      sidebar: styles.getPropertyValue("--sidebar").trim(),
+      surface: styles.getPropertyValue("--surface").trim(),
+      text: styles.getPropertyValue("--text").trim(),
+      warning: styles.getPropertyValue("--warning").trim(),
+    };
+  });
+  expect(palette).toEqual({
+    accent: "#9446ed",
+    canvas: "#e8ecf0",
+    line: "#d9e2ec",
+    negative: "#e12d39",
+    positive: "#147d64",
+    primary: "#8719e0",
+    primaryHover: "#a368fc",
+    sidebar: "#102a43",
+    surface: "#fff",
+    text: "#272630",
+    warning: "#fcf088",
+  });
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(232, 236, 240)",
+  );
+  await expect(page.locator(".topbar")).toHaveCSS(
+    "background-color",
+    "rgb(16, 42, 67)",
+  );
+  await expect(page.locator(".ledger")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
   await expect(page.locator(".ledger")).toHaveCSS("border-radius", "13px");
   await expect(page.getByRole("heading", { name: "Transactions" })).toHaveCSS(
     "font-size",

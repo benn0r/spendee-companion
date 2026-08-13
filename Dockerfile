@@ -17,10 +17,10 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ARG APP_VERSION=dev
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 APP_VERSION=${APP_VERSION}
-ENV SQLITE_PATH=/data/spendee.db
+ENV SQLITE_PATH=/data/spendee.db ACTUAL_DATA_DIR=/data/actual
 RUN apt-get update && apt-get install -y --no-install-recommends curl poppler-utils \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /data && chown node:node /data
+  && mkdir -p /data/actual && chown -R node:node /data
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
@@ -28,5 +28,5 @@ USER node
 EXPOSE 3000
 VOLUME ["/data"]
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 CMD ["node", "server.js"]

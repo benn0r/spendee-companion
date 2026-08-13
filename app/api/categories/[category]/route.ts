@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import {
-  getCategoryDetails,
-  getDatabase,
-  resolveCategory,
-  setCategoryTags,
-} from "@/lib/db";
+import { getDatabase } from "@/lib/db";
 import { parseTransactionFilters } from "@/lib/transaction-filters";
 import { categoryIconIds, validCategoryColor } from "@/lib/category-appearance";
 import { parsePagination } from "@/lib/pagination";
+import { getLedgerSnapshot } from "@/lib/ledger-service";
+import {
+  getLedgerCategoryDetails,
+  resolveLedgerCategory,
+  saveLedgerCategorySettings,
+} from "@/lib/ledger-metadata";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,8 @@ export async function GET(
 ) {
   const identifier = (await params).category;
   const db = getDatabase();
-  const category = resolveCategory(db, identifier);
+  const snapshot = await getLedgerSnapshot();
+  const category = resolveLedgerCategory(snapshot, identifier);
   if (!category) {
     return NextResponse.json({ error: "Category not found." }, { status: 404 });
   }
@@ -36,9 +38,10 @@ export async function GET(
   }
   const chartMonth =
     requestedMonth === "all" ? null : (requestedMonth ?? undefined);
-  const result = getCategoryDetails(
+  const result = getLedgerCategoryDetails(
     db,
-    category,
+    snapshot,
+    category.id,
     page,
     pageSize,
     parseTransactionFilters(searchParams),
@@ -54,7 +57,8 @@ export async function PUT(
   try {
     const identifier = (await params).category;
     const db = getDatabase();
-    const category = resolveCategory(db, identifier);
+    const snapshot = await getLedgerSnapshot();
+    const category = resolveLedgerCategory(snapshot, identifier);
     if (!category) {
       return NextResponse.json(
         { error: "Category not found." },
@@ -99,9 +103,10 @@ export async function PUT(
       );
     }
     return NextResponse.json(
-      setCategoryTags(
+      saveLedgerCategorySettings(
         db,
-        category,
+        snapshot,
+        category.id,
         body.selectedTags,
         body.spendingByTagEnabled,
         body.iconId,

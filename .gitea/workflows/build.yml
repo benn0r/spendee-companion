@@ -48,7 +48,7 @@ jobs:
         shell: sh
         run: |
           audit_log="$(mktemp)"
-          if npx --yes npm@11.16.0 audit --omit=dev --audit-level=critical >"${audit_log}" 2>&1; then
+          if npx --yes npm@11.16.0 audit --omit=dev --audit-level=high >"${audit_log}" 2>&1; then
             cat "${audit_log}"
             exit 0
           fi
@@ -180,3 +180,54 @@ jobs:
             | sed 's#[^a-z0-9_.-]#-#g')"
           docker build --build-arg APP_VERSION="${SOURCE_COMMIT}" --tag "${image}:${branch_tag}" .
           docker push "${image}:${branch_tag}"
+
+  deploy:
+    name: Deploy to Coolify
+    needs:
+      - publish-image
+    if: >-
+      gitea.event_name == 'push' &&
+      startsWith(gitea.ref, 'refs/heads/') &&
+      gitea.ref_name == vars.COOLIFY_DEPLOY_BRANCH
+    runs-on: ubuntu-latest-slim
+    timeout-minutes: 10
+    env:
+      COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+      COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
+      COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+    steps:
+      - name: Install deployment client
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates curl
+
+      - name: Validate deployment configuration
+        run: |
+          set -eu
+          test -n "${COOLIFY_API_URL}" || {
+            echo "Missing Gitea variable: COOLIFY_API_URL" >&2
+            exit 1
+          }
+          test -n "${COOLIFY_RESOURCE_UUID}" || {
+            echo "Missing Gitea variable: COOLIFY_RESOURCE_UUID" >&2
+            exit 1
+          }
+          test -n "${COOLIFY_API_TOKEN}" || {
+            echo "Missing Gitea secret: COOLIFY_API_TOKEN" >&2
+            exit 1
+          }
+
+      - name: Trigger Coolify deployment
+        run: |
+          set -eu
+          api_origin="${COOLIFY_API_URL%/}"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --get \
+            --url "${api_origin}/api/v1/deploy" \
+            --header "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+            --data-urlencode "uuid=${COOLIFY_RESOURCE_UUID}" \
+            --data-urlencode "force=false"

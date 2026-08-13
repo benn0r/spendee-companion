@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import {
-  getFilteredTransactionPage,
-  importTransactions,
+  attachValidationReferencesToRows,
   openDatabase,
   type Db,
 } from "../lib/db";
@@ -15,31 +14,57 @@ import {
 } from "../lib/validation-blacklist";
 import type {
   ExtractedDocument,
+  ExtractedDocumentTransaction,
+  ValidationAppTransaction,
   ValidationDiff,
 } from "../lib/validation-types";
 import {
   completeValidation,
-  createValidationManualMatch,
   createValidation,
+  createValidationManualMatch,
   deleteValidation,
   deleteValidationManualMatch,
   enqueueValidation,
   failValidation,
+  filterValidationTransactionsForRange,
   getValidation,
   getValidationThumbnail,
   getWalletValidationTransactions,
   listValidations,
+  recomputeValidationDiff,
   updateValidationDiff,
 } from "../lib/validations";
 
-function withDatabase(run: (db: Db) => void) {
+const previousCompatibility = process.env.SQLITE_LEDGER_COMPATIBILITY;
+delete process.env.SQLITE_LEDGER_COMPATIBILITY;
+
+after(() => {
+  if (previousCompatibility === undefined) {
+    delete process.env.SQLITE_LEDGER_COMPATIBILITY;
+  } else {
+    process.env.SQLITE_LEDGER_COMPATIBILITY = previousCompatibility;
+  }
+});
+
+async function withDatabase(
+  run: (db: Db) => void | Promise<void>,
+): Promise<void> {
   const db = openDatabase(":memory:");
   try {
-    run(db);
+    await run(db);
   } finally {
     db.close();
   }
 }
+
+const accountId = "c633567e-3de8-4d0c-b47b-c24520ae9e15";
+
+const statementTransaction: ExtractedDocumentTransaction = {
+  date: "2026-07-01",
+  description: "Potion supplies",
+  amount: -18.5,
+  currency: "CHF",
+};
 
 const document: ExtractedDocument = {
   title: "Crystal Bank statement",
@@ -48,14 +73,20 @@ const document: ExtractedDocument = {
   accountReference: "moon-42",
   documentCurrency: "CHF",
   metadata: { period: "July 2026" },
-  transactions: [
-    {
-      date: "2026-07-01",
-      description: "Potion supplies",
-      amount: -18.5,
-      currency: "CHF",
-    },
-  ],
+  transactions: [statementTransaction],
+};
+
+const actualTransaction: ValidationAppTransaction = {
+  id: "888236a4-d065-4504-85ae-3ef13c7af540",
+  accountId,
+  fingerprint: "actual:moon:potion-supplies",
+  date: "2026-07-01T12:00:00.000Z",
+  wallet: "Moon Purse",
+  type: "Expense",
+  categoryName: "Alchemy",
+  amount: -18.5,
+  currency: "CHF",
+  note: "Potion supplies",
 };
 
 const emptyDiff: ValidationDiff = {
@@ -64,128 +95,134 @@ const emptyDiff: ValidationDiff = {
   missingInDocument: [],
 };
 
-test("queued validations transition to complete and persist every result artifact", () => {
-  withDatabase((db) => {
+function completeRun(
+  db: Db,
+  input: {
+    document?: ExtractedDocument;
+    diff?: ValidationDiff;
+    wallet?: string;
+    accountId?: string;
+    title?: string;
+  } = {},
+) {
+  const runDocument = {
+    ...(input.document ?? document),
+    title: input.title ?? input.document?.title ?? document.title,
+  };
+  const id = enqueueValidation(db, {
+    wallet: input.wallet ?? actualTransaction.wallet,
+    accountId: input.accountId ?? accountId,
+    filename: `${runDocument.title}.pdf`,
+    pdf: Buffer.from("%PDF-fantasy"),
+  });
+  completeValidation(db, id, {
+    document: runDocument,
+    rawOpenAI: { responseId: "fantasy-response" },
+    dateFrom: "2026-07-01",
+    dateTo: "2026-07-03",
+    thumbnail: Buffer.from("fantasy-thumbnail"),
+    diff: input.diff ?? emptyDiff,
+    model: "fantasy-model",
+  });
+  return id;
+}
+
+test("validation artifacts persist without creating a local transaction ledger", async () => {
+  await withDatabase(async (db) => {
+    assert.equal(
+      db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'transactions'",
+        )
+        .get(),
+      undefined,
+    );
+
     const id = enqueueValidation(db, {
-      wallet: "Moon Purse",
+      wallet: actualTransaction.wallet,
+      accountId,
       filename: "crystal-statement.pdf",
       pdf: Buffer.from("%PDF-fantasy"),
     });
-
-    const queued = getValidation(db, id);
-    assert.equal(queued?.status, "processing");
-    assert.equal(queued?.title, "crystal-statement.pdf");
-    assert.deepEqual(queued?.diff, emptyDiff);
-    assert.deepEqual(listValidations(db)[0].counts, {
-      matching: 0,
-      missingInApp: 0,
-      missingInDocument: 0,
+    const queued = await getValidation(db, id, () => {
+      throw new Error("processing validations must not request transactions");
     });
-    assert.equal(
-      (
-        db
-          .prepare(
-            "SELECT length(pdf_blob) AS size FROM validation_runs WHERE id = ?",
-          )
-          .get(id) as { size: number }
-      ).size,
-      Buffer.byteLength("%PDF-fantasy"),
-    );
+    assert.equal(queued?.status, "processing");
+    assert.equal(queued?.accountId, accountId);
+    assert.deepEqual(queued?.diff, emptyDiff);
 
     const diff: ValidationDiff = {
-      matching: [
-        {
-          document: document.transactions[0],
-          app: {
-            id: 17,
-            date: "2026-07-01T09:00:00.000Z",
-            wallet: "Moon Purse",
-            type: "Expense",
-            categoryName: "Alchemy",
-            amount: -18.5,
-            currency: "CHF",
-            note: "Potion supplies",
-          },
-        },
-      ],
-      missingInApp: [
-        {
-          date: "2026-07-02",
-          description: "Dragon feed",
-          amount: -8,
-          currency: "CHF",
-        },
-      ],
+      matching: [{ document: statementTransaction, app: actualTransaction }],
+      missingInApp: [],
       missingInDocument: [],
     };
     completeValidation(db, id, {
       document,
       rawOpenAI: { responseId: "fantasy-response" },
       dateFrom: "2026-07-01",
-      dateTo: "2026-07-02",
+      dateTo: "2026-07-01",
       thumbnail: Buffer.from("fantasy-thumbnail"),
       diff,
       model: "fantasy-model",
     });
 
-    const completed = getValidation(db, id);
+    const completed = await getValidation(db, id, [actualTransaction]);
     assert.equal(completed?.status, "complete");
-    assert.equal(completed?.error, null);
-    assert.equal(completed?.model, "fantasy-model");
+    assert.equal(completed?.accountId, accountId);
     assert.deepEqual(completed?.metadata, document.metadata);
-    assert.deepEqual(completed?.extracted, document);
-    assert.deepEqual(completed?.rawOpenAI, { responseId: "fantasy-response" });
+    assert.deepEqual(completed?.rawOpenAI, {
+      responseId: "fantasy-response",
+    });
     assert.deepEqual(completed?.diff, diff);
     assert.deepEqual(
       getValidationThumbnail(db, id),
       Buffer.from("fantasy-thumbnail"),
     );
-    assert.equal(
-      (
-        db
-          .prepare("SELECT pdf_blob FROM validation_runs WHERE id = ?")
-          .get(id) as { pdf_blob: Buffer | null }
-      ).pdf_blob,
-      null,
-    );
+    assert.equal(listValidations(db)[0].accountId, accountId);
     assert.deepEqual(listValidations(db)[0].counts, {
       matching: 1,
-      missingInApp: 1,
+      missingInApp: 0,
       missingInDocument: 0,
     });
 
-    const updatedDiff: ValidationDiff = {
+    const updatedDiff = {
       ...emptyDiff,
-      missingInDocument: diff.matching.map((match) => match.app),
+      missingInDocument: [actualTransaction],
     };
     updateValidationDiff(db, id, updatedDiff);
-    assert.deepEqual(getValidation(db, id)?.diff, updatedDiff);
+    assert.deepEqual(
+      (await getValidation(db, id, [actualTransaction]))?.diff,
+      updatedDiff,
+    );
+    assert.throws(
+      () =>
+        getWalletValidationTransactions(
+          db,
+          "Moon Purse",
+          "2026-07-01",
+          "2026-07-02",
+        ),
+      /Supply live Actual Budget transactions/,
+    );
   });
 });
 
-test("failed and directly created validations expose stable read models", () => {
-  withDatabase((db) => {
+test("failed, directly created, and deleted validation runs retain their storage behavior", async () => {
+  await withDatabase(async (db) => {
     const failedId = enqueueValidation(db, {
       wallet: "Moon Purse",
+      accountId,
       filename: "broken.pdf",
       pdf: Buffer.from("%PDF-broken"),
     });
     failValidation(db, failedId, "The document is enchanted.");
-
-    const failed = getValidation(db, failedId);
+    const failed = await getValidation(db, failedId, []);
     assert.equal(failed?.status, "failed");
     assert.equal(failed?.error, "The document is enchanted.");
-    assert.equal(
-      (
-        db
-          .prepare("SELECT pdf_blob FROM validation_runs WHERE id = ?")
-          .get(failedId) as { pdf_blob: Buffer | null }
-      ).pdf_blob,
-      null,
-    );
 
     const created = createValidation(db, {
       wallet: "Crystal Vault",
+      accountId: "6d1029ec-42d4-46e1-9d62-ce2d082cf78f",
       filename: "complete.pdf",
       document,
       rawOpenAI: { completed: true },
@@ -197,479 +234,298 @@ test("failed and directly created validations expose stable read models", () => 
     });
     assert.equal(created?.status, "complete");
     assert.equal(created?.wallet, "Crystal Vault");
-    assert.equal(listValidations(db)[0].id, created?.id);
-    assert.equal(getValidation(db, 999_999), null);
+    assert.equal(await getValidation(db, 999_999, []), null);
     assert.equal(getValidationThumbnail(db, 999_999), null);
+    assert.equal(deleteValidation(db, created!.id), true);
+    assert.equal(deleteValidation(db, created!.id), false);
   });
 });
 
-test("validation transaction lookup is date-inclusive and ignores every transfer type", () => {
-  withDatabase((db) => {
-    const base = {
-      date: "2026-07-01T00:00:00.000Z",
-      wallet: "Moon Purse",
-      type: "Expense",
-      categoryName: "Alchemy",
-      amount: -10,
-      currency: "CHF",
-      note: "Start boundary",
-      labels: null,
-      author: "Nova",
-    };
-    const transactions = [
-      base,
+test("live validation ranges use stable account IDs, inclusive dates, and exclude transfers", () => {
+  const rows = filterValidationTransactionsForRange(
+    [
+      { ...actualTransaction, wallet: "Renamed Moon Purse" },
       {
-        ...base,
+        ...actualTransaction,
+        id: "end-boundary",
         date: "2026-07-02T23:59:59.000Z",
-        amount: -11,
-        note: "End boundary",
+        wallet: "Renamed Moon Purse",
       },
       {
-        ...base,
+        ...actualTransaction,
+        id: "outside-range",
         date: "2026-07-03T00:00:00.000Z",
-        amount: -12,
-        note: "After range",
       },
       {
-        ...base,
-        date: "2026-07-01T08:00:00.000Z",
-        type: "Transfer",
-        amount: -13,
-        note: "Transfer",
+        ...actualTransaction,
+        id: "wrong-account",
+        accountId: "other-account",
+        wallet: "Moon Purse",
       },
       {
-        ...base,
-        date: "2026-07-01T09:00:00.000Z",
-        type: "Incoming Transfer",
-        amount: 14,
-        note: "Incoming",
-      },
-      {
-        ...base,
-        date: "2026-07-01T10:00:00.000Z",
+        ...actualTransaction,
+        id: "transfer",
         type: "Outgoing Transfer",
-        amount: -15,
-        note: "Outgoing",
       },
-      {
-        ...base,
-        date: "2026-07-01T11:00:00.000Z",
-        wallet: "Crystal Vault",
-        amount: -16,
-        note: "Other wallet",
-      },
-      {
-        ...base,
-        date: "2026-07-01T12:00:00.000Z",
-        type: "Card Transfer Fee",
-        amount: -17,
-        note: "Ordinary expense",
-      },
-    ];
-    importTransactions(
-      db,
-      "validation-range.csv",
-      transactions.map((transaction, index) => ({
-        transaction,
-        sourceRow: index + 2,
-        raw: transaction,
-      })),
-    );
-    const hidden = db
-      .prepare("SELECT id FROM transactions WHERE note = 'End boundary'")
-      .get() as { id: number };
-    db.prepare(
-      "UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
-    ).run(hidden.id);
-
-    const rows = getWalletValidationTransactions(
-      db,
-      "Moon Purse",
-      "2026-07-01",
-      "2026-07-02",
-    );
-    assert.deepEqual(
-      rows.map((row) => row.note),
-      ["Start boundary", "Ordinary expense"],
-    );
-  });
+    ],
+    {
+      accountId,
+      wallet: "Moon Purse",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-02",
+    },
+  );
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    [actualTransaction.id, "end-boundary"],
+  );
 });
 
-test("transaction pages reconcile the newest completed validation after a full re-import", () => {
-  withDatabase((db) => {
-    const transaction = {
-      date: "2026-07-01T09:00:00.000Z",
-      wallet: "Moon Purse",
-      type: "Expense",
-      categoryName: "Alchemy",
-      amount: -18.5,
-      currency: "CHF",
-      note: "Potion supplies",
-      labels: null,
-      author: "Nova",
+test("transaction references reconcile the full Actual range before pagination and prefer the newest run", async () => {
+  await withDatabase(async (db) => {
+    const first = { ...actualTransaction, wallet: "Renamed Moon Purse" };
+    const second = {
+      ...first,
+      id: "5b1af536-8535-48c9-b1c3-cd2e913be1a1",
+      fingerprint: "actual:moon:second-potion",
+      note: "Second candidate",
     };
-    const otherWalletTransaction = {
-      ...transaction,
-      date: "2026-07-02T09:00:00.000Z",
-      wallet: "Crystal Vault",
-      note: "Unrelated vault transaction",
-    };
-    importTransactions(db, "original.csv", [
-      { transaction, sourceRow: 2, raw: transaction },
-      {
-        transaction: otherWalletTransaction,
-        sourceRow: 3,
-        raw: otherWalletTransaction,
-      },
-    ]);
-    const app = getWalletValidationTransactions(
-      db,
-      transaction.wallet,
-      "2026-07-01",
-      "2026-07-01",
-    )[0];
-    const matchingDiff = (description: string): ValidationDiff => ({
-      matching: [
-        {
-          document: {
-            date: "2026-07-01",
-            description,
-            amount: -18.5,
-            currency: "CHF",
-          },
-          app,
+    const createRun = (title: string) =>
+      completeRun(db, {
+        title,
+        wallet: "Original Moon Purse",
+        diff: {
+          matching: [{ document: statementTransaction, app: first }],
+          missingInApp: [],
+          missingInDocument: [second],
         },
-      ],
-      missingInApp: [],
-      missingInDocument: [],
-    });
-    const createMatch = (title: string, description: string) => {
-      createValidation(db, {
-        wallet: transaction.wallet,
-        filename: `${title}.pdf`,
-        document: {
-          ...document,
-          title,
-          transactions: [{ ...document.transactions[0], description }],
-        },
-        rawOpenAI: {},
-        dateFrom: "2026-07-01",
-        dateTo: "2026-07-01",
-        thumbnail: Buffer.from(title),
-        diff: matchingDiff(description),
-        model: "fantasy-model",
       });
-      return (
-        db.prepare("SELECT MAX(id) AS id FROM validation_runs").get() as {
-          id: number;
-        }
-      ).id;
-    };
-    const filters = {
-      wallets: [transaction.wallet],
-      types: [],
-      categories: [],
-      tags: [],
-      authors: [],
-    };
-
-    const olderId = createMatch("Older statement", "Old document wording");
-    const latestId = createMatch("Latest statement", "Latest document wording");
+    const olderId = createRun("Older statement");
+    const newestId = createRun("Newest statement");
     db.prepare(
       "UPDATE validation_runs SET created_at = '2026-07-01 12:00:00' WHERE id IN (?, ?)",
-    ).run(olderId, latestId);
+    ).run(olderId, newestId);
 
-    assert.deepEqual(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation,
-      {
-        id: latestId,
-        title: "Latest statement",
-        description: "Latest document wording",
-      },
-    );
-
-    const ignoredId = createMatch(
-      "Failed statement",
-      "Failed document wording",
-    );
-    db.prepare(
-      "UPDATE validation_runs SET status = 'failed', created_at = '2099-01-01 00:00:00' WHERE id = ?",
-    ).run(ignoredId);
-    assert.equal(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation?.id,
-      latestId,
-    );
-
-    importTransactions(db, "duplicate.csv", [
-      { transaction, sourceRow: 2, raw: transaction },
-    ]);
-    assert.equal(
-      getFilteredTransactionPage(db, "duplicates", filters, 1, 25).rows[0]
-        .validation,
-      null,
-    );
-
-    importTransactions(
+    const secondPage = attachValidationReferencesToRows(
       db,
-      "fresh-snapshot.csv",
-      [{ transaction, sourceRow: 2, raw: transaction }],
-      {
-        fullImport: true,
-      },
+      [second],
+      [first, second],
     );
-    const reimportedId = (
-      db
-        .prepare("SELECT id FROM transactions WHERE wallet = ?")
-        .get(transaction.wallet) as { id: number }
-    ).id;
-    assert.notEqual(
-      reimportedId,
-      app.id,
-      "the regression requires a fresh database ID",
-    );
-    assert.deepEqual(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation,
-      {
-        id: latestId,
-        title: "Latest statement",
-        description: "Latest document wording",
-      },
-    );
-
-    const replacement = {
-      ...transaction,
-      amount: -19,
-      note: "Entirely different replacement",
-    };
-    importTransactions(
+    assert.equal(secondPage[0].validation, null);
+    const firstPage = attachValidationReferencesToRows(
       db,
-      "replacement.csv",
-      [{ transaction: replacement, sourceRow: 2, raw: replacement }],
-      {
-        fullImport: true,
-      },
+      [first],
+      [first, second],
     );
-    const replacementId = (
-      db
-        .prepare("SELECT id FROM transactions WHERE wallet = ?")
-        .get(transaction.wallet) as { id: number }
-    ).id;
-    assert.equal(
-      replacementId,
-      reimportedId,
-      "test requires SQLite to reuse the replaced transaction ID",
-    );
-    assert.equal(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation,
-      null,
-    );
-  });
-});
-
-test("validation reconciliation consumes matches across the full range before paginating", () => {
-  withDatabase((db) => {
-    const first = {
-      date: "2026-07-01T09:00:00.000Z",
-      wallet: "Moon Purse",
-      type: "Expense",
-      categoryName: "Alchemy",
-      amount: -18.5,
-      currency: "CHF",
-      note: "First deterministic match",
-      labels: null,
-      author: "Nova",
-    };
-    const second = { ...first, note: "Second matching candidate" };
-    importTransactions(db, "same-posting-key.csv", [
-      { transaction: first, sourceRow: 2, raw: first },
-      { transaction: second, sourceRow: 3, raw: second },
-    ]);
-    const firstApp = getWalletValidationTransactions(
-      db,
-      first.wallet,
-      "2026-07-01",
-      "2026-07-01",
-    )[0];
-    const validationId = createValidation(db, {
-      wallet: first.wallet,
-      filename: "single-line-statement.pdf",
-      document,
-      rawOpenAI: {},
-      dateFrom: "2026-07-01",
-      dateTo: "2026-07-01",
-      thumbnail: Buffer.from("single-line"),
-      diff: {
-        matching: [{ document: document.transactions[0], app: firstApp }],
-        missingInApp: [],
-        missingInDocument: [
-          getWalletValidationTransactions(
-            db,
-            first.wallet,
-            "2026-07-01",
-            "2026-07-01",
-          )[1],
-        ],
-      },
-      model: "fantasy-model",
-    })?.id;
-    const filters = {
-      wallets: [first.wallet],
-      types: [],
-      categories: [],
-      tags: [],
-      authors: [],
-    };
-
-    const newestPage = getFilteredTransactionPage(
-      db,
-      "transactions",
-      filters,
-      1,
-      1,
-    );
-    assert.equal(newestPage.rows[0].note, second.note);
-    assert.equal(newestPage.rows[0].validation, null);
-
-    const oldestPage = getFilteredTransactionPage(
-      db,
-      "transactions",
-      filters,
-      2,
-      1,
-    );
-    assert.equal(oldestPage.rows[0].note, first.note);
-    assert.deepEqual(oldestPage.rows[0].validation, {
-      id: validationId,
-      title: document.title,
-      description: document.transactions[0].description,
+    assert.deepEqual(firstPage[0].validation, {
+      id: newestId,
+      title: "Newest statement",
+      description: statementTransaction.description,
     });
   });
 });
 
-test("manual validation matches and transaction links survive full wallet replacement", () => {
-  withDatabase((db) => {
-    const candidate = {
-      date: "2026-07-02T09:00:00.000Z",
-      wallet: "Moon Purse",
-      type: "Expense",
-      categoryName: "Food",
-      amount: -18,
-      currency: "CHF",
-      note: "Comet cafe",
-      labels: null,
-      author: "Nova",
-    };
-    const importCandidate = (fullImport = false) =>
-      importTransactions(
-        db,
-        fullImport ? "fresh-wallet.csv" : "wallet.csv",
-        [{ transaction: candidate, sourceRow: 2, raw: candidate }],
-        { fullImport },
-      );
-    importCandidate();
-    const app = getWalletValidationTransactions(
-      db,
-      candidate.wallet,
-      "2026-07-02",
-      "2026-07-02",
-    )[0];
-    const statementTransaction = {
+test("manual matches use live UUID rows and survive account renames and row replacement", async () => {
+  await withDatabase(async (db) => {
+    const manualDocumentTransaction = {
       date: "2026-07-03",
       description: "Comet bakery",
       amount: -18,
       currency: "CHF",
     };
-    const validation = createValidation(db, {
-      wallet: candidate.wallet,
-      filename: "comet-statement.pdf",
-      document: { ...document, transactions: [statementTransaction] },
-      rawOpenAI: {},
-      dateFrom: "2026-07-02",
-      dateTo: "2026-07-03",
-      thumbnail: Buffer.from("thumbnail"),
+    const candidate: ValidationAppTransaction = {
+      ...actualTransaction,
+      id: "98c66607-078b-41f3-af5d-48f4143ebfe1",
+      fingerprint: "actual:stable-import:comet",
+      date: "2026-07-02",
+      amount: -18,
+      categoryName: "Food",
+      note: "Comet cafe",
+    };
+    const validationId = completeRun(db, {
+      document: { ...document, transactions: [manualDocumentTransaction] },
       diff: {
         matching: [],
-        missingInApp: [statementTransaction],
-        missingInDocument: [app],
+        missingInApp: [manualDocumentTransaction],
+        missingInDocument: [candidate],
       },
-      model: "fantasy-model",
     });
-    assert.ok(validation);
-    assert.equal(validation.suggestions[0].app.id, app.id);
-    const matched = createValidationManualMatch(
+    const validation = await getValidation(db, validationId, [candidate]);
+    assert.equal(validation?.suggestions[0].app.id, candidate.id);
+
+    const matched = await createValidationManualMatch(
       db,
-      validation.id,
-      validation.suggestions[0].documentKey,
-      String(validation.suggestions[0].app.fingerprint),
+      validationId,
+      validation!.suggestions[0].documentKey,
+      candidate.fingerprint!,
+      [candidate],
     );
     assert.equal(matched?.diff.matching[0].manual, true);
-    assert.equal(matched?.diff.missingInApp.length, 0);
-    const unmatched = deleteValidationManualMatch(
+    assert.equal(typeof matched?.diff.matching[0].app.id, "string");
+
+    const replacement = {
+      ...candidate,
+      id: "144b8e6c-f06f-4555-95f8-f8391632707c",
+      wallet: "Moon Purse Renamed",
+    };
+    const fresh = await getValidation(db, validationId, [replacement]);
+    assert.equal(fresh?.diff.matching[0].manual, true);
+    assert.equal(fresh?.diff.matching[0].app.id, replacement.id);
+
+    const unmatched = await deleteValidationManualMatch(
       db,
-      validation.id,
-      validation.suggestions[0].documentKey,
+      validationId,
+      validation!.suggestions[0].documentKey,
+      [replacement],
     );
     assert.equal(unmatched?.diff.matching.length, 0);
     assert.equal(unmatched?.diff.missingInApp.length, 1);
-    assert.equal(unmatched?.suggestions[0].app.note, candidate.note);
-    createValidationManualMatch(
-      db,
-      validation.id,
-      unmatched!.suggestions[0].documentKey,
-      String(unmatched!.suggestions[0].app.fingerprint),
-    );
+    assert.equal(unmatched?.suggestions[0].app.id, replacement.id);
+  });
+});
 
-    const other = { ...candidate, wallet: "Cloud Vault", note: "Anchor row" };
-    importTransactions(db, "other-wallet.csv", [
-      { transaction: other, sourceRow: 2, raw: other },
-    ]);
-    importCandidate(true);
-    const fresh = getValidation(db, validation.id);
-    assert.notEqual(fresh?.diff.matching[0].app.id, app.id);
-    assert.equal(fresh?.diff.matching[0].manual, true);
-    const filters = {
-      wallets: [candidate.wallet],
-      types: [],
-      categories: [],
-      tags: [],
-      authors: [],
-    };
-    assert.deepEqual(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation,
+test("deleting one manual match keeps the remaining live matches in the persisted diff", async () => {
+  await withDatabase(async (db) => {
+    const documents: ExtractedDocumentTransaction[] = [
       {
-        id: validation.id,
-        title: document.title,
-        description: statementTransaction.description,
+        date: "2026-07-02",
+        description: "Comet bakery",
+        amount: -18,
+        currency: "CHF",
       },
+      {
+        date: "2026-07-03",
+        description: "Dragon tram",
+        amount: -7,
+        currency: "CHF",
+      },
+    ];
+    const candidates: ValidationAppTransaction[] = [
+      {
+        ...actualTransaction,
+        id: "5ce8997e-676f-44f9-9730-4925c42e670b",
+        fingerprint: "actual:stable-import:comet-bakery",
+        date: "2026-07-01",
+        amount: -18,
+        note: "Comet cafe",
+      },
+      {
+        ...actualTransaction,
+        id: "eae7d902-3fbc-429d-bf04-ee46ac944bc5",
+        fingerprint: "actual:stable-import:dragon-tram",
+        date: "2026-07-02",
+        amount: -7,
+        note: "Dragon transit",
+      },
+    ];
+    const validationId = completeRun(db, {
+      document: { ...document, transactions: documents },
+      diff: {
+        matching: [],
+        missingInApp: documents,
+        missingInDocument: candidates,
+      },
+    });
+
+    const initial = await getValidation(db, validationId, candidates);
+    assert.equal(initial?.suggestions.length, 2);
+    const first = initial!.suggestions[0];
+    const afterFirst = await createValidationManualMatch(
+      db,
+      validationId,
+      first.documentKey,
+      first.app.fingerprint!,
+      candidates,
+    );
+    const second = afterFirst!.suggestions[0];
+    await createValidationManualMatch(
+      db,
+      validationId,
+      second.documentKey,
+      second.app.fingerprint!,
+      candidates,
     );
 
-    assert.equal(deleteValidation(db, validation.id), true);
-    assert.equal(getValidation(db, validation.id), null);
+    const afterDelete = await deleteValidationManualMatch(
+      db,
+      validationId,
+      first.documentKey,
+      candidates,
+    );
+    assert.equal(afterDelete?.diff.matching.length, 1);
+    assert.equal(afterDelete?.diff.matching[0].app.id, second.app.id);
+    const persisted = db
+      .prepare("SELECT diff_json AS diffJson FROM validation_runs WHERE id = ?")
+      .get(validationId) as { diffJson: string };
+    const persistedDiff = JSON.parse(persisted.diffJson) as ValidationDiff;
+    assert.equal(persistedDiff.matching.length, 1);
+    assert.equal(persistedDiff.matching[0].app.id, second.app.id);
+  });
+});
+
+test("blacklist recomputation preserves stored manual links for later restoration", async () => {
+  await withDatabase(async (db) => {
+    const manualDocumentTransaction = {
+      date: "2026-07-03",
+      description: "Comet bakery",
+      amount: -18,
+      currency: "CHF",
+    };
+    const candidate: ValidationAppTransaction = {
+      ...actualTransaction,
+      id: "5b956cd1-af75-460e-9bc3-b834ce8b03f8",
+      fingerprint: "actual:stable-import:blacklist-comet",
+      date: "2026-07-02",
+      amount: -18,
+      note: "Comet cafe",
+    };
+    const validationId = completeRun(db, {
+      document: { ...document, transactions: [manualDocumentTransaction] },
+      diff: {
+        matching: [],
+        missingInApp: [manualDocumentTransaction],
+        missingInDocument: [candidate],
+      },
+    });
+    const validation = await getValidation(db, validationId, [candidate]);
+    await createValidationManualMatch(
+      db,
+      validationId,
+      validation!.suggestions[0].documentKey,
+      candidate.fingerprint!,
+      [candidate],
+    );
+
+    addValidationBlacklist(db, manualDocumentTransaction.description);
+    const blacklisted = await recomputeValidationDiff(db, validationId, [
+      candidate,
+    ]);
+    assert.equal(blacklisted?.diff.matching.length, 0);
+    assert.equal(blacklisted?.diff.missingInApp.length, 0);
+    assert.equal(blacklisted?.diff.missingInDocument[0].id, candidate.id);
     assert.equal(
       (
         db
           .prepare(
             "SELECT COUNT(*) AS count FROM validation_manual_matches WHERE validation_id = ?",
           )
-          .get(validation.id) as { count: number }
+          .get(validationId) as { count: number }
       ).count,
-      0,
+      1,
     );
-    assert.equal(
-      getFilteredTransactionPage(db, "transactions", filters, 1, 25).rows[0]
-        .validation,
-      null,
-    );
+
+    const entry = listValidationBlacklist(db)[0];
+    assert.equal(deleteValidationBlacklist(db, entry.id), true);
+    const restored = await recomputeValidationDiff(db, validationId, [
+      candidate,
+    ]);
+    assert.equal(restored?.diff.matching[0].manual, true);
+    assert.equal(restored?.diff.matching[0].app.id, candidate.id);
   });
 });
 
-test("description blacklist normalizes, de-duplicates, filters, and deletes entries", () => {
-  withDatabase((db) => {
+test("description blacklist normalizes, de-duplicates, filters, and deletes entries", async () => {
+  await withDatabase((db) => {
     assert.equal(
       normalizeBlacklistedDescription("  Dragon   FEED  "),
       "dragon feed",
@@ -678,7 +534,6 @@ test("description blacklist normalizes, de-duplicates, filters, and deletes entr
       () => addValidationBlacklist(db, "   "),
       /Description is required/,
     );
-
     addValidationBlacklist(db, "  Dragon   Feed ");
     addValidationBlacklist(db, "dragon feed");
     addValidationBlacklist(db, "Alchemy fee");
@@ -686,26 +541,18 @@ test("description blacklist normalizes, de-duplicates, filters, and deletes entr
       listValidationBlacklist(db).map((entry) => entry.description),
       ["Alchemy fee", "dragon feed"],
     );
-
-    const filtered = filterBlacklistedTransactions(db, [
-      {
-        date: "2026-07-01",
-        description: "DRAGON    FEED",
-        amount: -8,
-        currency: "CHF",
-      },
-      {
-        date: "2026-07-02",
-        description: "Potion supplies",
-        amount: -18.5,
-        currency: "CHF",
-      },
-    ]);
     assert.deepEqual(
-      filtered.map((transaction) => transaction.description),
-      ["Potion supplies"],
+      filterBlacklistedTransactions(db, [
+        {
+          date: "2026-07-01",
+          description: "DRAGON    FEED",
+          amount: -8,
+          currency: "CHF",
+        },
+        statementTransaction,
+      ]).map((transaction) => transaction.description),
+      [statementTransaction.description],
     );
-
     const entry = listValidationBlacklist(db).find(
       (candidate) => candidate.description === "dragon feed",
     );

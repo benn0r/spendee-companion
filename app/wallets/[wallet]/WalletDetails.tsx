@@ -13,11 +13,13 @@ import type { CategoryAppearance } from "@/lib/category-appearance";
 import { useI18n } from "@/app/I18nProvider";
 
 type Row = {
-  id: number;
+  id: string;
   date: string;
   wallet: string;
+  accountId?: string;
   type: string;
   categoryName: string | null;
+  categoryId?: string | null;
   amount: number;
   currency: string;
   note: string | null;
@@ -57,7 +59,6 @@ const emptyData: WalletData = {
 function formatDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
-    timeStyle: "short",
   }).format(new Date(value));
 }
 
@@ -186,11 +187,11 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
         <section className="category-hero wallet-detail-hero">
           <div className="category-title">
             <span className="wallet-symbol wallet-color-0">
-              {wallet.slice(0, 1)}
+              {(data.wallet || wallet).slice(0, 1)}
             </span>
             <div>
               <p className="eyebrow">WALLET</p>
-              <h1>{wallet}</h1>
+              <h1>{data.wallet || "Wallet"}</h1>
               <p>
                 {data.total.toLocaleString(intlLocale)} active{" "}
                 {data.total === 1 ? "transaction" : "transactions"}
@@ -241,7 +242,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                 <div>
                   <p className="eyebrow">WALLET</p>
                   <h2 id="wallet-settings-title">Wallet settings</h2>
-                  <span>Set the starting amount for each currency.</span>
+                  <span>Edit Actual&apos;s starting-balance transaction.</span>
                 </div>
                 <button
                   aria-label="Close settings"
@@ -254,8 +255,8 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                 <div className="wallet-settings-heading">
                   <b>Starting amounts</b>
                   <span>
-                    Starting amounts are added to the imported transaction
-                    total.
+                    Saving updates this account&apos;s existing starting-balance
+                    transaction in Actual Budget.
                   </span>
                 </div>
                 {data.totals.map((total) => (
@@ -370,7 +371,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                               {row.categoryName ? (
                                 <Link
                                   className="category-link category-link-with-icon"
-                                  href={`/categories/${categorySlug(row.categoryName)}`}
+                                  href={`/categories/${encodeURIComponent(row.categoryId ?? categorySlug(row.categoryName))}`}
                                 >
                                   <CategoryIcon
                                     appearance={

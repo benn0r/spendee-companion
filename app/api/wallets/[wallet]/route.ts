@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import {
-  getDatabase,
-  getWalletTransactions,
-  setWalletStartingBalance,
-} from "@/lib/db";
+import { getDatabase, getValidUntil } from "@/lib/db";
 import { parsePagination } from "@/lib/pagination";
+import {
+  getLedgerAccount,
+  getLedgerSnapshot,
+  setLedgerStartingBalance,
+} from "@/lib/ledger-service";
+import { resolveLedgerAccount } from "@/lib/ledger-metadata";
 
 export const runtime = "nodejs";
 
@@ -15,11 +17,18 @@ export async function GET(
   const wallet = (await params).wallet;
   const { searchParams } = new URL(request.url);
   const { page, pageSize } = parsePagination(searchParams);
-  const result = getWalletTransactions(getDatabase(), wallet, page, pageSize);
-  if (!result.total) {
+  const snapshot = await getLedgerSnapshot();
+  const account = resolveLedgerAccount(snapshot, wallet);
+  const result = account
+    ? getLedgerAccount(snapshot, account.id, page, pageSize)
+    : null;
+  if (!result) {
     return NextResponse.json({ error: "Wallet not found." }, { status: 404 });
   }
-  return NextResponse.json(result);
+  return NextResponse.json({
+    ...result,
+    validUntil: getValidUntil(getDatabase()),
+  });
 }
 
 export async function PUT(
@@ -46,8 +55,18 @@ export async function PUT(
         { status: 400 },
       );
     }
+    const snapshot = await getLedgerSnapshot();
+    const account = resolveLedgerAccount(snapshot, wallet);
+    if (!account) {
+      return NextResponse.json({ error: "Wallet not found." }, { status: 404 });
+    }
     return NextResponse.json(
-      setWalletStartingBalance(getDatabase(), wallet, currency, startingAmount),
+      await setLedgerStartingBalance(
+        snapshot,
+        account.id,
+        currency,
+        startingAmount,
+      ),
     );
   } catch (error) {
     return NextResponse.json(

@@ -153,7 +153,7 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
     page,
     walletSnapshot,
     `validation-full-reimport-${variant}.csv`,
-    /3 imported · 0 duplicates separated · 3 previous transactions replaced/,
+    /0 imported to Actual · 0 already present/,
     { fullImport: true },
   );
   await page.goto(`/validate?validation=${validationId}`);
@@ -257,7 +257,7 @@ test("links matched transactions to their exact validation and document descript
     page,
     matchedWalletSnapshot,
     `validation-link-full-reimport-${variant}.csv`,
-    /1 file processed · 1 imported · 0 duplicates separated · 2 previous transactions replaced/,
+    /1 file processed · 0 imported to Actual · 0 already present/,
     { fullImport: true },
   );
   const reimportedId = (
@@ -265,7 +265,7 @@ test("links matched transactions to their exact validation and document descript
   ).rows.find(
     (row: { note: string }) => row.note === `Nebula lunch ${variant}`,
   ).id;
-  expect(reimportedId).not.toBe(originalId);
+  expect(reimportedId).toBe(originalId);
   await expect(
     transactionRow.locator(".transaction-validation-description"),
   ).toHaveText("Nebula lunch");

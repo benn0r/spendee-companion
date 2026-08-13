@@ -1,5 +1,5 @@
-import { getDatabase, importTransactions } from "./db";
 import { parseImportFile } from "./import-xlsx";
+import { importSpendeeTransactions } from "./ledger-service";
 
 export type ImportFile = { name: string; buffer: Buffer };
 
@@ -9,7 +9,6 @@ export async function importFiles(
 ) {
   if (!files.length) throw new Error("Choose at least one XLSX or CSV file.");
 
-  const db = getDatabase();
   const results = [];
   const fullImportWallets = new Set<string>();
   for (const file of files) {
@@ -34,12 +33,21 @@ export async function importFiles(
         }
         fullImportWallets.add(wallet);
       }
+      const imported = await importSpendeeTransactions(rows);
+      if (imported.errors.length) {
+        throw new Error(imported.errors.join(" "));
+      }
       results.push({
         filename: file.name,
         ok: true as const,
-        ...importTransactions(db, file.name, rows, {
-          fullImport: options.full,
-        }),
+        total: imported.total,
+        imported: imported.added,
+        duplicates: Math.max(
+          0,
+          imported.total - imported.added - imported.updated,
+        ),
+        updated: imported.updated,
+        replaced: 0,
       });
     } catch (error) {
       results.push({

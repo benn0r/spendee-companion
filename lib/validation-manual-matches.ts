@@ -73,7 +73,8 @@ export function bestValidationCandidate(
     }))
     .sort(
       (left, right) =>
-        left.score - right.score || left.candidate.id - right.candidate.id,
+        left.score - right.score ||
+        String(left.candidate.id).localeCompare(String(right.candidate.id)),
     )[0]?.candidate;
 }
 
@@ -85,7 +86,7 @@ export function applyStoredValidationMatches(
   const storedByDocument = new Map(
     stored.map((match) => [match.documentKey, match.appFingerprint]),
   );
-  const consumedApps = new Set<number>();
+  const consumedApps = new Set<string | number>();
   const consumedDocuments = new Set<string>();
   const manualMatches: ValidationDiff["matching"] = [];
 

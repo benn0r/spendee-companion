@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { actualMockDataPath } from "./tests/support/fantasy-actual";
 
 const port = 3100;
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
@@ -49,6 +50,7 @@ export default defineConfig({
     command: "node --import tsx tests/e2e/start-server.ts",
     env: {
       APP_VERSION: "fantasy-e2e-build",
+      ACTUAL_MOCK_DATA_PATH: actualMockDataPath,
       HOSTNAME: "127.0.0.1",
       PLAYWRIGHT_USE_PRODUCTION_BUILD: useProductionBuild ? "1" : "0",
       PORT: String(port),

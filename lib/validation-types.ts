@@ -16,11 +16,13 @@ export type ExtractedDocument = {
 };
 
 export type ValidationAppTransaction = {
-  id: number;
+  id: string | number;
+  accountId?: string;
   fingerprint?: string;
   date: string;
   wallet: string;
   type: string;
+  startingBalance?: boolean;
   categoryName: string | null;
   amount: number;
   currency: string;

@@ -1,20 +1,13 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { seedFantasyActualFromCsv } from "../support/fantasy-actual";
 
 export function fantasyData(testInfo: TestInfo, scenario: string) {
   const device = testInfo.project.name === "chromium" ? "Desktop" : "Mobile";
   const retry = testInfo.retry ? ` Retry ${testInfo.retry}` : "";
   const variant = `${scenario} ${device} Run ${testInfo.repeatEachIndex}${retry}`;
-  const dateParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
-      day: "2-digit",
-      month: "2-digit",
-      timeZone: "Europe/Zurich",
-      year: "numeric",
-    })
-      .formatToParts(new Date())
-      .map((part) => [part.type, part.value]),
-  );
-  const month = `${dateParts.year}-${dateParts.month}`;
+  // The mocked statement fixtures use July 2026. Keeping the fantasy ledger in
+  // that month makes reconciliation deterministic on every CI run.
+  const month = "2026-07";
   const dates = [`${month}-01`, `${month}-02`, `${month}-03`];
   const monthLabel = new Intl.DateTimeFormat("en-GB", {
     month: "long",
@@ -31,6 +24,7 @@ export function fantasyData(testInfo: TestInfo, scenario: string) {
     `${dates[1]}T09:00:00+00:00,${wallet},Income,${rewardCategory},120,CHF,Dragon bounty ${variant},quest,Orion Vale`,
     `${dates[2]}T10:00:00+00:00,Cloud Vault ${variant},Expense,${travelCategory},-45,CHF,Gate fare ${variant},travel,Lyra Moss`,
   ].join("\n");
+  seedFantasyActualFromCsv(csv);
   return {
     category,
     csv,
@@ -57,6 +51,7 @@ export async function importCsv(
   expected: RegExp,
   options: { fullImport?: boolean } = {},
 ) {
+  seedFantasyActualFromCsv(csv);
   await page.getByRole("button", { name: "Import files" }).click();
   const dialog = page.getByRole("dialog", { name: "Choose export files" });
   if (options.fullImport) await dialog.getByRole("checkbox").check();

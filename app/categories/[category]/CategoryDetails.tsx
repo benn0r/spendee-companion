@@ -23,9 +23,10 @@ import { assetUrl } from "@/lib/assets";
 import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
-  id: number;
+  id: string;
   date: string;
   wallet: string;
+  accountId?: string;
   type: string;
   categoryName: string | null;
   amount: number;
@@ -97,7 +98,6 @@ const emptyFilterOptions: FilterOptions = {
 function formatDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
-    timeStyle: "short",
   }).format(new Date(value));
 }
 
@@ -116,15 +116,15 @@ function formatMonth(value: string, locale: string) {
 }
 
 const chartColors = [
-  "#12c48b",
-  "#1eadcf",
-  "#feb100",
-  "#f964a0",
-  "#7c6ee6",
-  "#fb6666",
-  "#53a653",
-  "#8f6b4f",
-  "#344554",
+  "#45b29d",
+  "#efc94c",
+  "#e27a3f",
+  "#df5a49",
+  "#5f91b8",
+  "#e2a37f",
+  "#55dbc1",
+  "#efda97",
+  "#df948a",
 ];
 
 function pieGradient(segments: Array<{ amount: number }>, total: number) {
@@ -614,7 +614,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                               <td>
                                 <Link
                                   className="wallet-link"
-                                  href={`/wallets/${encodeURIComponent(row.wallet)}`}
+                                  href={`/wallets/${encodeURIComponent(row.accountId ?? row.wallet)}`}
                                 >
                                   <span className="wallet">
                                     {row.wallet.slice(0, 1)}

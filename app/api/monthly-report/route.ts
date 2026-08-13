@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { getDatabase } from "@/lib/db";
+import { getLedgerSnapshot } from "@/lib/ledger-service";
 import {
-  getDatabase,
-  getMonthlyReport,
-  setMonthlyReportColumns,
-} from "@/lib/db";
+  getLedgerMonthlyReport,
+  saveLedgerMonthlyColumns,
+} from "@/lib/ledger-metadata";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  return NextResponse.json(getMonthlyReport(getDatabase()));
+  return NextResponse.json(
+    getLedgerMonthlyReport(getDatabase(), await getLedgerSnapshot()),
+  );
 }
 
 export async function PUT(request: Request) {
@@ -34,15 +37,18 @@ export async function PUT(request: Request) {
         { status: 400 },
       );
     }
-    setMonthlyReportColumns(
-      getDatabase(),
+    const db = getDatabase();
+    const snapshot = await getLedgerSnapshot();
+    saveLedgerMonthlyColumns(
+      db,
+      snapshot,
       body.columns as Array<{
         name: string;
         categories: string[];
         budget?: number | null;
       }>,
     );
-    return NextResponse.json(getMonthlyReport(getDatabase()));
+    return NextResponse.json(getLedgerMonthlyReport(db, snapshot));
   } catch (error) {
     return NextResponse.json(
       {

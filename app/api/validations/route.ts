@@ -1,5 +1,5 @@
 import { after, NextResponse } from "next/server";
-import { getDatabase, getWalletSummaries } from "@/lib/db";
+import { getDatabase } from "@/lib/db";
 import {
   extractValidationDocument,
   validationModel,
@@ -14,9 +14,11 @@ import {
   completeValidation,
   enqueueValidation,
   failValidation,
-  getWalletValidationTransactions,
+  filterValidationTransactionsForRange,
   listValidations,
 } from "@/lib/validations";
+import { getLedgerSnapshot } from "@/lib/ledger-service";
+import { resolveLedgerAccount } from "@/lib/ledger-metadata";
 
 export const runtime = "nodejs";
 
@@ -59,16 +61,20 @@ export async function POST(request: Request) {
     }
 
     const db = getDatabase();
-    const wallets = new Set(
-      getWalletSummaries(db).map((summary) => summary.wallet),
-    );
-    if (!wallets.has(wallet))
+    const snapshot = await getLedgerSnapshot();
+    const account = resolveLedgerAccount(snapshot, wallet);
+    if (!account)
       return NextResponse.json(
         { error: "The selected wallet does not exist." },
         { status: 400 },
       );
 
-    const id = enqueueValidation(db, { wallet, filename: file.name, pdf });
+    const id = enqueueValidation(db, {
+      wallet: account.name,
+      accountId: account.id,
+      filename: file.name,
+      pdf,
+    });
     // Persist the processing state before returning 202 so clients can poll it.
     // Both terminal paths discard the temporary PDF while retaining the result.
     const processValidation = async () => {
@@ -78,11 +84,18 @@ export async function POST(request: Request) {
           renderValidationThumbnail(pdf),
         ]);
         const { dateFrom, dateTo } = validationDateRange(document.transactions);
-        const appTransactions = getWalletValidationTransactions(
-          db,
-          wallet,
-          dateFrom,
-          dateTo,
+        const liveSnapshot = await getLedgerSnapshot({ forceSync: true });
+        if (!liveSnapshot.accounts.some((item) => item.id === account.id)) {
+          throw new Error("The selected wallet no longer exists.");
+        }
+        const appTransactions = filterValidationTransactionsForRange(
+          liveSnapshot.transactions,
+          {
+            accountId: account.id,
+            wallet: account.name,
+            dateFrom,
+            dateTo,
+          },
         );
         completeValidation(db, id, {
           document,

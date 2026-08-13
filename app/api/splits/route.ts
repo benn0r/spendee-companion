@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { createSplit, getDatabase, getSplits } from "@/lib/db";
+import { createSplitFromTransactions, getDatabase, getSplits } from "@/lib/db";
 import { normalizeLocale } from "@/lib/i18n";
+import {
+  getLedgerSnapshot,
+  getLedgerTransactionsByIds,
+} from "@/lib/ledger-service";
 
 export const runtime = "nodejs";
 
@@ -26,7 +30,7 @@ export async function POST(request: Request) {
     if (
       !Array.isArray(body.transactionIds) ||
       !body.transactionIds.every(
-        (id) => typeof id === "number" && Number.isInteger(id),
+        (id) => typeof id === "string" && id.trim().length > 0,
       )
     ) {
       return NextResponse.json(
@@ -56,10 +60,19 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const split = createSplit(
+    const snapshot = await getLedgerSnapshot();
+    const transactionIds = body.transactionIds as string[];
+    const transactions = getLedgerTransactionsByIds(snapshot, transactionIds);
+    if (transactions.length !== new Set(transactionIds).size) {
+      return NextResponse.json(
+        { error: "One or more selected transactions no longer exist." },
+        { status: 409 },
+      );
+    }
+    const split = createSplitFromTransactions(
       getDatabase(),
       body.title,
-      body.transactionIds,
+      transactions,
       body.customPositions as Array<{ description: string; amount: number }>,
       body.splitCount,
       normalizeLocale(body.locale),

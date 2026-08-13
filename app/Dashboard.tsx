@@ -25,12 +25,14 @@ type Stats = {
   wallets: number;
 };
 type Row = {
-  id: number;
-  duplicateOfId?: number;
+  id: string;
+  duplicateOfId?: string;
   date: string;
   wallet: string;
+  accountId?: string;
   type: string;
   categoryName: string | null;
+  categoryId?: string | null;
   amount: number;
   currency: string;
   note: string | null;
@@ -57,6 +59,7 @@ type ImportResult = {
   };
 };
 type WalletSummary = {
+  id: string;
   wallet: string;
   transactionCount: number;
   totals: Array<{
@@ -87,7 +90,6 @@ const emptyFilterOptions: FilterOptions = {
 function formatDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
-    timeStyle: "short",
   }).format(new Date(value));
 }
 
@@ -145,7 +147,7 @@ export default function Dashboard() {
   const [validUntil, setValidUntil] = useState("");
   const [savedValidUntil, setSavedValidUntil] = useState("");
   const [savingValidUntil, setSavingValidUntil] = useState(false);
-  const [selectedDuplicates, setSelectedDuplicates] = useState<number[]>([]);
+  const [selectedDuplicates, setSelectedDuplicates] = useState<string[]>([]);
   const [deletingDuplicates, setDeletingDuplicates] = useState(false);
   const [pageSize, setPageSize] = useState(25);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -252,7 +254,7 @@ export default function Dashboard() {
       if (!response.ok) throw new Error(result.error ?? "Import failed.");
       setMessage({
         tone: result.summary.failed ? "error" : "success",
-        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported · ${result.summary.duplicates} duplicate${result.summary.duplicates === 1 ? "" : "s"} separated${result.summary.replaced ? ` · ${result.summary.replaced} previous transaction${result.summary.replaced === 1 ? "" : "s"} replaced` : ""}${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
+        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported to Actual · ${result.summary.duplicates} already present${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
       });
       setImportDialogOpen(false);
       await load(tab, 1);
@@ -267,7 +269,7 @@ export default function Dashboard() {
     }
   }
 
-  async function removeDuplicates(ids: number[]) {
+  async function removeDuplicates(ids: string[]) {
     if (
       !ids.length ||
       !window.confirm(
@@ -348,8 +350,8 @@ export default function Dashboard() {
             <h1>{tab === "transactions" ? "Transactions" : "Duplicates"}</h1>
             <p>
               {tab === "transactions"
-                ? "Import and review your Spendee exports in one place."
-                : "Review and remove repeated import records."}
+                ? "Review your synced Actual Budget ledger and import Spendee exports."
+                : "Actual handles imported transaction identity and duplicate detection."}
             </p>
           </div>
           {tab === "transactions" && (
@@ -393,7 +395,7 @@ export default function Dashboard() {
                       {wallets.map((wallet, index) => (
                         <Link
                           className="wallet-card"
-                          href={`/wallets/${encodeURIComponent(wallet.wallet)}`}
+                          href={`/wallets/${encodeURIComponent(wallet.id)}`}
                           key={wallet.wallet}
                         >
                           <span
@@ -507,8 +509,8 @@ export default function Dashboard() {
               </h2>
               <p>
                 {tab === "transactions"
-                  ? "All imported records, newest first"
-                  : `${stats.duplicates} separated ${stats.duplicates === 1 ? "duplicate" : "duplicates"}`}
+                  ? "Synced from Actual Budget, newest first"
+                  : "No separate duplicate ledger is stored locally"}
               </p>
             </div>
             <div className="ledger-tools">
@@ -708,7 +710,7 @@ export default function Dashboard() {
                           <td>
                             <Link
                               className="wallet-link"
-                              href={`/wallets/${encodeURIComponent(row.wallet)}`}
+                              href={`/wallets/${encodeURIComponent(row.accountId ?? row.wallet)}`}
                             >
                               <span className="wallet">
                                 {row.wallet.slice(0, 1)}
@@ -727,7 +729,7 @@ export default function Dashboard() {
                             {row.categoryName ? (
                               <Link
                                 className="category-link category-link-with-icon"
-                                href={`/categories/${categorySlug(row.categoryName)}`}
+                                href={`/categories/${encodeURIComponent(row.categoryId ?? categorySlug(row.categoryName))}`}
                               >
                                 <CategoryIcon
                                   appearance={
@@ -886,7 +888,10 @@ export default function Dashboard() {
               <div className="upload-copy">
                 <h2>Drop files here</h2>
                 <p>XLSX and CSV exports are supported.</p>
-                <span>Batch uploads may contain multiple wallets.</span>
+                <span>
+                  Wallets, categories, and currency must already exist in
+                  Actual.
+                </span>
               </div>
               <button
                 disabled={uploading}
@@ -913,10 +918,10 @@ export default function Dashboard() {
                 onChange={(event) => setFullImport(event.target.checked)}
               />
               <span>
-                <b>Full import</b>
+                <b>One wallet per file</b>
                 <small>
-                  Each file must contain exactly one wallet. Existing
-                  transactions for that wallet are replaced.
+                  Validate each file as one wallet. Existing Actual transactions
+                  are never deleted or replaced.
                 </small>
               </span>
             </label>

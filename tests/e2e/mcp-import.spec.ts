@@ -1,7 +1,7 @@
 import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
-test("MCP file upload supports full wallet replacement", async ({
+test("MCP full mode validates one wallet without replacing Actual", async ({
   page,
 }, testInfo) => {
   const { dates, variant } = fantasyData(testInfo, "MCP full import");
@@ -54,13 +54,13 @@ test("MCP file upload supports full wallet replacement", async ({
     total: 1,
     imported: 1,
     duplicates: 0,
-    replaced: 2,
+    replaced: 0,
     files: 1,
     failed: 0,
   });
 
   await page.reload();
   await expect(page.getByText(`Fresh guild reward ${variant}`)).toBeVisible();
-  await expect(page.getByText(`Old comet snack ${variant}`)).toHaveCount(0);
-  await expect(page.getByText(`Old portal fare ${variant}`)).toHaveCount(0);
+  await expect(page.getByText(`Old comet snack ${variant}`)).toBeVisible();
+  await expect(page.getByText(`Old portal fare ${variant}`)).toBeVisible();
 });

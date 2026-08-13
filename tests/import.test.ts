@@ -29,6 +29,10 @@ import { categorySlug } from "../lib/category-slug";
 import { parseTransactionFilters } from "../lib/transaction-filters";
 import { createSplitPdf } from "../lib/split-pdf";
 
+// This file exercises the explicitly test-only migration compatibility layer.
+// Production and browser tests never create an app-owned SQLite ledger.
+process.env.SQLITE_LEDGER_COMPATIBILITY = "1";
+
 const paths: string[] = [];
 afterEach(() => {
   for (const path of paths.splice(0)) rmSync(path, { force: true });

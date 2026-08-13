@@ -3,7 +3,7 @@ export const categoryIconIds = Array.from(
   (_, index) => index + 1,
 ).filter((id) => id !== 47 && id !== 48);
 
-export const defaultCategoryColor = "#1eadcf";
+export const defaultCategoryColor = "#8719e0";
 
 export type CategoryAppearance = {
   iconId: number | null;

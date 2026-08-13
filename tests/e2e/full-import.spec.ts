@@ -1,7 +1,7 @@
 import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
-test("full import replaces the matching wallet with the uploaded snapshot", async ({
+test("one-wallet import mode preserves the existing Actual ledger", async ({
   page,
 }, testInfo) => {
   const { dates, variant } = fantasyData(testInfo, "Full import");
@@ -35,7 +35,7 @@ test("full import replaces the matching wallet with the uploaded snapshot", asyn
     page,
     replacementCsv,
     `full-replacement-${variant}.csv`,
-    /1 file processed · 1 imported · 0 duplicates separated · 2 previous transactions replaced/,
+    /1 file processed · 1 imported to Actual · 0 already present/,
     { fullImport: true },
   );
 
@@ -49,14 +49,14 @@ test("full import replaces the matching wallet with the uploaded snapshot", asyn
   ).toContainText("25.00");
   await expect(
     page.getByText(`Moonberry basket ${variant}`, { exact: true }),
-  ).toHaveCount(0);
-  await expect(page.getByText(`Dragon feed ${variant}`)).toHaveCount(0);
+  ).toBeVisible();
+  await expect(page.getByText(`Dragon feed ${variant}`)).toBeVisible();
   await expect(page.getByText(`Guild reward ${variant}`)).toBeVisible();
 
   await page.reload();
   await expect(
     page.getByText(`Fresh moonberry basket ${variant}`),
   ).toBeVisible();
-  await expect(page.getByText(`Dragon feed ${variant}`)).toHaveCount(0);
+  await expect(page.getByText(`Dragon feed ${variant}`)).toBeVisible();
   await expect(page.getByText(`Guild reward ${variant}`)).toBeVisible();
 });

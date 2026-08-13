@@ -1,4 +1,7 @@
-import type { CategoryAppearance } from "@/lib/category-appearance";
+import {
+  defaultCategoryColor,
+  type CategoryAppearance,
+} from "@/lib/category-appearance";
 import { assetUrl } from "@/lib/assets";
 
 export default function CategoryIcon({
@@ -8,7 +11,7 @@ export default function CategoryIcon({
   appearance?: CategoryAppearance;
   className?: string;
 }) {
-  const color = appearance?.color ?? "#1eadcf";
+  const color = appearance?.color ?? defaultCategoryColor;
   return (
     <span className={className} style={{ backgroundColor: color }}>
       {appearance?.iconId ? (

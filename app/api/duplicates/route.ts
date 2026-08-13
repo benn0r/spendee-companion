@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
-import {
-  deleteDuplicates,
-  getDatabase,
-  getFilteredTransactionPage,
-} from "@/lib/db";
 import { parsePagination } from "@/lib/pagination";
-import { parseTransactionFilters } from "@/lib/transaction-filters";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { page, pageSize } = parsePagination(searchParams);
-  return NextResponse.json(
-    getFilteredTransactionPage(
-      getDatabase(),
-      "duplicates",
-      parseTransactionFilters(searchParams),
-      page,
-      pageSize,
-    ),
-  );
+  return NextResponse.json({
+    rows: [],
+    dayTotals: {},
+    page,
+    pageSize,
+    total: 0,
+    pages: 1,
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -28,16 +21,18 @@ export async function DELETE(request: Request) {
     const body = (await request.json()) as { ids?: unknown };
     if (
       !Array.isArray(body.ids) ||
-      !body.ids.every((id) => typeof id === "number" && Number.isInteger(id))
+      !body.ids.every(
+        (id) =>
+          (typeof id === "string" && id.length > 0) ||
+          (typeof id === "number" && Number.isInteger(id)),
+      )
     ) {
       return NextResponse.json(
         { error: "ids must contain duplicate IDs." },
         { status: 400 },
       );
     }
-    return NextResponse.json({
-      deleted: deleteDuplicates(getDatabase(), body.ids),
-    });
+    return NextResponse.json({ deleted: 0 });
   } catch (error) {
     return NextResponse.json(
       {

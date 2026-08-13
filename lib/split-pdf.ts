@@ -47,19 +47,19 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
     document.on("end", () => resolve(Buffer.concat(chunks)));
     document.on("error", reject);
 
-    const green = "#12c48b";
-    const slate = "#344554";
-    const muted = "#6c767f";
-    const line = "#e4e9ee";
+    const primary = "#8719e0";
+    const text = "#272630";
+    const muted = "#627d98";
+    const line = "#d9e2ec";
     const right = 547;
 
     document
-      .fillColor(green)
+      .fillColor(primary)
       .font("Helvetica-Bold")
       .fontSize(10)
       .text(t("app.name").toLocaleUpperCase(intlLocale(locale)));
     document.moveDown(0.2);
-    document.fillColor(slate).fontSize(24).text(split.title);
+    document.fillColor(text).fontSize(24).text(split.title);
     document.moveDown(0.1);
     document
       .fillColor(muted)
@@ -76,7 +76,7 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
     document.moveDown(1);
 
     const summaryTop = document.y;
-    document.roundedRect(48, summaryTop, 499, 62, 8).fill("#f4faf8");
+    document.roundedRect(48, summaryTop, 499, 62, 8).fill("#f7fafc");
     const summaries = [
       [t("split.pdf.total"), money(split.totalAmount, split.currency, locale)],
       [t("split.pdf.count"), String(split.splitCount)],
@@ -93,14 +93,14 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
         .fontSize(7)
         .text(label, x, summaryTop + 16, { width: 145 });
       document
-        .fillColor(slate)
+        .fillColor(text)
         .fontSize(14)
         .text(value, x, summaryTop + 29, { width: 145 });
     });
     document.y = summaryTop + 80;
 
     document
-      .fillColor(slate)
+      .fillColor(text)
       .font("Helvetica-Bold")
       .fontSize(13)
       .text(t("split.pdf.positions"), 48, document.y, {
@@ -137,7 +137,7 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
       if (document.y > 735) {
         document.addPage();
         document
-          .fillColor(slate)
+          .fillColor(text)
           .font("Helvetica-Bold")
           .fontSize(13)
           .text(`${split.title} - ${t("split.pdf.positions")}`);
@@ -155,7 +155,7 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
         .fontSize(8)
         .text(formattedDate, 48, y + 1, { width: 70 });
       document
-        .fillColor(slate)
+        .fillColor(text)
         .font("Helvetica-Bold")
         .fontSize(9)
         .text(entry.description, 126, y, { width: 260 });
@@ -169,7 +169,7 @@ export function createSplitPdf(split: SplitPdfData): Promise<Buffer> {
         .fontSize(7)
         .text(details, 126, y + 12, { width: 260 });
       document
-        .fillColor(slate)
+        .fillColor(text)
         .font("Helvetica-Bold")
         .fontSize(9)
         .text(money(entry.amount, split.currency, locale), 400, y + 1, {

@@ -2,19 +2,27 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import { importFiles } from "./import-service";
 import {
-  getCategoryDetails,
   getDatabase,
-  getFilteredTransactionPage,
-  getMonthlyReport,
   getSplit,
   getSplits,
-  getTransactionFilterOptions,
   getValidUntil,
-  getWalletSummaries,
-  getWalletTransactions,
-  resolveCategory,
   type TransactionFilters,
 } from "./db";
+import {
+  getLedgerCategoryDetails,
+  getLedgerFilterOptionsWithMetadata,
+  getLedgerMonthlyReport,
+  ledgerFilters,
+  resolveLedgerAccount,
+  resolveLedgerCategory,
+} from "./ledger-metadata";
+import {
+  getLedgerAccount,
+  getLedgerAccountSummaries,
+  getLedgerSnapshot,
+  getLedgerStats,
+  getLedgerTransactionPage,
+} from "./ledger-service";
 
 const pageSchema = {
   page: z.number().int().min(1).default(1).describe("One-based page number"),
@@ -80,38 +88,6 @@ function filters(
   };
 }
 
-function groupedWallets() {
-  const grouped = new Map<
-    string,
-    {
-      wallet: string;
-      transactionCount: number;
-      totals: Array<{
-        currency: string;
-        transactionTotal: number;
-        startingAmount: number;
-        total: number;
-      }>;
-    }
-  >();
-  for (const row of getWalletSummaries(getDatabase())) {
-    const wallet = grouped.get(row.wallet) ?? {
-      wallet: row.wallet,
-      transactionCount: 0,
-      totals: [],
-    };
-    wallet.transactionCount += row.transactionCount;
-    wallet.totals.push({
-      currency: row.currency,
-      transactionTotal: row.transactionTotal,
-      startingAmount: row.startingAmount,
-      total: row.total,
-    });
-    grouped.set(row.wallet, wallet);
-  }
-  return Array.from(grouped.values());
-}
-
 export function createReadOnlyMcpServer() {
   const server = new McpServer({ name: "spendee-read-only", version: "1.0.0" });
 
@@ -123,22 +99,18 @@ export function createReadOnlyMcpServer() {
     },
     async () => {
       const db = getDatabase();
-      const counts = db
-        .prepare(
-          `
-      SELECT
-        (SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL) AS transactions,
-        (SELECT COUNT(*) FROM duplicates) AS duplicates,
-        (SELECT COUNT(*) FROM imports) AS imports,
-        (SELECT COUNT(DISTINCT wallet) FROM transactions WHERE deleted_at IS NULL) AS wallets
-    `,
-        )
-        .get();
+      const snapshot = await getLedgerSnapshot();
+      const stats = getLedgerStats(snapshot);
       return result({
-        counts,
+        counts: {
+          transactions: stats.transactions,
+          duplicates: stats.duplicates,
+          imports: stats.imports,
+          wallets: stats.wallets,
+        },
         validUntil: getValidUntil(db),
-        wallets: groupedWallets(),
-        filters: getTransactionFilterOptions(db),
+        wallets: getLedgerAccountSummaries(snapshot),
+        filters: getLedgerFilterOptionsWithMetadata(db, snapshot),
       });
     },
   );
@@ -150,16 +122,17 @@ export function createReadOnlyMcpServer() {
         "Read active transactions with the same filters and pagination as the UI.",
       inputSchema: filterSchema,
     },
-    async (input) =>
-      result(
-        getFilteredTransactionPage(
-          getDatabase(),
-          "transactions",
-          filters(input),
+    async (input) => {
+      const snapshot = await getLedgerSnapshot();
+      return result(
+        getLedgerTransactionPage(
+          snapshot,
+          ledgerFilters(filters(input)),
           input.page,
           input.pageSize,
         ),
-      ),
+      );
+    },
   );
 
   server.registerTool(
@@ -170,15 +143,14 @@ export function createReadOnlyMcpServer() {
       inputSchema: filterSchema,
     },
     async (input) =>
-      result(
-        getFilteredTransactionPage(
-          getDatabase(),
-          "duplicates",
-          filters(input),
-          input.page,
-          input.pageSize,
-        ),
-      ),
+      result({
+        rows: [],
+        dayTotals: [],
+        page: input.page,
+        pageSize: input.pageSize,
+        total: 0,
+        pages: 1,
+      }),
   );
 
   server.registerTool(
@@ -187,7 +159,10 @@ export function createReadOnlyMcpServer() {
       description:
         "Read all wallet summaries, starting amounts, transaction totals, and current totals.",
     },
-    async () => result({ wallets: groupedWallets() }),
+    async () => {
+      const snapshot = await getLedgerSnapshot();
+      return result({ wallets: getLedgerAccountSummaries(snapshot) });
+    },
   );
 
   server.registerTool(
@@ -196,8 +171,13 @@ export function createReadOnlyMcpServer() {
       description: "Read one wallet and its paginated transaction activity.",
       inputSchema: { wallet: z.string().min(1), ...pageSchema },
     },
-    async ({ wallet, page, pageSize }) =>
-      result(getWalletTransactions(getDatabase(), wallet, page, pageSize)),
+    async ({ wallet, page, pageSize }) => {
+      const snapshot = await getLedgerSnapshot();
+      const account = resolveLedgerAccount(snapshot, wallet);
+      return result(
+        account ? getLedgerAccount(snapshot, account.id, page, pageSize) : null,
+      );
+    },
   );
 
   server.registerTool(
@@ -209,8 +189,26 @@ export function createReadOnlyMcpServer() {
     },
     async ({ category, page, pageSize }) => {
       const db = getDatabase();
-      const resolved = resolveCategory(db, category) ?? category;
-      return result(getCategoryDetails(db, resolved, page, pageSize));
+      const snapshot = await getLedgerSnapshot();
+      const resolved = resolveLedgerCategory(snapshot, category);
+      return result(
+        resolved
+          ? getLedgerCategoryDetails(
+              db,
+              snapshot,
+              resolved.id,
+              page,
+              pageSize,
+              {
+                wallets: [],
+                types: [],
+                categories: [],
+                tags: [],
+                authors: [],
+              },
+            )
+          : null,
+      );
     },
   );
 
@@ -220,7 +218,10 @@ export function createReadOnlyMcpServer() {
       description:
         "Read the configured monthly category columns, budgets, months, and totals.",
     },
-    async () => result(getMonthlyReport(getDatabase())),
+    async () => {
+      const snapshot = await getLedgerSnapshot();
+      return result(getLedgerMonthlyReport(getDatabase(), snapshot));
+    },
   );
 
   server.registerTool(
@@ -245,7 +246,7 @@ export function createReadOnlyMcpServer() {
     "import_transaction_files",
     {
       description:
-        "Import uploaded Spendee XLSX or CSV files. Set full to replace all transactions for each file's single wallet.",
+        "Import uploaded Spendee XLSX or CSV files into Actual Budget. Full mode validates one account per file but never deletes unrelated Actual transactions.",
       inputSchema: {
         files: z
           .array(

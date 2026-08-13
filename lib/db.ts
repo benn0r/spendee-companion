@@ -42,68 +42,67 @@ export function openDatabase(
   const db = new Database(filename);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
+  const sqliteLedgerCompatibility =
+    process.env.SQLITE_LEDGER_COMPATIBILITY === "1";
+  if (sqliteLedgerCompatibility) {
+    // Tests may opt into the retired ledger schema while they exercise legacy
+    // migrations. Production never creates these tables: Actual Budget is the
+    // sole owner of accounts, categories, tags, and transactions.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS imports (
+        id INTEGER PRIMARY KEY,
+        filename TEXT NOT NULL,
+        imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        total_rows INTEGER NOT NULL DEFAULT 0,
+        imported_rows INTEGER NOT NULL DEFAULT 0,
+        duplicate_rows INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY,
+        fingerprint TEXT NOT NULL UNIQUE,
+        date TEXT NOT NULL,
+        wallet TEXT NOT NULL,
+        type TEXT NOT NULL,
+        category_name TEXT,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL,
+        note TEXT,
+        labels TEXT,
+        author TEXT,
+        import_id INTEGER NOT NULL REFERENCES imports(id),
+        source_file TEXT NOT NULL,
+        source_row INTEGER NOT NULL,
+        raw_json TEXT NOT NULL,
+        imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS duplicates (
+        id INTEGER PRIMARY KEY,
+        duplicate_of_id INTEGER NOT NULL REFERENCES transactions(id),
+        fingerprint TEXT NOT NULL,
+        date TEXT NOT NULL,
+        wallet TEXT NOT NULL,
+        type TEXT NOT NULL,
+        category_name TEXT,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL,
+        note TEXT,
+        labels TEXT,
+        author TEXT,
+        import_id INTEGER NOT NULL REFERENCES imports(id),
+        source_file TEXT NOT NULL,
+        source_row INTEGER NOT NULL,
+        raw_json TEXT NOT NULL,
+        imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS transactions_date_idx ON transactions(date DESC);
+      CREATE INDEX IF NOT EXISTS duplicates_date_idx ON duplicates(date DESC);
+      CREATE INDEX IF NOT EXISTS duplicates_fingerprint_idx ON duplicates(fingerprint);
+    `);
+    ensureColumn(db, "imports", "full_import", "INTEGER NOT NULL DEFAULT 0");
+    ensureColumn(db, "transactions", "identity_key", "TEXT");
+    ensureColumn(db, "transactions", "deleted_at", "TEXT");
+  }
   db.exec(`
-    CREATE TABLE IF NOT EXISTS imports (
-      id INTEGER PRIMARY KEY,
-      filename TEXT NOT NULL,
-      imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      total_rows INTEGER NOT NULL DEFAULT 0,
-      imported_rows INTEGER NOT NULL DEFAULT 0,
-      duplicate_rows INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY,
-      fingerprint TEXT NOT NULL UNIQUE,
-      date TEXT NOT NULL,
-      wallet TEXT NOT NULL,
-      type TEXT NOT NULL,
-      category_name TEXT,
-      amount REAL NOT NULL,
-      currency TEXT NOT NULL,
-      note TEXT,
-      labels TEXT,
-      author TEXT,
-      import_id INTEGER NOT NULL REFERENCES imports(id),
-      source_file TEXT NOT NULL,
-      source_row INTEGER NOT NULL,
-      raw_json TEXT NOT NULL,
-      imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS duplicates (
-      id INTEGER PRIMARY KEY,
-      duplicate_of_id INTEGER NOT NULL REFERENCES transactions(id),
-      fingerprint TEXT NOT NULL,
-      date TEXT NOT NULL,
-      wallet TEXT NOT NULL,
-      type TEXT NOT NULL,
-      category_name TEXT,
-      amount REAL NOT NULL,
-      currency TEXT NOT NULL,
-      note TEXT,
-      labels TEXT,
-      author TEXT,
-      import_id INTEGER NOT NULL REFERENCES imports(id),
-      source_file TEXT NOT NULL,
-      source_row INTEGER NOT NULL,
-      raw_json TEXT NOT NULL,
-      imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS transactions_date_idx ON transactions(date DESC);
-    CREATE INDEX IF NOT EXISTS duplicates_date_idx ON duplicates(date DESC);
-    CREATE INDEX IF NOT EXISTS duplicates_fingerprint_idx ON duplicates(fingerprint);
-  `);
-  ensureColumn(db, "imports", "full_import", "INTEGER NOT NULL DEFAULT 0");
-  ensureColumn(db, "transactions", "identity_key", "TEXT");
-  ensureColumn(db, "transactions", "deleted_at", "TEXT");
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS transactions_identity_idx ON transactions(identity_key);
-    CREATE TABLE IF NOT EXISTS wallet_starting_balances (
-      wallet TEXT NOT NULL,
-      currency TEXT NOT NULL,
-      amount REAL NOT NULL DEFAULT 0,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (wallet, currency)
-    );
     CREATE TABLE IF NOT EXISTS category_tag_config (
       category TEXT PRIMARY KEY,
       selected_tags_json TEXT NOT NULL,
@@ -129,7 +128,7 @@ export function openDatabase(
       id INTEGER PRIMARY KEY,
       split_id INTEGER NOT NULL REFERENCES split_records(id) ON DELETE CASCADE,
       kind TEXT NOT NULL CHECK(kind IN ('transaction', 'custom')),
-      transaction_id INTEGER,
+      transaction_id TEXT,
       description TEXT NOT NULL,
       amount REAL NOT NULL,
       date TEXT,
@@ -205,25 +204,56 @@ export function openDatabase(
   );
   ensureColumn(db, "validation_runs", "error", "TEXT");
   ensureColumn(db, "validation_runs", "pdf_blob", "BLOB");
-  db.exec(`
-    DROP TABLE IF EXISTS reconciliation_items;
-    DELETE FROM duplicates
-    WHERE duplicate_of_id IN (SELECT id FROM transactions WHERE deleted_at IS NOT NULL);
-    DELETE FROM transactions WHERE deleted_at IS NOT NULL;
-  `);
-  const missingKeys = db
-    .prepare(
-      "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
-    )
-    .all() as Array<{ id: number; date: string; wallet: string; type: string }>;
-  const updateKey = db.prepare(
-    "UPDATE transactions SET identity_key = ? WHERE id = ?",
+  ensureColumn(db, "validation_runs", "account_id", "TEXT");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS validation_runs_account_range_idx ON validation_runs(account_id, date_from, date_to)",
   );
-  db.transaction(() => {
-    for (const row of missingKeys) {
-      updateKey.run(identityKey(row), row.id);
-    }
-  })();
+  db.exec("DROP TABLE IF EXISTS reconciliation_items");
+  if (sqliteLedgerCompatibility) {
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS transactions_identity_idx ON transactions(identity_key);
+      CREATE TABLE IF NOT EXISTS wallet_starting_balances (
+        wallet TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (wallet, currency)
+      );
+      DELETE FROM duplicates
+      WHERE duplicate_of_id IN (SELECT id FROM transactions WHERE deleted_at IS NOT NULL);
+      DELETE FROM transactions WHERE deleted_at IS NOT NULL;
+    `);
+    const missingKeys = db
+      .prepare(
+        "SELECT id, date, wallet, type FROM transactions WHERE identity_key IS NULL",
+      )
+      .all() as Array<{
+      id: number;
+      date: string;
+      wallet: string;
+      type: string;
+    }>;
+    const updateKey = db.prepare(
+      "UPDATE transactions SET identity_key = ? WHERE id = ?",
+    );
+    db.transaction(() => {
+      for (const row of missingKeys) {
+        updateKey.run(identityKey(row), row.id);
+      }
+    })();
+  } else {
+    // Remove historical copies once the retained tables are ready. Split rows
+    // and validation runs keep immutable snapshots/references, so the ledger
+    // itself is no longer needed locally.
+    db.pragma("foreign_keys = OFF");
+    db.exec(`
+      DROP TABLE IF EXISTS duplicates;
+      DROP TABLE IF EXISTS transactions;
+      DROP TABLE IF EXISTS imports;
+      DROP TABLE IF EXISTS wallet_starting_balances;
+    `);
+    db.pragma("foreign_keys = ON");
+  }
   return db;
 }
 
@@ -977,13 +1007,14 @@ export function getFilteredTransactionPage(
 }
 
 type LiveValidation = Pick<TransactionValidation, "id" | "title"> & {
+  accountId: string | null;
   wallet: string;
   dateFrom: string;
   dateTo: string;
   extractedJson: string;
 };
 
-function parsedValidationTransactions(
+export function parsedValidationTransactions(
   value: string,
 ): ExtractedDocumentTransaction[] | null {
   try {
@@ -1045,6 +1076,94 @@ function liveValidationTransactions(
     ) as ValidationAppTransaction[];
 }
 
+export function attachValidationReferencesToRows<
+  T extends ValidationAppTransaction & {
+    labels?: string | null;
+    author?: string | null;
+    [key: string]: unknown;
+  },
+>(db: Db, rows: T[], allTransactions: ValidationAppTransaction[]) {
+  const withoutMatches = rows.map((row) => ({ ...row, validation: null }));
+  if (!rows.length) return withoutMatches;
+
+  const wallets = Array.from(new Set(rows.map((row) => row.wallet)));
+  const accountIds = Array.from(
+    new Set(rows.flatMap((row) => (row.accountId ? [row.accountId] : []))),
+  );
+  const dates = rows.map((row) => row.date.slice(0, 10)).sort();
+  const identityClauses = [
+    ...(accountIds.length
+      ? [`account_id IN (${accountIds.map(() => "?").join(", ")})`]
+      : []),
+    `(account_id IS NULL AND wallet IN (${wallets.map(() => "?").join(", ")}))`,
+  ];
+  const validations = db
+    .prepare(
+      `
+    SELECT id, title, account_id AS accountId, wallet,
+      date_from AS dateFrom, date_to AS dateTo,
+      extracted_json AS extractedJson
+    FROM validation_runs
+    WHERE status = 'complete'
+      AND (${identityClauses.join(" OR ")})
+      AND date_from <= ? AND date_to >= ?
+    ORDER BY created_at DESC, id DESC
+  `,
+    )
+    .all(
+      ...accountIds,
+      ...wallets,
+      dates[dates.length - 1],
+      dates[0],
+    ) as LiveValidation[];
+
+  const pageIds = new Set(rows.map((row) => row.id));
+  const references = new Map<string | number, TransactionValidation>();
+  for (const validation of validations) {
+    const extractedTransactions = parsedValidationTransactions(
+      validation.extractedJson,
+    );
+    if (!extractedTransactions) continue;
+    const documentTransactions = filterBlacklistedTransactions(
+      db,
+      extractedTransactions,
+    );
+    const appTransactions = allTransactions.filter(
+      (transaction) =>
+        (validation.accountId
+          ? transaction.accountId === validation.accountId
+          : transaction.wallet === validation.wallet) &&
+        transaction.date.slice(0, 10) >= validation.dateFrom &&
+        transaction.date.slice(0, 10) <= validation.dateTo &&
+        !["transfer", "incoming transfer", "outgoing transfer"].includes(
+          transaction.type.toLowerCase(),
+        ),
+    );
+    const storedMatches = db
+      .prepare(
+        `SELECT document_key AS documentKey, app_fingerprint AS appFingerprint
+         FROM validation_manual_matches WHERE validation_id = ? ORDER BY id`,
+      )
+      .all(validation.id) as StoredValidationMatch[];
+    const { diff } = applyStoredValidationMatches(
+      compareValidationTransactions(documentTransactions, appTransactions),
+      storedMatches,
+    );
+    for (const match of diff.matching) {
+      if (!pageIds.has(match.app.id) || references.has(match.app.id)) continue;
+      references.set(match.app.id, {
+        id: validation.id,
+        title: validation.title,
+        description: match.document.description,
+      });
+    }
+  }
+  return rows.map((row) => ({
+    ...row,
+    validation: references.get(row.id) ?? null,
+  }));
+}
+
 function attachValidationReferences(
   db: Db,
   source: "transactions" | "duplicates",
@@ -1069,8 +1188,8 @@ function attachValidationReferences(
     )
     .all(...wallets, dates[dates.length - 1], dates[0]) as LiveValidation[];
 
-  const pageIds = new Set(rows.map((row) => row.id));
-  const references = new Map<number, TransactionValidation>();
+  const pageIds = new Set<string | number>(rows.map((row) => row.id));
+  const references = new Map<string | number, TransactionValidation>();
   const rangeTransactions = new Map<string, ValidationAppTransaction[]>();
   // Re-run reconciliation against current wallet rows rather than trusting the
   // transaction IDs captured in diff_json. Full imports replace those rows, so
@@ -1219,47 +1338,38 @@ export function deleteDuplicates(db: Db, ids: number[]) {
 
 export type CustomSplitPosition = { description: string; amount: number };
 
-export function createSplit(
+export type SplitSourceTransaction = {
+  id: string | number;
+  date: string;
+  wallet: string;
+  type: string;
+  categoryName: string | null;
+  amount: number;
+  currency: string;
+  note: string | null;
+  labels: string | null;
+  author: string | null;
+};
+
+function persistSplit(
   db: Db,
   title: string,
-  transactionIds: number[],
+  sourceRows: SplitSourceTransaction[],
   customPositions: CustomSplitPosition[],
   splitCount: number,
-  requestedLocale: AppLocale = "en",
+  requestedLocale: AppLocale,
 ) {
   const normalizedTitle = title.trim();
   if (!normalizedTitle) throw new Error("Enter a title for the split.");
   if (normalizedTitle.length > 120)
     throw new Error("Split title must be 120 characters or fewer.");
-  const ids = Array.from(new Set(transactionIds.filter(Number.isInteger)));
-  if (!ids.length) throw new Error("Select at least one transaction.");
+  const rows = Array.from(
+    new Map(sourceRows.map((row) => [String(row.id), row])).values(),
+  );
+  if (!rows.length) throw new Error("Select at least one transaction.");
   if (!Number.isInteger(splitCount) || splitCount < 1) {
     throw new Error("Split count must be a positive whole number.");
   }
-  const rows = db
-    .prepare(
-      `
-    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
-      note, labels, author, source_file AS sourceFile, source_row AS sourceRow
-    FROM transactions WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(", ")})
-  `,
-    )
-    .all(...ids) as Array<{
-    id: number;
-    date: string;
-    wallet: string;
-    type: string;
-    categoryName: string | null;
-    amount: number;
-    currency: string;
-    note: string | null;
-    labels: string | null;
-    author: string | null;
-    sourceFile: string;
-    sourceRow: number;
-  }>;
-  if (rows.length !== ids.length)
-    throw new Error("One or more selected transactions no longer exist.");
   const currencies = new Set(rows.map((row) => row.currency));
   if (currencies.size !== 1)
     throw new Error("All selected transactions must use the same currency.");
@@ -1276,8 +1386,6 @@ export function createSplit(
       "Every custom position needs a description and valid amount.",
     );
   }
-  // Aggregate transaction and custom positions before dividing. Rounding each
-  // position first would accumulate currency rounding drift across the split.
   const totalAmount =
     rows.reduce((sum, row) => sum + row.amount, 0) +
     positions.reduce((sum, position) => sum + position.amount, 0);
@@ -1307,14 +1415,14 @@ export function createSplit(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const row of rows.sort(
-      (a, b) => b.date.localeCompare(a.date) || b.id - a.id,
+      (a, b) =>
+        b.date.localeCompare(a.date) ||
+        String(b.id).localeCompare(String(a.id)),
     )) {
-      // Keep an immutable snapshot: later imports can replace the source row,
-      // but an already-created split must continue to render the original data.
       insert.run(
         splitId,
         "transaction",
-        row.id,
+        String(row.id),
         row.note || row.categoryName || row.type,
         row.amount,
         row.date,
@@ -1338,6 +1446,68 @@ export function createSplit(
     }
     return getSplit(db, splitId);
   })();
+}
+
+export function createSplitFromTransactions(
+  db: Db,
+  title: string,
+  transactions: SplitSourceTransaction[],
+  customPositions: CustomSplitPosition[],
+  splitCount: number,
+  requestedLocale: AppLocale = "en",
+) {
+  return persistSplit(
+    db,
+    title,
+    transactions,
+    customPositions,
+    splitCount,
+    requestedLocale,
+  );
+}
+
+export function createSplit(
+  db: Db,
+  title: string,
+  transactionIds: number[],
+  customPositions: CustomSplitPosition[],
+  splitCount: number,
+  requestedLocale: AppLocale = "en",
+) {
+  const ids = Array.from(new Set(transactionIds.filter(Number.isInteger)));
+  if (!ids.length) throw new Error("Select at least one transaction.");
+  const rows = db
+    .prepare(
+      `
+    SELECT id, date, wallet, type, category_name AS categoryName, amount, currency,
+      note, labels, author, source_file AS sourceFile, source_row AS sourceRow
+    FROM transactions WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(", ")})
+  `,
+    )
+    .all(...ids) as Array<{
+    id: number;
+    date: string;
+    wallet: string;
+    type: string;
+    categoryName: string | null;
+    amount: number;
+    currency: string;
+    note: string | null;
+    labels: string | null;
+    author: string | null;
+    sourceFile: string;
+    sourceRow: number;
+  }>;
+  if (rows.length !== ids.length)
+    throw new Error("One or more selected transactions no longer exist.");
+  return persistSplit(
+    db,
+    title,
+    rows,
+    customPositions,
+    splitCount,
+    requestedLocale,
+  );
 }
 
 export function getSplit(db: Db, id: number) {

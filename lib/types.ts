@@ -29,7 +29,7 @@ export type TransactionValidation = {
 };
 
 export type TransactionRow = TransactionInput & {
-  id: number;
+  id: string | number;
   sourceFile: string;
   sourceRow: number;
   importedAt: string;
@@ -37,5 +37,5 @@ export type TransactionRow = TransactionInput & {
 };
 
 export type DuplicateRow = TransactionRow & {
-  duplicateOfId: number;
+  duplicateOfId: string | number;
 };

@@ -6,7 +6,7 @@ import { useI18n } from "./I18nProvider";
 import { intlLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
 
 type SelectedTransaction = {
-  id: number;
+  id: string;
   date: string;
   wallet: string;
   type: string;

@@ -5,6 +5,7 @@ import {
   deleteValidation,
   getValidation,
 } from "@/lib/validations";
+import { getLedgerSnapshot } from "@/lib/ledger-service";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,11 @@ export async function GET(
 ) {
   const id = Number((await context.params).id);
   const validation =
-    Number.isInteger(id) && id > 0 ? getValidation(getDatabase(), id) : null;
+    Number.isInteger(id) && id > 0
+      ? await getValidation(getDatabase(), id, async () => {
+          return (await getLedgerSnapshot()).transactions;
+        })
+      : null;
   return validation
     ? NextResponse.json(validation)
     : NextResponse.json({ error: "Validation not found." }, { status: 404 });
@@ -43,11 +48,12 @@ export async function POST(
       { status: 400 },
     );
   try {
-    const validation = createValidationManualMatch(
+    const validation = await createValidationManualMatch(
       getDatabase(),
       id,
       data.documentKey,
       data.appFingerprint,
+      async () => (await getLedgerSnapshot()).transactions,
     );
     return validation
       ? NextResponse.json(validation)

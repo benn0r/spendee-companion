@@ -1,7 +1,7 @@
 import { expect, test } from "./fixture";
 import { fantasyData, importCsv, openDashboard } from "./helpers";
 
-test("duplicate imports can be listed, selected, and deleted", async ({
+test("Actual deduplicates repeated imports without a local duplicate ledger", async ({
   page,
 }, testInfo) => {
   const { csv, variant } = fantasyData(testInfo, "Duplicates");
@@ -16,7 +16,7 @@ test("duplicate imports can be listed, selected, and deleted", async ({
     page,
     csv,
     `duplicates-repeat-${variant}.csv`,
-    /1 file processed · 0 imported · 3 duplicates separated/,
+    /1 file processed · 0 imported to Actual · 0 already present/,
   );
   await page.getByRole("button", { name: /Duplicates/ }).click();
   await expect(
@@ -25,13 +25,8 @@ test("duplicate imports can be listed, selected, and deleted", async ({
   await expect(
     page.getByRole("region", { name: "Transaction filters" }),
   ).toHaveCount(0);
-  await expect(page.getByText(`Nebula lunch ${variant}`)).toBeVisible();
-  await page.getByLabel("Rows per page").selectOption("10");
-  const scenarioRows = page.getByRole("row").filter({ hasText: variant });
-  await expect(scenarioRows).toHaveCount(3);
-  for (const row of await scenarioRows.all())
-    await row.getByRole("checkbox").check();
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: /Delete selected \(3\)/ }).click();
-  await expect(scenarioRows).toHaveCount(0);
+  await expect(
+    page.getByText("No separate duplicate ledger is stored locally"),
+  ).toBeVisible();
+  await expect(page.getByText("No duplicates have been found.")).toBeVisible();
 });

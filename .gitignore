@@ -5,7 +5,9 @@ test-results
 *.log
 *.tsbuildinfo
 .env
-.env.local
+.env.*
+!.env.example
+*.actual
 data
 *.db
 *.db-shm

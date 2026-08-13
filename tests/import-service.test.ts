@@ -1,15 +1,30 @@
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
-import { after, test } from "node:test";
-import { getDatabase } from "../lib/db";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, beforeEach, test } from "node:test";
+import {
+  setActualAdapterForTests,
+  type ActualSnapshot,
+} from "../lib/actual-adapter";
 import { importFiles } from "../lib/import-service";
+import {
+  resetFantasyActualData,
+  seedFantasyActualFromCsv,
+} from "./support/fantasy-actual";
 
-const databasePath = `/tmp/spendee-import-service-${crypto.randomUUID()}.db`;
-process.env.SQLITE_PATH = databasePath;
+const directory = mkdtempSync(join(tmpdir(), "spendee-import-service-"));
+const actualDataPath = join(directory, "actual.json");
+process.env.ACTUAL_MOCK_DATA_PATH = actualDataPath;
 
 after(() => {
-  getDatabase().close();
-  rmSync(databasePath, { force: true });
+  setActualAdapterForTests(null);
+  rmSync(directory, { recursive: true, force: true });
+});
+
+beforeEach(() => {
+  resetFantasyActualData(actualDataPath);
+  setActualAdapterForTests(null);
 });
 
 function csv(wallet: string, amount = -12) {
@@ -27,6 +42,7 @@ test("file import requires input and reports partial batch failures without losi
     /Choose at least one XLSX or CSV file/,
   );
 
+  seedFantasyActualFromCsv(csv("Moon Purse").toString("utf8"), actualDataPath);
   const payload = await importFiles([
     { name: "moon.csv", buffer: csv("Moon Purse") },
     { name: "unsupported.json", buffer: Buffer.from("{}") },
@@ -65,6 +81,10 @@ test("full import rejects empty, mixed-wallet, and repeated-wallet files indepen
       "\n2026-07-02T08:00:00.000Z,Moon Purse,Expense,Dragon Feed,-8,CHF,,,Nova",
     ),
   ]);
+  seedFantasyActualFromCsv(
+    csv("Crystal Vault", -20).toString("utf8"),
+    actualDataPath,
+  );
   const payload = await importFiles(
     [
       { name: "empty.csv", buffer: header },
@@ -91,12 +111,19 @@ test("full import rejects empty, mixed-wallet, and repeated-wallet files indepen
     String(payload.results[3].error),
     /appears in more than one full-import file/,
   );
+  const snapshot = JSON.parse(
+    readFileSync(actualDataPath, "utf8"),
+  ) as ActualSnapshot;
+  const crystalAccount = snapshot.accounts.find(
+    (account) => account.name === "Crystal Vault",
+  );
+  assert.ok(crystalAccount);
   assert.equal(
-    (
-      getDatabase()
-        .prepare("SELECT COUNT(*) AS count FROM transactions WHERE wallet = ?")
-        .get("Crystal Vault") as { count: number }
-    ).count,
+    snapshot.transactions.filter(
+      (transaction) =>
+        transaction.accountId === crystalAccount.id &&
+        !transaction.startingBalance,
+    ).length,
     1,
   );
 });

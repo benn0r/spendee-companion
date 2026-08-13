@@ -1,96 +1,109 @@
 import assert from "node:assert/strict";
-import { after, test } from "node:test";
 import { rmSync } from "node:fs";
+import { after, test } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import {
+  createSplitFromTransactions,
+  getDatabase,
+  setValidUntil,
+} from "../lib/db";
+import { saveLedgerMonthlyColumns } from "../lib/ledger-metadata";
+import { normalizeActualSnapshot } from "../lib/ledger-service";
 import { createReadOnlyMcpServer } from "../lib/mcp-server";
 import {
-  createSplit,
-  getDatabase,
-  importTransactions,
-  setMonthlyReportColumns,
-  setValidUntil,
-  setWalletStartingBalance,
-} from "../lib/db";
-import type { TransactionInput } from "../lib/types";
+  actualIds,
+  createActualApiFixture,
+  writeActualApiFixture,
+} from "./support/actual-api-fixture";
 
 const databasePath = `/tmp/spendee-mcp-fantasy-${crypto.randomUUID()}.db`;
+const actualPath = `/tmp/spendee-mcp-fantasy-${crypto.randomUUID()}.json`;
 process.env.SQLITE_PATH = databasePath;
+process.env.ACTUAL_MOCK_DATA_PATH = actualPath;
+for (const name of [
+  "ACTUAL_SERVER_URL",
+  "ACTUAL_PASSWORD",
+  "ACTUAL_SESSION_TOKEN",
+  "ACTUAL_BUDGET_ID",
+  "ACTUAL_SYNC_ID",
+  "ACTUAL_BUDGET_PASSWORD",
+]) {
+  delete process.env[name];
+}
+writeActualApiFixture(actualPath);
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 after(() => {
   getDatabase().close();
-  rmSync(databasePath, { force: true });
+  for (const path of [
+    databasePath,
+    `${databasePath}-shm`,
+    `${databasePath}-wal`,
+    actualPath,
+  ]) {
+    rmSync(path, { force: true });
+  }
 });
-
-function fantasyTransaction(
-  patch: Partial<TransactionInput> = {},
-): TransactionInput {
-  return {
-    date: "2026-07-11T10:00:00.000Z",
-    wallet: "Phoenix Pouch",
-    type: "Expense",
-    categoryName: "Enchanted Groceries",
-    amount: -36,
-    currency: "CHF",
-    note: "Moonberry basket",
-    labels: "magic, pantry",
-    author: "Nova Quill",
-    ...patch,
-  };
-}
 
 function parseResult(result: Awaited<ReturnType<Client["callTool"]>>) {
   const content = result.content as
     Array<{ type: string; text?: string }> | undefined;
   const block = content?.[0];
   assert.equal(block?.type, "text");
-  if (typeof block?.text !== "string")
+  if (typeof block?.text !== "string") {
     assert.fail("Expected a text tool result.");
+  }
   return JSON.parse(block.text) as any;
 }
 
-test("read-only MCP exposes every UI data surface with fantasy data", async () => {
+function sqliteTables(): string[] {
+  return (
+    getDatabase()
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>
+  ).map((row) => row.name);
+}
+
+test("MCP reads Actual UUID data and retained SQLite companion state", async () => {
   const db = getDatabase();
-  const grocery = fantasyTransaction();
-  const reward = fantasyTransaction({
-    date: "2026-07-12T12:00:00.000Z",
-    type: "Income",
-    categoryName: "Dragon Rewards",
-    amount: 90,
-    note: "Guild prize",
-    labels: "quest",
-    author: "Orion Vale",
-  });
-  importTransactions(
-    db,
-    "fantasy-ledger.csv",
-    [grocery, reward].map((transaction, index) => ({
-      transaction,
-      sourceRow: index + 2,
-      raw: transaction,
-    })),
-  );
-  importTransactions(db, "fantasy-repeat.csv", [
-    { transaction: grocery, sourceRow: 2, raw: grocery },
-  ]);
-  setWalletStartingBalance(db, "Phoenix Pouch", "CHF", 200);
+  const snapshot = normalizeActualSnapshot(createActualApiFixture());
   setValidUntil(db, "2026-07-12");
-  setMonthlyReportColumns(db, [
-    { name: "Magic life", categories: ["Enchanted Groceries"], budget: 80 },
+  saveLedgerMonthlyColumns(db, snapshot, [
+    {
+      name: "Magic life",
+      categories: ["Enchanted Groceries"],
+      budget: 80,
+    },
   ]);
-  const transactionIds = (
-    db.prepare("SELECT id FROM transactions ORDER BY id").all() as Array<{
-      id: number;
-    }>
-  ).map((row) => row.id);
-  const split = createSplit(
+  const split = createSplitFromTransactions(
     db,
     "Guild expedition",
-    transactionIds,
+    snapshot.transactions.filter((transaction) =>
+      [actualIds.groceryTransaction, actualIds.rewardTransaction].includes(
+        transaction.id as
+          | typeof actualIds.groceryTransaction
+          | typeof actualIds.rewardTransaction,
+      ),
+    ),
     [{ description: "Potion credit", amount: 6 }],
     3,
   );
   assert.ok(split);
+  assert.deepEqual(sqliteTables(), [
+    "app_settings",
+    "category_tag_config",
+    "monthly_report_columns",
+    "split_entries",
+    "split_records",
+    "validation_description_blacklist",
+    "validation_manual_matches",
+    "validation_runs",
+  ]);
 
   const server = createReadOnlyMcpServer();
   const client = new Client({ name: "fantasy-test-client", version: "1.0.0" });
@@ -126,10 +139,19 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
     const overview = parseResult(
       await client.callTool({ name: "get_overview", arguments: {} }),
     );
-    assert.equal(overview.counts.transactions, 2);
-    assert.equal(overview.counts.duplicates, 1);
+    assert.deepEqual(overview.counts, {
+      transactions: 3,
+      duplicates: 0,
+      imports: 0,
+      wallets: 2,
+    });
     assert.equal(overview.validUntil, "2026-07-12");
-    assert.equal(overview.wallets[0].totals[0].startingAmount, 200);
+    const moonOverview = overview.wallets.find(
+      (wallet: { id: string }) => wallet.id === actualIds.moonAccount,
+    );
+    assert.equal(moonOverview.wallet, "Moon Purse");
+    assert.equal(moonOverview.totals[0].startingAmount, 200);
+    assert.ok(overview.filters.tags.includes("quest"));
 
     const transactions = parseResult(
       await client.callTool({
@@ -137,7 +159,7 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
         arguments: {
           page: 1,
           pageSize: 10,
-          wallets: ["Phoenix Pouch"],
+          wallets: ["Moon Purse"],
           types: [],
           categories: [],
           tags: ["quest"],
@@ -146,7 +168,12 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
       }),
     );
     assert.equal(transactions.total, 1);
-    assert.equal(transactions.rows[0].categoryName, "Dragon Rewards");
+    assert.equal(transactions.rows[0].id, actualIds.rewardTransaction);
+    assert.equal(transactions.rows[0].accountId, actualIds.moonAccount);
+    assert.equal(transactions.rows[0].categoryId, actualIds.dragonRewards);
+    assert.deepEqual(transactions.rows[0].tags, [
+      { id: actualIds.questTag, name: "quest" },
+    ]);
 
     const duplicates = parseResult(
       await client.callTool({
@@ -162,33 +189,49 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
         },
       }),
     );
-    assert.equal(duplicates.total, 1);
+    assert.equal(duplicates.total, 0);
+    assert.deepEqual(duplicates.rows, []);
 
     const wallets = parseResult(
       await client.callTool({ name: "list_wallets", arguments: {} }),
     );
-    assert.equal(wallets.wallets[0].wallet, "Phoenix Pouch");
-
+    assert.ok(
+      wallets.wallets.some(
+        (wallet: { id: string }) => wallet.id === actualIds.moonAccount,
+      ),
+    );
     const wallet = parseResult(
       await client.callTool({
         name: "get_wallet",
-        arguments: { wallet: "Phoenix Pouch", page: 1, pageSize: 10 },
+        arguments: {
+          wallet: actualIds.moonAccount,
+          page: 1,
+          pageSize: 10,
+        },
       }),
     );
+    assert.equal(wallet.account.id, actualIds.moonAccount);
     assert.equal(wallet.total, 2);
 
     const category = parseResult(
       await client.callTool({
         name: "get_category",
-        arguments: { category: "enchanted-groceries", page: 1, pageSize: 10 },
+        arguments: {
+          category: actualIds.enchantedGroceries,
+          page: 1,
+          pageSize: 10,
+        },
       }),
     );
+    assert.equal(category.categoryId, actualIds.enchantedGroceries);
     assert.equal(category.category, "Enchanted Groceries");
+    assert.equal(category.rows[0].id, actualIds.groceryTransaction);
 
     const monthly = parseResult(
       await client.callTool({ name: "get_monthly_categories", arguments: {} }),
     );
     assert.equal(monthly.columns[0].name, "Magic life");
+    assert.deepEqual(monthly.columns[0].categories, ["Enchanted Groceries"]);
 
     const splits = parseResult(
       await client.callTool({ name: "list_splits", arguments: {} }),
@@ -197,14 +240,21 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
     const oneSplit = parseResult(
       await client.callTool({
         name: "get_split",
-        arguments: { id: split!.id },
+        arguments: { id: split.id },
       }),
     );
     assert.equal(oneSplit.entries.length, 3);
+    assert.deepEqual(
+      oneSplit.entries
+        .filter((entry: { kind: string }) => entry.kind === "transaction")
+        .map((entry: { transactionId: string }) => entry.transactionId)
+        .sort(),
+      [actualIds.groceryTransaction, actualIds.rewardTransaction].sort(),
+    );
 
-    const replacementCsv = [
+    const importCsv = [
       "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
-      "2026-07-11T10:00:00.000Z,Phoenix Pouch,Expense,Enchanted Groceries,-42,CHF,Fresh moonberries,magic,Nova Quill",
+      "2026-07-14T10:00:00.000Z,Moon Purse,Expense,Enchanted Groceries,-42,CHF,Fresh moonberries,magic,Nova Quill",
     ].join("\n");
     const imported = parseResult(
       await client.callTool({
@@ -212,8 +262,8 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
         arguments: {
           files: [
             {
-              filename: "phoenix-full.csv",
-              contentBase64: Buffer.from(replacementCsv).toString("base64"),
+              filename: "moon-full.csv",
+              contentBase64: Buffer.from(importCsv).toString("base64"),
             },
           ],
           full: true,
@@ -224,24 +274,67 @@ test("read-only MCP exposes every UI data surface with fantasy data", async () =
       total: 1,
       imported: 1,
       duplicates: 0,
-      replaced: 2,
+      replaced: 0,
       files: 1,
       failed: 0,
     });
-    const replacedWallet = parseResult(
+    assert.equal(imported.results[0].updated, 0);
+
+    const updatedWallet = parseResult(
       await client.callTool({
         name: "get_wallet",
-        arguments: { wallet: "Phoenix Pouch", page: 1, pageSize: 10 },
+        arguments: {
+          wallet: actualIds.moonAccount,
+          page: 1,
+          pageSize: 10,
+        },
       }),
     );
-    assert.equal(replacedWallet.total, 1);
-    assert.equal(replacedWallet.rows[0].amount, -42);
+    assert.equal(updatedWallet.total, 3);
+    assert.ok(
+      updatedWallet.rows.some(
+        (row: { id: string }) => row.id === actualIds.groceryTransaction,
+      ),
+    );
+    const fresh = updatedWallet.rows.find(
+      (row: { note: string }) => row.note === "Fresh moonberries",
+    );
+    assert.match(fresh.id, uuidPattern);
+    assert.equal(fresh.accountId, actualIds.moonAccount);
+    assert.equal(fresh.categoryId, actualIds.enchantedGroceries);
+    assert.deepEqual(fresh.tags, [{ id: actualIds.magicTag, name: "magic" }]);
+
+    const repeated = parseResult(
+      await client.callTool({
+        name: "import_transaction_files",
+        arguments: {
+          files: [
+            {
+              filename: "moon-repeat.csv",
+              contentBase64: Buffer.from(importCsv).toString("base64"),
+            },
+          ],
+          full: false,
+        },
+      }),
+    );
+    assert.equal(repeated.summary.imported, 0);
+    assert.equal(repeated.summary.duplicates, 0);
+    assert.equal(repeated.results[0].updated, 1);
 
     const invalid = await client.callTool({
       name: "list_transactions",
       arguments: { page: 0, pageSize: 500 },
     });
     assert.equal(invalid.isError, true);
+    assert.ok(
+      [
+        "transactions",
+        "imports",
+        "duplicates",
+        "wallet_starting_balances",
+      ].every((name) => !sqliteTables().includes(name)),
+    );
   } finally {
     await client.close();
     await server.close();
