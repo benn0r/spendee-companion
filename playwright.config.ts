@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
-import { actualMockDataPath } from "./tests/support/fantasy-actual";
 
 const port = 3100;
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
+const actualMockDataPath = "/tmp/spendee-playwright-fantasy-actual.json";
 const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION_BUILD === "1";
 const validationMock = JSON.stringify({
   title: "Moon Guild Card Statement",
