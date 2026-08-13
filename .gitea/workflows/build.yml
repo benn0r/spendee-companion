@@ -31,6 +31,8 @@ jobs:
         env:
           NEXT_PUBLIC_APP_VERSION: ${{ gitea.sha }}
         run: npm run build
+      - name: Validate production runtime
+        run: npm run verify:runtime
       - name: Package production build
         run: |
           mkdir -p build-artifact/.next
@@ -79,6 +81,7 @@ jobs:
           test -f build-artifact/server.js
           test -d build-artifact/.next/static
           test -d build-artifact/public
+          node scripts/verify-runtime-build.mjs build-artifact
       - name: Unit and coverage tests
         run: npm run test:coverage
 
@@ -179,6 +182,8 @@ jobs:
             | tr '[:upper:]' '[:lower:]' \
             | sed 's#[^a-z0-9_.-]#-#g')"
           docker build --build-arg APP_VERSION="${SOURCE_COMMIT}" --tag "${image}:${branch_tag}" .
+          docker run --rm --entrypoint node "${image}:${branch_tag}" \
+            scripts/verify-runtime-build.mjs /app
           docker push "${image}:${branch_tag}"
 
   deploy:

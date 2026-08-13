@@ -4,6 +4,13 @@ const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["@actual-app/api"],
+  outputFileTracingIncludes: {
+    "/*": [
+      "node_modules/@actual-app/api/dist/default-db.sqlite",
+      "node_modules/@actual-app/api/dist/migrations/**/*",
+    ],
+  },
   generateBuildId: async () => appVersion,
   async headers() {
     const noStalePage = {
