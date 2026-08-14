@@ -18,6 +18,7 @@ import PageSizeSelect from "./PageSizeSelect";
 import CategoryIcon from "./CategoryIcon";
 import { useI18n } from "./I18nProvider";
 import TransactionClearedStatus from "./TransactionClearedStatus";
+import Ionicon from "./Ionicon";
 
 type Row = {
   id: string;
@@ -232,7 +233,9 @@ export default function Dashboard() {
                             </b>
                           ))}
                         </span>
-                        <span className="wallet-arrow">→</span>
+                        <span className="wallet-arrow">
+                          <Ionicon name="chevron-forward" />
+                        </span>
                       </Link>
                     ))}
                   </div>
@@ -293,7 +296,9 @@ export default function Dashboard() {
                             <strong>—</strong>
                           )}
                         </span>
-                        <i aria-hidden="true">→</i>
+                        <i>
+                          <Ionicon name="chevron-forward" />
+                        </i>
                       </Link>
                     ))}
                   </div>
@@ -474,7 +479,7 @@ export default function Dashboard() {
                                         href={`/validate?validation=${row.validation.id}`}
                                         title={`Open ${row.validation.title}`}
                                       >
-                                        <span aria-hidden="true">↗</span>
+                                        <Ionicon name="open-outline" />
                                       </Link>
                                     </span>
                                   )}
@@ -511,7 +516,7 @@ export default function Dashboard() {
                 disabled={data.page <= 1 || loading}
                 onClick={() => void load(data.page - 1)}
               >
-                ←
+                <Ionicon name="chevron-back" />
               </button>
               <span>
                 Page {data.page} of {data.pages}
@@ -520,7 +525,7 @@ export default function Dashboard() {
                 disabled={data.page >= data.pages || loading}
                 onClick={() => void load(data.page + 1)}
               >
-                →
+                <Ionicon name="chevron-forward" />
               </button>
             </div>
           </div>

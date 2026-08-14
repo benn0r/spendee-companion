@@ -1,3 +1,5 @@
+import Ionicon from "@/app/Ionicon";
+
 export default function TransactionClearedStatus({
   cleared,
 }: {
@@ -7,7 +9,7 @@ export default function TransactionClearedStatus({
     <span
       className={`cleared-badge ${cleared ? "is-cleared" : "is-uncleared"}`}
     >
-      <span aria-hidden="true">{cleared ? "✓" : "○"}</span>{" "}
+      <Ionicon name={cleared ? "checkmark-circle" : "ellipse-outline"} />{" "}
       {cleared ? "Cleared" : "Uncleared"}
     </span>
   );

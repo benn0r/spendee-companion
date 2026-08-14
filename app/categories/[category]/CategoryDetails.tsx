@@ -13,13 +13,14 @@ import TransactionFilters, {
   type FilterState,
 } from "@/app/TransactionFilters";
 import CategoryIcon from "@/app/CategoryIcon";
+import Ionicon from "@/app/Ionicon";
 import { useI18n } from "@/app/I18nProvider";
 import {
+  categoryIonicon,
   categoryIconIds,
   defaultCategoryColor,
   type CategoryAppearance,
 } from "@/lib/category-appearance";
-import { assetUrl } from "@/lib/assets";
 import TransactionClearedStatus from "@/app/TransactionClearedStatus";
 import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
@@ -295,7 +296,7 @@ export default function CategoryDetails({ category }: { category: string }) {
               onClick={() => setSettingsOpen(true)}
               title="Category settings"
             >
-              ⚙
+              <Ionicon name="settings-outline" />
             </button>
           </div>
         </section>
@@ -325,16 +326,14 @@ export default function CategoryDetails({ category }: { category: string }) {
                   aria-label="Close settings"
                   onClick={() => setSettingsOpen(false)}
                 >
-                  ×
+                  <Ionicon name="close" />
                 </button>
               </div>
               <div className="category-appearance-settings">
                 <div className="appearance-setting-head">
                   <div>
                     <b>Appearance</b>
-                    <span>
-                      Choose an official Spendee icon and category color.
-                    </span>
+                    <span>Choose an Ionicon and category color.</span>
                   </div>
                   <label className="category-color-picker">
                     <input
@@ -353,7 +352,9 @@ export default function CategoryDetails({ category }: { category: string }) {
                     onClick={() => setIconId(null)}
                     type="button"
                   >
-                    <span style={{ backgroundColor: categoryColor }}>#</span>
+                    <span style={{ backgroundColor: categoryColor }}>
+                      <Ionicon name="pricetag-outline" />
+                    </span>
                   </button>
                   {categoryIconIds.map((id) => (
                     <button
@@ -364,10 +365,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                       type="button"
                     >
                       <span style={{ backgroundColor: categoryColor }}>
-                        <img
-                          alt=""
-                          src={assetUrl(`/category-icons/cat_${id}.svg`)}
-                        />
+                        <Ionicon name={categoryIonicon(id)} />
                       </span>
                     </button>
                   ))}
@@ -670,7 +668,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                     disabled={data.page <= 1 || loading}
                     onClick={() => void load(data.page - 1)}
                   >
-                    ←
+                    <Ionicon name="chevron-back" />
                   </button>
                   <span>
                     Page {data.page} of {data.pages}
@@ -679,7 +677,7 @@ export default function CategoryDetails({ category }: { category: string }) {
                     disabled={data.page >= data.pages || loading}
                     onClick={() => void load(data.page + 1)}
                   >
-                    →
+                    <Ionicon name="chevron-forward" />
                   </button>
                 </div>
               </div>

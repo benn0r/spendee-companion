@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  categoryIonicon,
   categoryIconIds,
   validCategoryColor,
 } from "../lib/category-appearance";
@@ -208,6 +209,8 @@ test("category presentation helpers enforce supported values", () => {
   assert.equal(categorySlug("🐉"), "category");
   assert.equal(categoryIconIds.includes(47), false);
   assert.equal(categoryIconIds.includes(48), false);
+  assert.equal(categoryIonicon(3), "fast-food-outline");
+  assert.equal(categoryIonicon(null), "pricetag-outline");
   assert.equal(validCategoryColor("#12C48B"), true);
   assert.equal(validCategoryColor("#123"), false);
   assert.equal(validCategoryColor("12c48b"), false);

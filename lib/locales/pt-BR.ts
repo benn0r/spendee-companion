@@ -62,8 +62,8 @@ export const ptBrUi: Record<string, string> = {
   CATEGORY: "CATEGORIA",
   "Category settings": "Configurações da categoria",
   Appearance: "Aparência",
-  "Choose an official Spendee icon and category color.":
-    "Escolha um ícone oficial do Spendee e a cor da categoria.",
+  "Choose an Ionicon and category color.":
+    "Escolha um Ionicon e a cor da categoria.",
   "Spending by label": "Gastos por etiqueta",
   "Include expenses and income to show the net amount for each label.":
     "Inclua despesas e receitas para mostrar o valor líquido de cada etiqueta.",

@@ -63,8 +63,8 @@ export const frUi: Record<string, string> = {
   CATEGORY: "CATÉGORIE",
   "Category settings": "Paramètres de la catégorie",
   Appearance: "Apparence",
-  "Choose an official Spendee icon and category color.":
-    "Choisissez une icône officielle Spendee et une couleur pour la catégorie.",
+  "Choose an Ionicon and category color.":
+    "Choisissez une Ionicon et une couleur pour la catégorie.",
   "Spending by label": "Dépenses par étiquette",
   "Include expenses and income to show the net amount for each label.":
     "Incluez les dépenses et les revenus pour afficher le montant net de chaque étiquette.",

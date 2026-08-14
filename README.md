@@ -56,6 +56,7 @@ environment files or downloaded budget data.
 - Exposes Actual-backed read tools and SQLite-backed split tools through a
   stateless MCP Streamable HTTP endpoint.
 - Provides an English-first localization layer with additional locale catalogs.
+- Uses the web-native `ionicons` package for category and interface icons.
 
 ## Configure Actual Budget
 

@@ -8,6 +8,7 @@ import type {
   ReceiptSplitSuggestion,
 } from "@/lib/receipt-types";
 import { useI18n } from "@/app/I18nProvider";
+import Ionicon from "@/app/Ionicon";
 
 type Reference = { id: string; name: string };
 type References = {
@@ -224,7 +225,7 @@ export default function ReceiptsView() {
             className="page-import-button"
             onClick={() => setUploadOpen(true)}
           >
-            <span>＋</span>Upload receipt
+            <Ionicon name="add-circle-outline" /> Upload receipt
           </button>
         </section>
         {message && (
@@ -390,7 +391,7 @@ export default function ReceiptsView() {
                 disabled={uploading}
                 onClick={() => setUploadOpen(false)}
               >
-                ×
+                <Ionicon name="close" />
               </button>
             </div>
             <label className="receipt-field">
@@ -481,7 +482,7 @@ function ReceiptReviewDialog({
             disabled={submitting}
             onClick={onClose}
           >
-            ×
+            <Ionicon name="close" />
           </button>
         </div>
         <form className="receipt-review-form" onSubmit={onSubmit}>

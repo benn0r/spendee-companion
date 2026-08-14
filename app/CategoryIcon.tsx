@@ -1,8 +1,9 @@
 import {
+  categoryIonicon,
   defaultCategoryColor,
   type CategoryAppearance,
 } from "@/lib/category-appearance";
-import { assetUrl } from "@/lib/assets";
+import Ionicon from "@/app/Ionicon";
 
 export default function CategoryIcon({
   appearance,
@@ -14,15 +15,7 @@ export default function CategoryIcon({
   const color = appearance?.color ?? defaultCategoryColor;
   return (
     <span className={className} style={{ backgroundColor: color }}>
-      {appearance?.iconId ? (
-        <img
-          alt=""
-          aria-hidden="true"
-          src={assetUrl(`/category-icons/cat_${appearance.iconId}.svg`)}
-        />
-      ) : (
-        <b aria-hidden="true">#</b>
-      )}
+      <Ionicon name={categoryIonicon(appearance?.iconId)} />
     </span>
   );
 }

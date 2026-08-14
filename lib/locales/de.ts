@@ -61,8 +61,7 @@ export const deUi: Record<string, string> = {
   CATEGORY: "KATEGORIE",
   "Category settings": "Kategorieeinstellungen",
   Appearance: "Darstellung",
-  "Choose an official Spendee icon and category color.":
-    "Offizielles Spendee-Symbol und Kategoriefarbe wählen.",
+  "Choose an Ionicon and category color.": "Ionicon und Kategoriefarbe wählen.",
   "Spending by label": "Ausgaben nach Label",
   "Include expenses and income to show the net amount for each label.":
     "Ausgaben und Einnahmen zum Nettobetrag jedes Labels verrechnen.",

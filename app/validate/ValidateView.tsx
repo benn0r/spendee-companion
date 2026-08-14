@@ -4,6 +4,7 @@ import Brand from "@/app/Brand";
 import CategoryIcon from "@/app/CategoryIcon";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
+import Ionicon from "@/app/Ionicon";
 import {
   Fragment,
   useCallback,
@@ -364,7 +365,7 @@ export default function ValidateView() {
                 onClick={() => void deleteSelectedValidation()}
                 title="Delete validation"
               >
-                ×
+                <Ionicon name="close" />
               </button>
             )}
             <button
@@ -373,13 +374,13 @@ export default function ValidateView() {
               onClick={() => setSettingsOpen(true)}
               title="Validation settings"
             >
-              ⚙
+              <Ionicon name="settings-outline" />
             </button>
             <button
               className="page-import-button"
               onClick={() => setDialogOpen(true)}
             >
-              <span>＋</span>Upload document
+              <Ionicon name="add-circle-outline" /> Upload document
             </button>
           </div>
         </section>
@@ -414,7 +415,13 @@ export default function ValidateView() {
                       />
                     ) : (
                       <span className={`validation-state-icon ${item.status}`}>
-                        {item.status === "processing" ? "…" : "!"}
+                        <Ionicon
+                          name={
+                            item.status === "processing"
+                              ? "time-outline"
+                              : "warning-outline"
+                          }
+                        />
                       </span>
                     )}
                     <span>
@@ -602,7 +609,7 @@ export default function ValidateView() {
                                             )
                                           }
                                         >
-                                          ⊘
+                                          <Ionicon name="ban-outline" />
                                         </button>
                                       )}
                                     </span>
@@ -708,7 +715,7 @@ export default function ValidateView() {
                 disabled={submitting}
                 onClick={() => setDialogOpen(false)}
               >
-                ×
+                <Ionicon name="close" />
               </button>
             </div>
             <label className="validation-wallet-field">
@@ -744,7 +751,9 @@ export default function ValidateView() {
                   void upload(event.dataTransfer.files[0]);
               }}
             >
-              <div className="upload-icon">⇧</div>
+              <div className="upload-icon">
+                <Ionicon name="cloud-upload-outline" />
+              </div>
               <div className="upload-copy">
                 <h2>Drop PDF here</h2>
                 <p>The extraction will continue in the background.</p>
@@ -800,7 +809,7 @@ export default function ValidateView() {
                 aria-label="Close settings"
                 onClick={() => setSettingsOpen(false)}
               >
-                ×
+                <Ionicon name="close" />
               </button>
             </div>
             {blacklist.length ? (

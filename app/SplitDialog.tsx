@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Ionicon from "@/app/Ionicon";
 import { useI18n } from "./I18nProvider";
 import { intlLocale, supportedLocales, type AppLocale } from "@/lib/i18n";
 
@@ -116,7 +117,7 @@ export default function SplitDialog({
             </span>
           </div>
           <button aria-label="Close split" onClick={onClose}>
-            ×
+            <Ionicon name="close" />
           </button>
         </div>
 
@@ -186,7 +187,7 @@ export default function SplitDialog({
                 ])
               }
             >
-              ＋ Add position
+              <Ionicon name="add" /> Add position
             </button>
           </div>
           {positions.map((position, index) => (
@@ -230,7 +231,7 @@ export default function SplitDialog({
                   )
                 }
               >
-                ×
+                <Ionicon name="close" />
               </button>
             </div>
           ))}

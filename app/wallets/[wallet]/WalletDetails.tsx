@@ -12,6 +12,7 @@ import { categorySlug } from "@/lib/category-slug";
 import CategoryIcon from "@/app/CategoryIcon";
 import type { CategoryAppearance } from "@/lib/category-appearance";
 import { useI18n } from "@/app/I18nProvider";
+import Ionicon from "@/app/Ionicon";
 
 type Row = {
   id: string;
@@ -220,7 +221,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
               onClick={() => setSettingsOpen(true)}
               title="Wallet settings"
             >
-              ⚙
+              <Ionicon name="settings-outline" />
             </button>
           </div>
         </section>
@@ -248,7 +249,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                   aria-label="Close settings"
                   onClick={() => setSettingsOpen(false)}
                 >
-                  ×
+                  <Ionicon name="close" />
                 </button>
               </div>
               <div className="wallet-starting-settings">
@@ -423,7 +424,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                   disabled={data.page <= 1 || loading}
                   onClick={() => void load(data.page - 1)}
                 >
-                  ←
+                  <Ionicon name="chevron-back" />
                 </button>
                 <span>
                   Page {data.page} of {data.pages}
@@ -432,7 +433,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                   disabled={data.page >= data.pages || loading}
                   onClick={() => void load(data.page + 1)}
                 >
-                  →
+                  <Ionicon name="chevron-forward" />
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/app/I18nProvider";
+import Ionicon from "@/app/Ionicon";
 
 type Column = {
   id?: number;
@@ -154,7 +155,7 @@ export default function MonthlyReport() {
             onClick={openSettings}
             title="Monthly settings"
           >
-            ⚙
+            <Ionicon name="settings-outline" />
           </button>
         </section>
 
@@ -183,7 +184,7 @@ export default function MonthlyReport() {
                   </span>
                 </div>
                 <button aria-label="Close settings" onClick={closeSettings}>
-                  ×
+                  <Ionicon name="close" />
                 </button>
               </div>
               <div className="monthy-settings-body">
@@ -215,7 +216,7 @@ export default function MonthlyReport() {
                             )
                           }
                         >
-                          ×
+                          <Ionicon name="close" />
                         </button>
                       </div>
                       <label className="report-budget">
@@ -268,7 +269,7 @@ export default function MonthlyReport() {
                     ])
                   }
                 >
-                  ＋ Add column
+                  <Ionicon name="add" /> Add column
                 </button>
                 {unassignedCategories.length > 0 && (
                   <div
@@ -325,7 +326,7 @@ export default function MonthlyReport() {
                           className="category-tooltip"
                           tabIndex={0}
                         >
-                          <span aria-hidden="true">ⓘ</span>
+                          <Ionicon name="information-circle-outline" />
                           <span
                             className="category-tooltip-content"
                             role="tooltip"

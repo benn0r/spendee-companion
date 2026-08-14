@@ -21,12 +21,11 @@ test("shared UI components render accessible fantasy-data states", () => {
       appearance: { iconId: 3, color: "#12c48b" },
     }),
   );
-  assert.match(icon, /cat_3\.svg/);
-  assert.match(icon, new RegExp(`v=${BUILD_ID}`));
+  assert.match(icon, /data-ionicon="fast-food-outline"/);
   assert.match(icon, /background-color:#12c48b/);
   assert.match(
     renderToStaticMarkup(React.createElement(CategoryIcon, {})),
-    />#<\/b>/,
+    /data-ionicon="pricetag-outline"/,
   );
 
   const day = renderToStaticMarkup(
@@ -70,9 +69,9 @@ test("shared UI components render accessible fantasy-data states", () => {
     React.createElement(TransactionClearedStatus, { cleared: false }),
   );
   assert.match(cleared, /is-cleared/);
-  assert.match(cleared, /✓.*Cleared/);
+  assert.match(cleared, /data-ionicon="checkmark-circle".*Cleared/);
   assert.match(uncleared, /is-uncleared/);
-  assert.match(uncleared, /○.*Uncleared/);
+  assert.match(uncleared, /data-ionicon="ellipse-outline".*Uncleared/);
 });
 
 test("assetUrl versions public assets with the footer build id", () => {

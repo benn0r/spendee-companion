@@ -25,10 +25,16 @@ test("Actual cleared status is shown across transaction views", async ({
   const unclearedRow = page
     .getByRole("row")
     .filter({ hasText: `Dragon bounty ${variant}` });
-  await expect(clearedRow.locator(".cleared-badge")).toHaveText("✓ Cleared");
-  await expect(unclearedRow.locator(".cleared-badge")).toHaveText(
-    "○ Uncleared",
+  await expect(clearedRow.locator(".cleared-badge")).toContainText("Cleared");
+  await expect(
+    clearedRow.locator('[data-ionicon="checkmark-circle"]'),
+  ).toBeVisible();
+  await expect(unclearedRow.locator(".cleared-badge")).toContainText(
+    "Uncleared",
   );
+  await expect(
+    unclearedRow.locator('[data-ionicon="ellipse-outline"]'),
+  ).toBeVisible();
   await expect(page.getByText("Verified until")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Import files" })).toHaveCount(
     0,
@@ -46,13 +52,19 @@ test("Actual cleared status is shown across transaction views", async ({
       .getByRole("row")
       .filter({ hasText: `Nebula lunch ${variant}` })
       .locator(".cleared-badge"),
-  ).toHaveText("✓ Cleared");
+  ).toContainText("Cleared");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: `Nebula lunch ${variant}` })
+      .locator('[data-ionicon="checkmark-circle"]'),
+  ).toBeVisible();
   await expect(
     page
       .getByRole("row")
       .filter({ hasText: `Dragon bounty ${variant}` })
       .locator(".cleared-badge"),
-  ).toHaveText("○ Uncleared");
+  ).toContainText("Uncleared");
 
   await page.getByRole("link", { name: "Spendee companion" }).click();
   await page
@@ -65,5 +77,11 @@ test("Actual cleared status is shown across transaction views", async ({
       .getByRole("row")
       .filter({ hasText: `Nebula lunch ${variant}` })
       .locator(".cleared-badge"),
-  ).toHaveText("✓ Cleared");
+  ).toContainText("Cleared");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: `Nebula lunch ${variant}` })
+      .locator('[data-ionicon="checkmark-circle"]'),
+  ).toBeVisible();
 });

@@ -83,8 +83,8 @@ export const itUi: Record<string, string> = {
   CATEGORY: "CATEGORIA",
   "Category settings": "Impostazioni categoria",
   Appearance: "Aspetto",
-  "Choose an official Spendee icon and category color.":
-    "Scegli un'icona ufficiale di Spendee e il colore della categoria.",
+  "Choose an Ionicon and category color.":
+    "Scegli una Ionicon e il colore della categoria.",
   "Spending by label": "Spese per etichetta",
   "Include expenses and income to show the net amount for each label.":
     "Includi spese ed entrate per mostrare l'importo netto di ogni etichetta.",
