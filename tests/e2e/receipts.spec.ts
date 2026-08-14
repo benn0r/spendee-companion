@@ -17,6 +17,28 @@ test("uploads, reviews, and submits a receipt to Actual Budget", async ({
   await page.getByRole("button", { name: "Upload receipt" }).click();
   const upload = page.getByRole("dialog", { name: "Upload receipt" });
   await expect(upload).toBeVisible();
+  const accountSelect = upload.getByRole("combobox", { name: "Account" });
+  await expect(accountSelect).toHaveCSS("appearance", "none");
+  await expect(accountSelect).toHaveCSS(
+    "background-color",
+    "rgb(247, 250, 252)",
+  );
+  await expect(accountSelect).toHaveCSS("min-height", "42px");
+  const selectDecoration = await upload
+    .locator(".receipt-select")
+    .evaluate((element) => {
+      const style = getComputedStyle(element, "::after");
+      return {
+        borderBottomWidth: style.borderBottomWidth,
+        content: style.content,
+        pointerEvents: style.pointerEvents,
+      };
+    });
+  expect(selectDecoration).toEqual({
+    borderBottomWidth: "2px",
+    content: '\"\"',
+    pointerEvents: "none",
+  });
   await upload.locator('input[type="file"]').setInputFiles({
     name: "cosmic-market.png",
     mimeType: "image/png",

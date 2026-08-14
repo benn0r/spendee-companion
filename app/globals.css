@@ -3360,6 +3360,44 @@ td small {
   color: var(--text);
   background: var(--white);
 }
+.receipt-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.receipt-select::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+.receipt-select select {
+  min-height: 42px;
+  padding: 0 40px 0 12px;
+  appearance: none;
+  background: var(--surface-subtle);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.receipt-select select:hover {
+  border-color: var(--primary);
+  background: var(--white);
+}
+.receipt-select select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 .receipt-field select:focus,
 .receipt-review-form input:focus,
 .receipt-review-form select:focus,

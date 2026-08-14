@@ -395,16 +395,18 @@ export default function ReceiptsView() {
             </div>
             <label className="receipt-field">
               Account
-              <select
-                value={selectedAccount}
-                onChange={(event) => setSelectedAccount(event.target.value)}
-              >
-                {references.accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
+              <span className="receipt-select">
+                <select
+                  value={selectedAccount}
+                  onChange={(event) => setSelectedAccount(event.target.value)}
+                >
+                  {references.accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </label>
             <button
               className="receipt-file-choice"
@@ -486,13 +488,15 @@ function ReceiptReviewDialog({
           <div className="receipt-form-grid">
             <label>
               Account
-              <select defaultValue={initial.account} name="account" required>
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
+              <span className="receipt-select">
+                <select defaultValue={initial.account} name="account" required>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </label>
             <label>
               Date
@@ -516,17 +520,19 @@ function ReceiptReviewDialog({
             {!initial.splits.length && (
               <label>
                 Category
-                <select
-                  defaultValue={initial.category}
-                  name="category"
-                  required
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                <span className="receipt-select">
+                  <select
+                    defaultValue={initial.category}
+                    name="category"
+                    required
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </label>
             )}
             <label className="receipt-wide">
@@ -607,13 +613,18 @@ function ReceiptSplitEditor({
     <div className="receipt-split-row">
       <label>
         Category
-        <select defaultValue={split.category} name={`split-category-${index}`}>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <span className="receipt-select">
+          <select
+            defaultValue={split.category}
+            name={`split-category-${index}`}
+          >
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </span>
       </label>
       <label>
         Amount
