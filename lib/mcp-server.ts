@@ -90,7 +90,6 @@ export function createReadOnlyMcpServer() {
       return result({
         counts: {
           transactions: stats.transactions,
-          duplicates: stats.duplicates,
           wallets: stats.wallets,
         },
         wallets: getLedgerAccountSummaries(snapshot),
@@ -117,24 +116,6 @@ export function createReadOnlyMcpServer() {
         ),
       );
     },
-  );
-
-  server.registerTool(
-    "list_duplicates",
-    {
-      description:
-        "Read separated duplicate records with filters and pagination.",
-      inputSchema: filterSchema,
-    },
-    async (input) =>
-      result({
-        rows: [],
-        dayTotals: [],
-        page: input.page,
-        pageSize: input.pageSize,
-        total: 0,
-        pages: 1,
-      }),
   );
 
   server.registerTool(

@@ -155,7 +155,6 @@ export function translateUiText(locale: AppLocale, text: string) {
             .replace(/^(\d+) wallet$/, "$1 Portemonnaie")
             .replace(/^(\d+) wallets$/, "$1 Portemonnaies")
             .replace(/^(\d+) categories?$/, "$1 Kategorien")
-            .replace(/^(\d+) duplicates?$/, "$1 Duplikate")
             .replace(/^(\d+) splits?$/, "$1 Aufteilungen")
             .replace(
               /^(\d+) selected transactions?$/,
@@ -167,12 +166,7 @@ export function translateUiText(locale: AppLocale, text: string) {
             .replace(/^(\d+) active transactions$/, "$1 aktive Transaktionen")
             .replace(/^(\d+) columns?$/, "$1 Spalten")
             .replace(/^(\d+) of (\d+) selected$/, "$1 von $2 ausgewählt")
-            .replace(/^(\d+) separated duplicate$/, "$1 getrenntes Duplikat")
-            .replace(/^(\d+) separated duplicates$/, "$1 getrennte Duplikate")
-            .replace(/^(\d+) duplicates? deleted\.$/, "$1 Duplikate gelöscht.")
-            .replace(/^Delete selected \((\d+)\)$/, "Auswahl löschen ($1)")
             .replace(/^Split selected \((\d+)\)$/, "Auswahl aufteilen ($1)")
-            .replace(/^matches #(\d+)$/, "entspricht #$1")
             .replace(
               /^Position (\d+) description$/,
               "Beschreibung der Position $1",
@@ -185,7 +179,6 @@ export function translateUiText(locale: AppLocale, text: string) {
               "Ausgewählte Kategorien: $1",
             )
             .replace(/^Starting amount in (.+)$/, "Startbetrag in $1")
-            .replace(/^Select duplicate (\d+)$/, "Duplikat $1 auswählen")
             .replace(/^Select transaction (\d+)$/, "Transaktion $1 auswählen")
             .replace(/^Category icon (\d+)$/, "Kategoriesymbol $1")
             .replace(
@@ -193,25 +186,8 @@ export function translateUiText(locale: AppLocale, text: string) {
               "Kreisdiagramm der Ausgaben in $1",
             )
             .replace(
-              /^Wallet \"(.+)\" appears in more than one full-import file\.$/,
-              "Das Portemonnaie „$1“ kommt in mehreren Dateien für den vollständigen Import vor.",
-            )
-            .replace(
               /^Delete \"(.+)\"\? This cannot be undone\.$/,
               "„$1“ löschen? Dies kann nicht rückgängig gemacht werden.",
-            )
-            .replace(
-              /^Delete (\d+) selected duplicate\? This cannot be undone\.$/,
-              "$1 ausgewähltes Duplikat löschen? Dies kann nicht rückgängig gemacht werden.",
-            )
-            .replace(
-              /^Delete (\d+) selected duplicates\? This cannot be undone\.$/,
-              "$1 ausgewählte Duplikate löschen? Dies kann nicht rückgängig gemacht werden.",
-            )
-            .replace(
-              /^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/,
-              (_match, files, imported, duplicates, replaced) =>
-                `${files} Dateien verarbeitet · ${imported} importiert · ${duplicates} Duplikate getrennt${replaced ? ` · ${replaced} vorherige Transaktionen ersetzt` : ""}`,
             )
             .replace(/^Page (\d+) of (\d+)$/, "Seite $1 von $2")
             .replace(/^(\d+)[–-](\d+) of (\d+)$/, "$1–$2 von $3")

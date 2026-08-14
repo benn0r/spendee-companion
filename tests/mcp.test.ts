@@ -114,7 +114,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
       "get_overview",
       "get_split",
       "get_wallet",
-      "list_duplicates",
       "list_splits",
       "list_transactions",
       "list_wallets",
@@ -131,7 +130,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
     );
     assert.deepEqual(overview.counts, {
       transactions: 3,
-      duplicates: 0,
       wallets: 2,
     });
     const moonOverview = overview.wallets.find(
@@ -162,23 +160,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
     assert.deepEqual(transactions.rows[0].tags, [
       { id: actualIds.questTag, name: "quest" },
     ]);
-
-    const duplicates = parseResult(
-      await client.callTool({
-        name: "list_duplicates",
-        arguments: {
-          page: 1,
-          pageSize: 10,
-          wallets: [],
-          types: [],
-          categories: [],
-          tags: [],
-          authors: [],
-        },
-      }),
-    );
-    assert.equal(duplicates.total, 0);
-    assert.deepEqual(duplicates.rows, []);
 
     const wallets = parseResult(
       await client.callTool({ name: "list_wallets", arguments: {} }),

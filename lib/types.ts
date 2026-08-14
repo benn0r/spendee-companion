@@ -35,7 +35,3 @@ export type TransactionRow = TransactionInput & {
   importedAt: string;
   validation: TransactionValidation | null;
 };
-
-export type DuplicateRow = TransactionRow & {
-  duplicateOfId: string | number;
-};

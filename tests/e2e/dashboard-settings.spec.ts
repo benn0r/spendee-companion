@@ -33,8 +33,12 @@ test("Actual cleared status is shown across transaction views", async ({
   await expect(page.getByRole("button", { name: "Import files" })).toHaveCount(
     0,
   );
+  await expect(page.getByRole("link", { name: /Duplicates/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Duplicates/ })).toHaveCount(0);
   expect((await page.request.get("/api/valid-until")).status()).toBe(404);
   expect((await page.request.post("/api/import")).status()).toBe(404);
+  expect((await page.request.get("/api/duplicates")).status()).toBe(404);
+  expect((await page.request.get("/api/stats")).status()).toBe(404);
 
   await clearedRow.getByRole("link", { name: wallet }).click();
   await expect(

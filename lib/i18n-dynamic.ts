@@ -3,37 +3,24 @@ type Locale = "pt-BR" | "fr" | "it";
 type Forms = [singular: string, plural: string];
 type DynamicConfig = {
   nouns: Record<
-    "transaction" | "wallet" | "category" | "duplicate" | "split" | "column",
+    "transaction" | "wallet" | "category" | "split" | "column",
     Forms
   >;
   selectedTransactions: Forms;
   customPositions: Forms;
   activeTransactions: Forms;
   selection: (selected: string, total: string) => string;
-  separatedDuplicates: Forms;
-  deletedDuplicates: Forms;
-  deleteSelected: (count: string) => string;
   splitSelected: (count: string) => string;
-  matches: (id: string) => string;
   positionDescription: (index: string) => string;
   positionAmount: (index: string) => string;
   removePosition: (index: string) => string;
   removeNamed: (name: string) => string;
   selectedCategories: (names: string) => string;
   startingAmount: (currency: string) => string;
-  selectDuplicate: (id: string) => string;
   selectTransaction: (id: string) => string;
   categoryIcon: (id: string) => string;
   pieChart: (currency: string) => string;
-  repeatedWallet: (wallet: string) => string;
   deleteTitle: (title: string) => string;
-  deleteDuplicates: Forms;
-  importSummary: (
-    files: string,
-    imported: string,
-    duplicates: string,
-    replaced?: string,
-  ) => string;
   page: (page: string, pages: string) => string;
   range: (from: string, to: string, total: string) => string;
 };
@@ -44,7 +31,6 @@ const configs: Record<Locale, DynamicConfig> = {
       transaction: ["transação", "transações"],
       wallet: ["carteira", "carteiras"],
       category: ["categoria", "categorias"],
-      duplicate: ["duplicata", "duplicatas"],
       split: ["rateio", "rateios"],
       column: ["coluna", "colunas"],
     },
@@ -52,31 +38,18 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["item personalizado", "itens personalizados"],
     activeTransactions: ["transação ativa", "transações ativas"],
     selection: (selected, total) => `${selected} de ${total} selecionados`,
-    separatedDuplicates: ["duplicata separada", "duplicatas separadas"],
-    deletedDuplicates: ["duplicata excluída.", "duplicatas excluídas."],
-    deleteSelected: (count) => `Excluir selecionados (${count})`,
     splitSelected: (count) => `Ratear selecionadas (${count})`,
-    matches: (id) => `corresponde a #${id}`,
     positionDescription: (index) => `Descrição do item ${index}`,
     positionAmount: (index) => `Valor do item ${index}`,
     removePosition: (index) => `Remover item ${index}`,
     removeNamed: (name) => `Remover ${name}`,
     selectedCategories: (names) => `Categorias selecionadas: ${names}`,
     startingAmount: (currency) => `Saldo inicial em ${currency}`,
-    selectDuplicate: (id) => `Selecionar duplicata ${id}`,
     selectTransaction: (id) => `Selecionar transação ${id}`,
     categoryIcon: (id) => `Ícone da categoria ${id}`,
     pieChart: (currency) => `Gráfico de pizza de gastos em ${currency}`,
-    repeatedWallet: (wallet) =>
-      `A carteira “${wallet}” aparece em mais de um arquivo de importação completa.`,
     deleteTitle: (title) =>
       `Excluir “${title}”? Esta ação não pode ser desfeita.`,
-    deleteDuplicates: [
-      "duplicata selecionada? Esta ação não pode ser desfeita.",
-      "duplicatas selecionadas? Esta ação não pode ser desfeita.",
-    ],
-    importSummary: (files, imported, duplicates, replaced) =>
-      `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas${replaced ? ` · ${replaced} transações anteriores substituídas` : ""}`,
     page: (page, pages) => `Página ${page} de ${pages}`,
     range: (from, to, total) => `${from}–${to} de ${total}`,
   },
@@ -85,7 +58,6 @@ const configs: Record<Locale, DynamicConfig> = {
       transaction: ["transaction", "transactions"],
       wallet: ["portefeuille", "portefeuilles"],
       category: ["catégorie", "catégories"],
-      duplicate: ["doublon", "doublons"],
       split: ["répartition", "répartitions"],
       column: ["colonne", "colonnes"],
     },
@@ -96,31 +68,18 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["élément personnalisé", "éléments personnalisés"],
     activeTransactions: ["transaction active", "transactions actives"],
     selection: (selected, total) => `${selected} sur ${total} sélectionnés`,
-    separatedDuplicates: ["doublon séparé", "doublons séparés"],
-    deletedDuplicates: ["doublon supprimé.", "doublons supprimés."],
-    deleteSelected: (count) => `Supprimer la sélection (${count})`,
     splitSelected: (count) => `Répartir la sélection (${count})`,
-    matches: (id) => `correspond au no ${id}`,
     positionDescription: (index) => `Description de l’élément ${index}`,
     positionAmount: (index) => `Montant de l’élément ${index}`,
     removePosition: (index) => `Supprimer l’élément ${index}`,
     removeNamed: (name) => `Supprimer ${name}`,
     selectedCategories: (names) => `Catégories sélectionnées : ${names}`,
     startingAmount: (currency) => `Montant initial en ${currency}`,
-    selectDuplicate: (id) => `Sélectionner le doublon ${id}`,
     selectTransaction: (id) => `Sélectionner la transaction ${id}`,
     categoryIcon: (id) => `Icône de catégorie ${id}`,
     pieChart: (currency) => `Diagramme circulaire des dépenses en ${currency}`,
-    repeatedWallet: (wallet) =>
-      `Le portefeuille « ${wallet} » figure dans plusieurs fichiers d’importation complète.`,
     deleteTitle: (title) =>
       `Supprimer « ${title} » ? Cette action est irréversible.`,
-    deleteDuplicates: [
-      "doublon sélectionné ? Cette action est irréversible.",
-      "doublons sélectionnés ? Cette action est irréversible.",
-    ],
-    importSummary: (files, imported, duplicates, replaced) =>
-      `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés${replaced ? ` · ${replaced} transactions précédentes remplacées` : ""}`,
     page: (page, pages) => `Page ${page} sur ${pages}`,
     range: (from, to, total) => `${from}–${to} sur ${total}`,
   },
@@ -129,7 +88,6 @@ const configs: Record<Locale, DynamicConfig> = {
       transaction: ["transazione", "transazioni"],
       wallet: ["portafoglio", "portafogli"],
       category: ["categoria", "categorie"],
-      duplicate: ["duplicato", "duplicati"],
       split: ["ripartizione", "ripartizioni"],
       column: ["colonna", "colonne"],
     },
@@ -140,31 +98,18 @@ const configs: Record<Locale, DynamicConfig> = {
     customPositions: ["voce personalizzata", "voci personalizzate"],
     activeTransactions: ["transazione attiva", "transazioni attive"],
     selection: (selected, total) => `${selected} di ${total} selezionati`,
-    separatedDuplicates: ["duplicato separato", "duplicati separati"],
-    deletedDuplicates: ["duplicato eliminato.", "duplicati eliminati."],
-    deleteSelected: (count) => `Elimina selezionati (${count})`,
     splitSelected: (count) => `Ripartisci selezionate (${count})`,
-    matches: (id) => `corrisponde al n. ${id}`,
     positionDescription: (index) => `Descrizione della voce ${index}`,
     positionAmount: (index) => `Importo della voce ${index}`,
     removePosition: (index) => `Rimuovi la voce ${index}`,
     removeNamed: (name) => `Rimuovi ${name}`,
     selectedCategories: (names) => `Categorie selezionate: ${names}`,
     startingAmount: (currency) => `Importo iniziale in ${currency}`,
-    selectDuplicate: (id) => `Seleziona il duplicato ${id}`,
     selectTransaction: (id) => `Seleziona la transazione ${id}`,
     categoryIcon: (id) => `Icona categoria ${id}`,
     pieChart: (currency) => `Grafico a torta delle spese in ${currency}`,
-    repeatedWallet: (wallet) =>
-      `Il portafoglio «${wallet}» compare in più file di importazione completa.`,
     deleteTitle: (title) =>
       `Eliminare «${title}»? Questa operazione non può essere annullata.`,
-    deleteDuplicates: [
-      "duplicato selezionato? Questa operazione non può essere annullata.",
-      "duplicati selezionati? Questa operazione non può essere annullata.",
-    ],
-    importSummary: (files, imported, duplicates, replaced) =>
-      `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati${replaced ? ` · ${replaced} transazioni precedenti sostituite` : ""}`,
     page: (page, pages) => `Pagina ${page} di ${pages}`,
     range: (from, to, total) => `${from}–${to} di ${total}`,
   },
@@ -177,7 +122,7 @@ function form(forms: Forms, count: string) {
 export function translateDynamicUi(locale: Locale, text: string): string {
   const c = configs[locale];
   let match = text.match(
-    /^(\d+) (transaction|transactions|wallet|wallets|category|categories|duplicate|duplicates|split|splits|column|columns)$/,
+    /^(\d+) (transaction|transactions|wallet|wallets|category|categories|split|splits|column|columns)$/,
   );
   if (match) {
     const kind =
@@ -186,7 +131,6 @@ export function translateDynamicUi(locale: Locale, text: string): string {
           transactions: "transaction",
           wallets: "wallet",
           categories: "category",
-          duplicates: "duplicate",
           splits: "split",
           columns: "column",
         } as Record<string, keyof DynamicConfig["nouns"]>
@@ -202,16 +146,8 @@ export function translateDynamicUi(locale: Locale, text: string): string {
   if (match) return `${match[1]} ${form(c.activeTransactions, match[1])}`;
   match = text.match(/^(\d+) of (\d+) selected$/);
   if (match) return c.selection(match[1], match[2]);
-  match = text.match(/^(\d+) separated duplicates?$/);
-  if (match) return `${match[1]} ${form(c.separatedDuplicates, match[1])}`;
-  match = text.match(/^(\d+) duplicates? deleted\.$/);
-  if (match) return `${match[1]} ${form(c.deletedDuplicates, match[1])}`;
-  match = text.match(/^Delete selected \((\d+)\)$/);
-  if (match) return c.deleteSelected(match[1]);
   match = text.match(/^Split selected \((\d+)\)$/);
   if (match) return c.splitSelected(match[1]);
-  match = text.match(/^matches #(\d+)$/);
-  if (match) return c.matches(match[1]);
   match = text.match(/^Position (\d+) description$/);
   if (match) return c.positionDescription(match[1]);
   match = text.match(/^Position (\d+) amount$/);
@@ -224,28 +160,14 @@ export function translateDynamicUi(locale: Locale, text: string): string {
   if (match) return c.selectedCategories(match[1]);
   match = text.match(/^Starting amount in (.+)$/);
   if (match) return c.startingAmount(match[1]);
-  match = text.match(/^Select duplicate (\d+)$/);
-  if (match) return c.selectDuplicate(match[1]);
   match = text.match(/^Select transaction (\d+)$/);
   if (match) return c.selectTransaction(match[1]);
   match = text.match(/^Category icon (\d+)$/);
   if (match) return c.categoryIcon(match[1]);
   match = text.match(/^(.+) spending pie chart$/);
   if (match) return c.pieChart(match[1]);
-  match = text.match(
-    /^Wallet "(.+)" appears in more than one full-import file\.$/,
-  );
-  if (match) return c.repeatedWallet(match[1]);
   match = text.match(/^Delete "(.+)"\? This cannot be undone\.$/);
   if (match) return c.deleteTitle(match[1]);
-  match = text.match(
-    /^Delete (\d+) selected duplicates?\? This cannot be undone\.$/,
-  );
-  if (match) return `${match[1]} ${form(c.deleteDuplicates, match[1])}`;
-  match = text.match(
-    /^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/,
-  );
-  if (match) return c.importSummary(match[1], match[2], match[3], match[4]);
   match = text.match(/^Page (\d+) of (\d+)$/);
   if (match) return c.page(match[1], match[2]);
   match = text.match(/^(\d+)[–-](\d+) of (\d+)$/);

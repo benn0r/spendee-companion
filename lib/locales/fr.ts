@@ -19,14 +19,11 @@ export const frUi: Record<string, string> = {
   "Spendee companion": "Compagnon Spendee",
   "Transaction archive": "Archive des transactions",
   Transactions: "Transactions",
-  Duplicates: "Doublons",
   Splits: "Répartitions",
   Monthly: "Mensuel",
   "TRANSACTION ARCHIVE": "ARCHIVE DES TRANSACTIONS",
   "Import and review your Spendee exports in one place.":
     "Importez et vérifiez vos exports Spendee au même endroit.",
-  "Review and remove repeated import records.":
-    "Vérifiez et supprimez les enregistrements importés en double.",
   "Import files": "Importer des fichiers",
   "Importing…": "Importation…",
   Wallets: "Portefeuilles",
@@ -35,9 +32,6 @@ export const frUi: Record<string, string> = {
   "Transaction history": "Historique des transactions",
   "No transactions are available in Actual Budget.":
     "Aucune transaction n’est disponible dans Actual Budget.",
-  "Duplicate records": "Enregistrements en double",
-  "All imported records, newest first":
-    "Tous les enregistrements importés, du plus récent au plus ancien",
   Cleared: "Pointée",
   Uncleared: "Non pointée",
   Save: "Enregistrer",
@@ -45,7 +39,6 @@ export const frUi: Record<string, string> = {
   "Split transactions": "Répartir les transactions",
   "Split selected": "Répartir la sélection",
   Cancel: "Annuler",
-  "Delete selected": "Supprimer la sélection",
   "Deleting…": "Suppression…",
   Date: "Date",
   Wallet: "Portefeuille",
@@ -191,8 +184,6 @@ export const frUi: Record<string, string> = {
   "Primary navigation": "Navigation principale",
   "Monthly settings": "Paramètres mensuels",
   "Rows per page": "Lignes par page",
-  "Select all duplicates on this page":
-    "Sélectionner tous les doublons de cette page",
   "Transaction filters": "Filtres des transactions",
   "Amount comparison": "Comparaison du montant",
   "Search wallets": "Rechercher des portefeuilles",
@@ -211,7 +202,6 @@ export const frUi: Record<string, string> = {
   "No category": "Aucune catégorie",
   "Import an XLSX or CSV export to begin.":
     "Importez un export XLSX ou CSV pour commencer.",
-  "No duplicates have been found.": "Aucun doublon n’a été trouvé.",
   Expense: "Dépense",
   Income: "Revenu",
   Transfer: "Virement",
@@ -233,7 +223,6 @@ export const frUi: Record<string, string> = {
     "Impossible d’enregistrer la date de vérification.",
   "Could not save split.": "Impossible d’enregistrer la répartition.",
   "Could not delete split.": "Impossible de supprimer la répartition.",
-  "Could not delete duplicates.": "Impossible de supprimer les doublons.",
   "Enter a title for the split.": "Saisissez un titre pour la répartition.",
   "Selected transactions must use one currency.":
     "Les transactions sélectionnées doivent utiliser la même devise.",
@@ -274,8 +263,6 @@ export const frUi: Record<string, string> = {
   of: "sur",
   "Close category settings": "Fermer les paramètres de la catégorie",
   "Monthly · Spendee companion": "Mensuel · Compagnon Spendee",
-  "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.":
-    "Importez les exports XLSX et CSV de Spendee dans une archive durable qui détecte les doublons.",
 
   // Validation and import errors can be shown directly by the client.
   "The file does not contain a readable transaction table.":
@@ -296,7 +283,6 @@ export const frUi: Record<string, string> = {
     "Chaque colonne doit contenir au moins une catégorie.",
   "Budgets must be positive numbers or left empty.":
     "Les budgets doivent être des nombres positifs ou rester vides.",
-  "Select at least one duplicate.": "Sélectionnez au moins un doublon.",
   "Split title must be 120 characters or fewer.":
     "Le titre de la répartition ne doit pas dépasser 120 caractères.",
   "Select at least one transaction.": "Sélectionnez au moins une transaction.",
@@ -326,8 +312,6 @@ export const frUi: Record<string, string> = {
   "splitCount must be a number.": "splitCount doit être un nombre.",
   "Currency and a valid starting amount are required.":
     "Une devise et un montant initial valide sont obligatoires.",
-  "ids must contain duplicate IDs.":
-    "ids doit contenir des identifiants de doublons.",
   "columns must contain a name and a list of categories.":
     "Les colonnes doivent contenir un nom et une liste de catégories.",
 };

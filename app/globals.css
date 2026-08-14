@@ -755,33 +755,6 @@ h1 {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.delete-selected,
-.delete-row {
-  border: 1px solid var(--negative-border);
-  border-radius: 7px;
-  color: var(--negative);
-  background: white;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 600;
-}
-.delete-selected {
-  height: 33px;
-  padding: 0 10px;
-}
-.delete-row {
-  padding: 6px 8px;
-}
-.delete-selected:hover,
-.delete-row:hover {
-  border-color: var(--negative-border);
-  background: var(--negative-soft);
-}
-.delete-selected:disabled,
-.delete-row:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 .select-column {
   width: 48px;
   text-align: center;

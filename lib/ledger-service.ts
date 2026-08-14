@@ -477,7 +477,6 @@ export function getLedgerStats(snapshot: LedgerSnapshot) {
     wallets: snapshot.accounts.length,
     categories: snapshot.categories.length,
     tags: snapshot.tags.length,
-    duplicates: 0,
   };
 }
 

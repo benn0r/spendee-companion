@@ -17,14 +17,11 @@ export const deUi: Record<string, string> = {
   "Spendee companion": "Spendee Companion",
   "Transaction archive": "Transaktionsarchiv",
   Transactions: "Transaktionen",
-  Duplicates: "Duplikate",
   Splits: "Aufteilungen",
   Monthly: "Monate",
   "TRANSACTION ARCHIVE": "TRANSAKTIONSARCHIV",
   "Import and review your Spendee exports in one place.":
     "Spendee-Exporte an einem Ort importieren und prüfen.",
-  "Review and remove repeated import records.":
-    "Doppelte Importdatensätze prüfen und entfernen.",
   "Import files": "Dateien importieren",
   "Importing…": "Wird importiert…",
   Wallets: "Portemonnaies",
@@ -33,9 +30,6 @@ export const deUi: Record<string, string> = {
   "Transaction history": "Transaktionsverlauf",
   "No transactions are available in Actual Budget.":
     "In Actual Budget sind keine Transaktionen verfügbar.",
-  "Duplicate records": "Doppelte Datensätze",
-  "All imported records, newest first":
-    "Alle importierten Datensätze, neueste zuerst",
   Cleared: "Abgeglichen",
   Uncleared: "Nicht abgeglichen",
   Save: "Speichern",
@@ -43,7 +37,6 @@ export const deUi: Record<string, string> = {
   "Split transactions": "Transaktionen aufteilen",
   "Split selected": "Auswahl aufteilen",
   Cancel: "Abbrechen",
-  "Delete selected": "Auswahl löschen",
   "Deleting…": "Wird gelöscht…",
   Date: "Datum",
   Wallet: "Portemonnaie",
@@ -188,8 +181,6 @@ export const deUi: Record<string, string> = {
   "Primary navigation": "Hauptnavigation",
   "Monthly settings": "Monatseinstellungen",
   "Rows per page": "Zeilen pro Seite",
-  "Select all duplicates on this page":
-    "Alle Duplikate auf dieser Seite auswählen",
   "Transaction filters": "Transaktionsfilter",
   "Amount comparison": "Betragsvergleich",
   "Search wallets": "Portemonnaies durchsuchen",
@@ -208,7 +199,6 @@ export const deUi: Record<string, string> = {
   "No category": "Keine Kategorie",
   "Import an XLSX or CSV export to begin.":
     "Zum Start einen XLSX- oder CSV-Export importieren.",
-  "No duplicates have been found.": "Keine Duplikate gefunden.",
   Expense: "Ausgabe",
   Income: "Einnahme",
   Transfer: "Übertrag",
@@ -233,8 +223,6 @@ export const deUi: Record<string, string> = {
     "Das Verifizierungsdatum konnte nicht gespeichert werden.",
   "Could not save split.": "Die Aufteilung konnte nicht gespeichert werden.",
   "Could not delete split.": "Die Aufteilung konnte nicht gelöscht werden.",
-  "Could not delete duplicates.":
-    "Die Duplikate konnten nicht gelöscht werden.",
   "Enter a title for the split.": "Einen Titel für die Aufteilung eingeben.",
   "Selected transactions must use one currency.":
     "Die ausgewählten Transaktionen müssen dieselbe Währung verwenden.",
@@ -299,7 +287,6 @@ export const deUi: Record<string, string> = {
     "Eine oder mehrere ausgewählte Transaktionen sind nicht mehr vorhanden.",
   "Only .xlsx and .csv files are supported.":
     "Es werden nur .xlsx- und .csv-Dateien unterstützt.",
-  "Select at least one duplicate.": "Mindestens ein Duplikat auswählen.",
   "Select at least one transaction.": "Mindestens eine Transaktion auswählen.",
   "Select review items and a valid decision.":
     "Prüfeinträge und eine gültige Entscheidung auswählen.",
@@ -323,7 +310,6 @@ export const deUi: Record<string, string> = {
   "transactionIds must contain transaction IDs.":
     "transactionIds muss Transaktions-IDs enthalten.",
   "splitCount must be a number.": "splitCount muss eine Zahl sein.",
-  "ids must contain duplicate IDs.": "ids muss Duplikat-IDs enthalten.",
   "columns must contain a name and a list of categories.":
     "Spalten müssen einen Namen und eine Liste von Kategorien enthalten.",
 };

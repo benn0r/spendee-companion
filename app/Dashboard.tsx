@@ -19,14 +19,8 @@ import CategoryIcon from "./CategoryIcon";
 import { useI18n } from "./I18nProvider";
 import TransactionClearedStatus from "./TransactionClearedStatus";
 
-type Stats = {
-  transactions: number;
-  duplicates: number;
-  wallets: number;
-};
 type Row = {
   id: string;
-  duplicateOfId?: string;
   date: string;
   wallet: string;
   accountId?: string;
@@ -61,7 +55,6 @@ type WalletSummary = {
   }>;
 };
 
-const emptyStats = { transactions: 0, duplicates: 0, wallets: 0 };
 const emptyPage = {
   rows: [],
   dayTotals: {},
@@ -116,15 +109,9 @@ function compactMoney(amount: number, currency: string, locale: string) {
 
 export default function Dashboard() {
   const { intlLocale } = useI18n();
-  const [tab, setTab] = useState<"transactions" | "duplicates">("transactions");
-  const [stats, setStats] = useState<Stats>(emptyStats);
   const [data, setData] = useState<PageData>(emptyPage);
   const [loading, setLoading] = useState(true);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
-  const [message, setMessage] = useState<{
-    tone: "success" | "error";
-    text: string;
-  } | null>(null);
   const [filterOptions, setFilterOptions] =
     useState<FilterOptions>(emptyFilterOptions);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
@@ -132,117 +119,52 @@ export default function Dashboard() {
   const [splitMode, setSplitMode] = useState(false);
   const [splitRows, setSplitRows] = useState<Row[]>([]);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
-  const [selectedDuplicates, setSelectedDuplicates] = useState<string[]>([]);
-  const [deletingDuplicates, setDeletingDuplicates] = useState(false);
   const [pageSize, setPageSize] = useState(25);
 
   const load = useCallback(
-    async (targetTab = tab, page = 1) => {
+    async (page = 1) => {
       setLoading(true);
       try {
-        const [statsResponse, pageResponse, walletsResponse] =
-          await Promise.all([
-            fetch("/api/stats", { cache: "no-store" }),
-            fetch(
-              `/api/${targetTab}?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}`,
-              { cache: "no-store" },
-            ),
-            fetch("/api/wallets", { cache: "no-store" }),
-          ]);
-        setStats(await statsResponse.json());
+        const [pageResponse, walletsResponse] = await Promise.all([
+          fetch(
+            `/api/transactions?page=${page}&pageSize=${pageSize}${activeFilterQuery ? `&${activeFilterQuery}` : ""}`,
+            { cache: "no-store" },
+          ),
+          fetch("/api/wallets", { cache: "no-store" }),
+        ]);
         setData(await pageResponse.json());
         const walletData = await walletsResponse.json();
         setWallets(walletData.wallets);
-        setSelectedDuplicates([]);
       } finally {
         setLoading(false);
       }
     },
-    [tab, activeFilterQuery, pageSize],
+    [activeFilterQuery, pageSize],
   );
 
   useEffect(() => {
-    void load(tab, 1);
-  }, [tab, load]);
-  useEffect(() => {
-    if (
-      new URLSearchParams(window.location.search).get("view") === "duplicates"
-    )
-      setTab("duplicates");
-  }, []);
+    void load(1);
+  }, [load]);
   useEffect(() => {
     void fetch("/api/filter-options", { cache: "no-store" })
       .then((response) => response.json())
       .then((result: FilterOptions) => setFilterOptions(result));
   }, []);
-  async function removeDuplicates(ids: string[]) {
-    if (
-      !ids.length ||
-      !window.confirm(
-        `Delete ${ids.length} selected ${ids.length === 1 ? "duplicate" : "duplicates"}? This cannot be undone.`,
-      )
-    )
-      return;
-    setDeletingDuplicates(true);
-    try {
-      const response = await fetch("/api/duplicates", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      const result = (await response.json()) as {
-        deleted?: number;
-        error?: string;
-      };
-      if (!response.ok)
-        throw new Error(result.error ?? "Could not delete duplicates.");
-      setMessage({
-        tone: "success",
-        text: `${result.deleted ?? 0} ${result.deleted === 1 ? "duplicate" : "duplicates"} deleted.`,
-      });
-      const targetPage =
-        ids.length >= data.rows.length && data.page > 1
-          ? data.page - 1
-          : data.page;
-      await load("duplicates", targetPage);
-    } catch (error) {
-      setMessage({
-        tone: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Could not delete duplicates.",
-      });
-    } finally {
-      setDeletingDuplicates(false);
-    }
-  }
-
   return (
     <main>
       <header className="topbar">
         <div className="topbar-inner">
           <Brand
             onClick={() => {
-              setTab("transactions");
               setSplitMode(false);
               setSplitRows([]);
-              setSelectedDuplicates([]);
             }}
           />
           <div className="topbar-actions">
             <TopNavigation
-              active={tab}
-              duplicateCount={stats.duplicates}
+              active="transactions"
               onTransactions={() => {
-                setTab("transactions");
                 history.replaceState(null, "", "/");
-              }}
-              onDuplicates={() => {
-                setTab("duplicates");
-                setSplitMode(false);
-                setSplitRows([]);
-                history.replaceState(null, "", "/?view=duplicates");
               }}
             />
           </div>
@@ -253,320 +175,237 @@ export default function Dashboard() {
         <section className="page-heading">
           <div>
             <p className="eyebrow">TRANSACTION ARCHIVE</p>
-            <h1>{tab === "transactions" ? "Transactions" : "Duplicates"}</h1>
-            <p>
-              {tab === "transactions"
-                ? "Review your synced Actual Budget ledger and clearing status."
-                : "Actual handles imported transaction identity and duplicate detection."}
-            </p>
+            <h1>Transactions</h1>
+            <p>Review your synced Actual Budget ledger and clearing status.</p>
           </div>
         </section>
 
-        {message && (
-          <div className={`notice ${message.tone}`}>{message.text}</div>
-        )}
-
-        {tab === "transactions" &&
-          (wallets.length > 0 || filterOptions.categories.length > 0) && (
-            <div className="dashboard-widgets">
-              {wallets.length > 0 && (
-                <details className="dashboard-widget">
-                  <summary>
-                    <span>
-                      <b>Wallets</b>
-                      <small>Balances and transaction totals</small>
-                    </span>
-                    <span className="dashboard-widget-meta">
-                      <em>
-                        {wallets.length}{" "}
-                        {wallets.length === 1 ? "wallet" : "wallets"}
-                      </em>
-                      <i aria-hidden="true"></i>
-                    </span>
-                  </summary>
-                  <div className="dashboard-widget-content">
-                    <div className="wallet-grid">
-                      {wallets.map((wallet, index) => (
-                        <Link
-                          className="wallet-card"
-                          href={`/wallets/${encodeURIComponent(wallet.id)}`}
-                          key={wallet.wallet}
+        {(wallets.length > 0 || filterOptions.categories.length > 0) && (
+          <div className="dashboard-widgets">
+            {wallets.length > 0 && (
+              <details className="dashboard-widget">
+                <summary>
+                  <span>
+                    <b>Wallets</b>
+                    <small>Balances and transaction totals</small>
+                  </span>
+                  <span className="dashboard-widget-meta">
+                    <em>
+                      {wallets.length}{" "}
+                      {wallets.length === 1 ? "wallet" : "wallets"}
+                    </em>
+                    <i aria-hidden="true"></i>
+                  </span>
+                </summary>
+                <div className="dashboard-widget-content">
+                  <div className="wallet-grid">
+                    {wallets.map((wallet, index) => (
+                      <Link
+                        className="wallet-card"
+                        href={`/wallets/${encodeURIComponent(wallet.id)}`}
+                        key={wallet.wallet}
+                      >
+                        <span
+                          className={`wallet-symbol wallet-color-${index % 4}`}
                         >
-                          <span
-                            className={`wallet-symbol wallet-color-${index % 4}`}
-                          >
-                            {wallet.wallet.slice(0, 1)}
-                          </span>
-                          <span className="wallet-card-copy">
-                            <strong>{wallet.wallet}</strong>
-                            <small>
-                              {wallet.transactionCount.toLocaleString(
-                                intlLocale,
-                              )}{" "}
-                              {wallet.transactionCount === 1
-                                ? "transaction"
-                                : "transactions"}
-                            </small>
-                          </span>
-                          <span className="wallet-totals">
-                            {wallet.totals.map((total) => (
-                              <b
-                                className={total.total < 0 ? "negative" : ""}
-                                key={total.currency}
-                              >
-                                {new Intl.NumberFormat(intlLocale, {
-                                  style: "currency",
-                                  currency: total.currency,
-                                }).format(total.total)}
-                              </b>
-                            ))}
-                          </span>
-                          <span className="wallet-arrow">→</span>
-                        </Link>
-                      ))}
-                    </div>
+                          {wallet.wallet.slice(0, 1)}
+                        </span>
+                        <span className="wallet-card-copy">
+                          <strong>{wallet.wallet}</strong>
+                          <small>
+                            {wallet.transactionCount.toLocaleString(intlLocale)}{" "}
+                            {wallet.transactionCount === 1
+                              ? "transaction"
+                              : "transactions"}
+                          </small>
+                        </span>
+                        <span className="wallet-totals">
+                          {wallet.totals.map((total) => (
+                            <b
+                              className={total.total < 0 ? "negative" : ""}
+                              key={total.currency}
+                            >
+                              {new Intl.NumberFormat(intlLocale, {
+                                style: "currency",
+                                currency: total.currency,
+                              }).format(total.total)}
+                            </b>
+                          ))}
+                        </span>
+                        <span className="wallet-arrow">→</span>
+                      </Link>
+                    ))}
                   </div>
-                </details>
-              )}
-              {filterOptions.categories.length > 0 && (
-                <details className="dashboard-widget">
-                  <summary>
-                    <span>
-                      <b>Categories</b>
-                      <small>
-                        Net income and spending for{" "}
-                        {monthLabel(filterOptions.currentMonth, intlLocale)}
-                      </small>
-                    </span>
-                    <span className="dashboard-widget-meta">
-                      <em>
-                        {filterOptions.categories.length}{" "}
-                        {filterOptions.categories.length === 1
-                          ? "category"
-                          : "categories"}
-                      </em>
-                      <i aria-hidden="true"></i>
-                    </span>
-                  </summary>
-                  <div className="dashboard-widget-content">
-                    <div className="category-directory">
-                      {filterOptions.categories.map((category) => (
-                        <Link
-                          href={`/categories/${categorySlug(category)}`}
-                          key={category}
-                        >
-                          <CategoryIcon
-                            appearance={
-                              filterOptions.categoryAppearances?.[category]
-                            }
-                          />
-                          <b>{category}</b>
-                          <span className="category-month-total">
-                            {(
+                </div>
+              </details>
+            )}
+            {filterOptions.categories.length > 0 && (
+              <details className="dashboard-widget">
+                <summary>
+                  <span>
+                    <b>Categories</b>
+                    <small>
+                      Net income and spending for{" "}
+                      {monthLabel(filterOptions.currentMonth, intlLocale)}
+                    </small>
+                  </span>
+                  <span className="dashboard-widget-meta">
+                    <em>
+                      {filterOptions.categories.length}{" "}
+                      {filterOptions.categories.length === 1
+                        ? "category"
+                        : "categories"}
+                    </em>
+                    <i aria-hidden="true"></i>
+                  </span>
+                </summary>
+                <div className="dashboard-widget-content">
+                  <div className="category-directory">
+                    {filterOptions.categories.map((category) => (
+                      <Link
+                        href={`/categories/${categorySlug(category)}`}
+                        key={category}
+                      >
+                        <CategoryIcon
+                          appearance={
+                            filterOptions.categoryAppearances?.[category]
+                          }
+                        />
+                        <b>{category}</b>
+                        <span className="category-month-total">
+                          {(
+                            filterOptions.categoryMonthlyTotals?.[category] ??
+                            []
+                          ).length ? (
+                            (
                               filterOptions.categoryMonthlyTotals?.[category] ??
                               []
-                            ).length ? (
-                              (
-                                filterOptions.categoryMonthlyTotals?.[
-                                  category
-                                ] ?? []
-                              ).map((total) => (
-                                <strong key={total.currency}>
-                                  {compactMoney(
-                                    total.amount,
-                                    total.currency,
-                                    intlLocale,
-                                  )}
-                                </strong>
-                              ))
-                            ) : (
-                              <strong>—</strong>
-                            )}
-                          </span>
-                          <i aria-hidden="true">→</i>
-                        </Link>
-                      ))}
-                    </div>
+                            ).map((total) => (
+                              <strong key={total.currency}>
+                                {compactMoney(
+                                  total.amount,
+                                  total.currency,
+                                  intlLocale,
+                                )}
+                              </strong>
+                            ))
+                          ) : (
+                            <strong>—</strong>
+                          )}
+                        </span>
+                        <i aria-hidden="true">→</i>
+                      </Link>
+                    ))}
                   </div>
-                </details>
-              )}
-            </div>
-          )}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
 
         <section className="ledger">
           <div className="ledger-head">
             <div>
-              <h2>
-                {tab === "transactions"
-                  ? "Transaction history"
-                  : "Duplicate records"}
-              </h2>
-              <p>
-                {tab === "transactions"
-                  ? "Synced from Actual Budget, newest first"
-                  : "No separate duplicate ledger is stored locally"}
-              </p>
+              <h2>Transaction history</h2>
+              <p>Synced from Actual Budget, newest first</p>
             </div>
             <div className="ledger-tools">
-              {tab === "transactions" &&
-                (splitMode ? (
-                  <div className="split-mode-actions">
-                    <button
-                      className="cancel-split"
-                      onClick={() => {
-                        setSplitMode(false);
-                        setSplitRows([]);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="start-split"
-                      disabled={!splitRows.length}
-                      onClick={() => setSplitDialogOpen(true)}
-                    >
-                      Split selected
-                      {splitRows.length ? ` (${splitRows.length})` : ""}
-                    </button>
-                  </div>
-                ) : (
+              {splitMode ? (
+                <div className="split-mode-actions">
                   <button
-                    className="split-button"
-                    onClick={() => setSplitMode(true)}
+                    className="cancel-split"
+                    onClick={() => {
+                      setSplitMode(false);
+                      setSplitRows([]);
+                    }}
                   >
-                    Split transactions
+                    Cancel
                   </button>
-                ))}
-              {tab === "duplicates" && (
+                  <button
+                    className="start-split"
+                    disabled={!splitRows.length}
+                    onClick={() => setSplitDialogOpen(true)}
+                  >
+                    Split selected
+                    {splitRows.length ? ` (${splitRows.length})` : ""}
+                  </button>
+                </div>
+              ) : (
                 <button
-                  className="delete-selected"
-                  disabled={!selectedDuplicates.length || deletingDuplicates}
-                  onClick={() => void removeDuplicates(selectedDuplicates)}
+                  className="split-button"
+                  onClick={() => setSplitMode(true)}
                 >
-                  {deletingDuplicates
-                    ? "Deleting…"
-                    : `Delete selected${selectedDuplicates.length ? ` (${selectedDuplicates.length})` : ""}`}
+                  Split transactions
                 </button>
               )}
             </div>
           </div>
 
-          {tab === "transactions" && (
-            <TransactionFilters
-              active={Boolean(activeFilterQuery)}
-              onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
-              onChange={setDraftFilters}
-              onClear={() => {
-                setDraftFilters(emptyFilters);
-                setActiveFilterQuery("");
-              }}
-              options={filterOptions}
-              value={draftFilters}
-            />
-          )}
+          <TransactionFilters
+            active={Boolean(activeFilterQuery)}
+            onApply={() => setActiveFilterQuery(filterQuery(draftFilters))}
+            onChange={setDraftFilters}
+            onClear={() => {
+              setDraftFilters(emptyFilters);
+              setActiveFilterQuery("");
+            }}
+            options={filterOptions}
+            value={draftFilters}
+          />
 
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  {(splitMode || tab === "duplicates") && (
-                    <th className="select-column">
-                      {tab === "duplicates" ? (
-                        <input
-                          aria-label="Select all duplicates on this page"
-                          checked={
-                            data.rows.length > 0 &&
-                            data.rows.every((row) =>
-                              selectedDuplicates.includes(row.id),
-                            )
-                          }
-                          type="checkbox"
-                          onChange={(event) =>
-                            setSelectedDuplicates(
-                              event.target.checked
-                                ? data.rows.map((row) => row.id)
-                                : [],
-                            )
-                          }
-                        />
-                      ) : (
-                        "Select"
-                      )}
-                    </th>
-                  )}
+                  {splitMode && <th className="select-column">Select</th>}
                   <th>Date</th>
                   <th>Wallet</th>
                   <th>Type</th>
                   <th>Category</th>
                   <th>Note & labels</th>
                   <th>Author</th>
-                  {tab === "duplicates" && <th>Actions</th>}
                   <th className="right">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7}
-                      className="empty"
-                    >
+                    <td colSpan={splitMode ? 8 : 7} className="empty">
                       Loading transactions…
                     </td>
                   </tr>
                 ) : data.rows.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7}
-                      className="empty"
-                    >
-                      {tab === "transactions"
-                        ? "No transactions are available in Actual Budget."
-                        : "No duplicates have been found."}
+                    <td colSpan={splitMode ? 8 : 7} className="empty">
+                      No transactions are available in Actual Budget.
                     </td>
                   </tr>
                 ) : (
                   groupRowsByDay(data.rows).map((group) => (
                     <Fragment key={group.key}>
                       <DayHeader
-                        colSpan={tab === "duplicates" ? 9 : splitMode ? 8 : 7}
+                        colSpan={splitMode ? 8 : 7}
                         day={group.key}
                         totals={data.dayTotals[group.key] ?? []}
                       />
                       {group.rows.map((row) => (
                         <tr key={row.id}>
-                          {(splitMode || tab === "duplicates") && (
+                          {splitMode && (
                             <td className="select-column">
                               <input
-                                aria-label={
-                                  tab === "duplicates"
-                                    ? `Select duplicate ${row.id}`
-                                    : `Select transaction ${row.id}`
-                                }
-                                checked={
-                                  tab === "duplicates"
-                                    ? selectedDuplicates.includes(row.id)
-                                    : splitRows.some(
-                                        (item) => item.id === row.id,
-                                      )
-                                }
+                                aria-label={`Select transaction ${row.id}`}
+                                checked={splitRows.some(
+                                  (item) => item.id === row.id,
+                                )}
                                 type="checkbox"
                                 onChange={(event) =>
-                                  tab === "duplicates"
-                                    ? setSelectedDuplicates((current) =>
-                                        event.target.checked
-                                          ? [...current, row.id]
-                                          : current.filter(
-                                              (id) => id !== row.id,
-                                            ),
-                                      )
-                                    : setSplitRows((current) =>
-                                        event.target.checked
-                                          ? [...current, row]
-                                          : current.filter(
-                                              (item) => item.id !== row.id,
-                                            ),
-                                      )
+                                  setSplitRows((current) =>
+                                    event.target.checked
+                                      ? [...current, row]
+                                      : current.filter(
+                                          (item) => item.id !== row.id,
+                                        ),
+                                  )
                                 }
                               />
                             </td>
@@ -621,7 +460,7 @@ export default function Dashboard() {
                                       {row.note}
                                     </span>
                                   )}
-                                  {tab === "transactions" && row.validation && (
+                                  {row.validation && (
                                     <span className="transaction-validation-match">
                                       <span
                                         className="transaction-validation-description"
@@ -647,22 +486,8 @@ export default function Dashboard() {
                             )}
                           </td>
                           <td>{row.author ?? "—"}</td>
-                          {tab === "duplicates" && (
-                            <td>
-                              <button
-                                className="delete-row"
-                                disabled={deletingDuplicates}
-                                onClick={() => void removeDuplicates([row.id])}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          )}
                           <td className="right">
                             <Amount row={row} />
-                            {row.duplicateOfId && (
-                              <small>matches #{row.duplicateOfId}</small>
-                            )}
                           </td>
                         </tr>
                       ))}
@@ -684,7 +509,7 @@ export default function Dashboard() {
             <div>
               <button
                 disabled={data.page <= 1 || loading}
-                onClick={() => void load(tab, data.page - 1)}
+                onClick={() => void load(data.page - 1)}
               >
                 ←
               </button>
@@ -693,7 +518,7 @@ export default function Dashboard() {
               </span>
               <button
                 disabled={data.page >= data.pages || loading}
-                onClick={() => void load(tab, data.page + 1)}
+                onClick={() => void load(data.page + 1)}
               >
                 →
               </button>

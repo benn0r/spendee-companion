@@ -33,20 +33,16 @@ export const itUi: Record<string, string> = {
   "transactionIds must contain transaction IDs.":
     "transactionIds deve contenere ID di transazioni.",
   "splitCount must be a number.": "splitCount deve essere un numero.",
-  "ids must contain duplicate IDs.": "ids deve contenere ID di duplicati.",
   "columns must contain a name and a list of categories.":
     "Le colonne devono contenere un nome e un elenco di categorie.",
   "Spendee companion": "Companion di Spendee",
   "Transaction archive": "Archivio transazioni",
   Transactions: "Transazioni",
-  Duplicates: "Duplicati",
   Splits: "Ripartizioni",
   Monthly: "Mensile",
   "TRANSACTION ARCHIVE": "ARCHIVIO TRANSAZIONI",
   "Import and review your Spendee exports in one place.":
     "Importa e controlla le esportazioni Spendee in un unico posto.",
-  "Review and remove repeated import records.":
-    "Controlla e rimuovi i record di importazione duplicati.",
   "Import files": "Importa file",
   "Importing…": "Importazione in corso…",
   Wallets: "Portafogli",
@@ -55,9 +51,6 @@ export const itUi: Record<string, string> = {
   "Transaction history": "Cronologia transazioni",
   "No transactions are available in Actual Budget.":
     "Nessuna transazione è disponibile in Actual Budget.",
-  "Duplicate records": "Record duplicati",
-  "All imported records, newest first":
-    "Tutti i record importati, dal più recente",
   Cleared: "Registrata",
   Uncleared: "Non registrata",
   Save: "Salva",
@@ -209,8 +202,6 @@ export const itUi: Record<string, string> = {
   "Primary navigation": "Navigazione principale",
   "Monthly settings": "Impostazioni mensili",
   "Rows per page": "Righe per pagina",
-  "Select all duplicates on this page":
-    "Seleziona tutti i duplicati in questa pagina",
   "Transaction filters": "Filtri delle transazioni",
   "Amount comparison": "Confronto dell'importo",
   "Search wallets": "Cerca portafogli",
@@ -229,7 +220,6 @@ export const itUi: Record<string, string> = {
   "No category": "Nessuna categoria",
   "Import an XLSX or CSV export to begin.":
     "Per iniziare, importa un'esportazione XLSX o CSV.",
-  "No duplicates have been found.": "Non sono stati trovati duplicati.",
   Expense: "Spesa",
   Income: "Entrata",
   Transfer: "Trasferimento",
@@ -251,7 +241,6 @@ export const itUi: Record<string, string> = {
     "Impossibile salvare la data di verifica.",
   "Could not save split.": "Impossibile salvare la ripartizione.",
   "Could not delete split.": "Impossibile eliminare la ripartizione.",
-  "Could not delete duplicates.": "Impossibile eliminare i duplicati.",
   "Enter a title for the split.": "Inserisci un titolo per la ripartizione.",
   "Selected transactions must use one currency.":
     "Le transazioni selezionate devono usare la stessa valuta.",
@@ -302,7 +291,6 @@ export const itUi: Record<string, string> = {
     "Ogni colonna deve contenere almeno una categoria.",
   "Budgets must be positive numbers or left empty.":
     "I budget devono essere numeri positivi oppure essere lasciati vuoti.",
-  "Select at least one duplicate.": "Seleziona almeno un duplicato.",
   "Split title must be 120 characters or fewer.":
     "Il titolo della ripartizione non può superare 120 caratteri.",
   "Select at least one transaction.": "Seleziona almeno una transazione.",

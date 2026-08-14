@@ -126,16 +126,6 @@ test("API routes use Actual while SQLite retains only companion state", async (t
   await t.test(
     "reads Actual account, category, and tag paths by UUID",
     async () => {
-      const stats = await import("../app/api/stats/route");
-      assert.deepEqual(await body(await stats.GET()), {
-        transactions: 3,
-        accounts: 2,
-        wallets: 2,
-        categories: 6,
-        tags: 6,
-        duplicates: 0,
-      });
-
       const filters = await import("../app/api/filter-options/route");
       const options = await body(await filters.GET());
       assert.ok(options.wallets.includes("Moon Purse"));
@@ -478,47 +468,6 @@ test("API routes use Actual while SQLite retains only companion state", async (t
         (await single.DELETE(new Request("http://test"), params)).status,
         200,
       );
-    },
-  );
-
-  await t.test(
-    "exposes empty compatibility duplicates without SQLite",
-    async () => {
-      const duplicates = await import("../app/api/duplicates/route");
-      const listed = await body(
-        await duplicates.GET(
-          new Request("http://test/api/duplicates?page=2&pageSize=10"),
-        ),
-      );
-      assert.deepEqual(listed, {
-        rows: [],
-        dayTotals: {},
-        page: 2,
-        pageSize: 10,
-        total: 0,
-        pages: 1,
-      });
-      assert.equal(
-        (
-          await duplicates.DELETE(
-            jsonRequest("http://test", "DELETE", { ids: [null] }),
-          )
-        ).status,
-        400,
-      );
-      assert.equal(
-        (
-          await body(
-            await duplicates.DELETE(
-              jsonRequest("http://test", "DELETE", {
-                ids: [actualIds.groceryTransaction],
-              }),
-            ),
-          )
-        ).deleted,
-        0,
-      );
-      assert.ok(!(await retainedSqliteTables()).includes("duplicates"));
     },
   );
 

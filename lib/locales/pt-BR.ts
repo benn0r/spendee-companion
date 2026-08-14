@@ -18,14 +18,11 @@ export const ptBrUi: Record<string, string> = {
   "Spendee companion · build": "Assistente do Spendee · versão",
   "Transaction archive": "Arquivo de transações",
   Transactions: "Transações",
-  Duplicates: "Duplicatas",
   Splits: "Rateios",
   Monthly: "Mensal",
   "TRANSACTION ARCHIVE": "ARQUIVO DE TRANSAÇÕES",
   "Import and review your Spendee exports in one place.":
     "Importe e revise suas exportações do Spendee em um só lugar.",
-  "Review and remove repeated import records.":
-    "Revise e remova registros de importação repetidos.",
   "Import files": "Importar arquivos",
   "Importing…": "Importando…",
   Wallets: "Carteiras",
@@ -34,9 +31,6 @@ export const ptBrUi: Record<string, string> = {
   "Transaction history": "Histórico de transações",
   "No transactions are available in Actual Budget.":
     "Nenhuma transação está disponível no Actual Budget.",
-  "Duplicate records": "Registros duplicados",
-  "All imported records, newest first":
-    "Todos os registros importados, do mais recente ao mais antigo",
   Cleared: "Compensada",
   Uncleared: "Não compensada",
   Save: "Salvar",
@@ -44,7 +38,6 @@ export const ptBrUi: Record<string, string> = {
   "Split transactions": "Ratear transações",
   "Split selected": "Ratear selecionadas",
   Cancel: "Cancelar",
-  "Delete selected": "Excluir selecionadas",
   "Deleting…": "Excluindo…",
   Date: "Data",
   Wallet: "Carteira",
@@ -189,8 +182,6 @@ export const ptBrUi: Record<string, string> = {
   "Primary navigation": "Navegação principal",
   "Monthly settings": "Configurações mensais",
   "Rows per page": "Linhas por página",
-  "Select all duplicates on this page":
-    "Selecionar todas as duplicatas desta página",
   "Transaction filters": "Filtros de transações",
   "Amount comparison": "Comparação de valores",
   "Search wallets": "Pesquisar carteiras",
@@ -209,7 +200,6 @@ export const ptBrUi: Record<string, string> = {
   "No category": "Sem categoria",
   "Import an XLSX or CSV export to begin.":
     "Importe uma exportação XLSX ou CSV para começar.",
-  "No duplicates have been found.": "Nenhuma duplicata foi encontrada.",
   Expense: "Despesa",
   Income: "Receita",
   Transfer: "Transferência",
@@ -233,7 +223,6 @@ export const ptBrUi: Record<string, string> = {
     "Não foi possível salvar a data de verificação.",
   "Could not save split.": "Não foi possível salvar o rateio.",
   "Could not delete split.": "Não foi possível excluir o rateio.",
-  "Could not delete duplicates.": "Não foi possível excluir as duplicatas.",
   "Enter a title for the split.": "Digite um título para o rateio.",
   "Selected transactions must use one currency.":
     "As transações selecionadas devem usar a mesma moeda.",
@@ -265,9 +254,6 @@ export const ptBrUi: Record<string, string> = {
   files: "arquivos",
   processed: "processados",
   imported: "importadas",
-  duplicate: "duplicata",
-  duplicates: "duplicatas",
-  separated: "separadas",
   failed: "com falha",
   pending: "pendente",
   item: "item",
@@ -291,8 +277,6 @@ export const ptBrUi: Record<string, string> = {
   of: "de",
   "Close category settings": "Fechar configurações da categoria",
   "Monthly · Spendee companion": "Mensal · Assistente do Spendee",
-  "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.":
-    "Importe exportações XLSX e CSV do Spendee para um arquivo permanente que identifica duplicatas.",
   "from transactions": "proveniente das transações",
 
   // Validation and API messages that can surface in the interface.
@@ -314,7 +298,6 @@ export const ptBrUi: Record<string, string> = {
     "Todas as colunas precisam de pelo menos uma categoria.",
   "Budgets must be positive numbers or left empty.":
     "Os orçamentos devem ser números positivos ou ficar em branco.",
-  "Select at least one duplicate.": "Selecione pelo menos uma duplicata.",
   "Split title must be 120 characters or fewer.":
     "O título do rateio deve ter no máximo 120 caracteres.",
   "Select at least one transaction.": "Selecione pelo menos uma transação.",
@@ -341,8 +324,6 @@ export const ptBrUi: Record<string, string> = {
   "splitCount must be a number.": "splitCount deve ser um número.",
   "Currency and a valid starting amount are required.":
     "A moeda e um saldo inicial válido são obrigatórios.",
-  "ids must contain duplicate IDs.":
-    "ids deve conter identificadores de duplicatas.",
   "columns must contain a name and a list of categories.":
     "As colunas devem conter um nome e uma lista de categorias.",
   "Select transactions in the same currency.":

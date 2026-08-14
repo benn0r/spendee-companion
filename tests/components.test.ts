@@ -55,14 +55,12 @@ test("shared UI components render accessible fantasy-data states", () => {
 
   const navigation = renderToStaticMarkup(
     React.createElement(TopNavigation, {
-      active: "duplicates",
-      duplicateCount: 4,
+      active: "transactions",
       onTransactions() {},
-      onDuplicates() {},
     }),
   );
-  assert.match(navigation, /Duplicates <span>4<\/span>/);
-  assert.match(navigation, /class="active">Duplicates/);
+  assert.doesNotMatch(navigation, /Duplicates/);
+  assert.match(navigation, /class="active">Transactions/);
 
   const cleared = renderToStaticMarkup(
     React.createElement(TransactionClearedStatus, { cleared: true }),
