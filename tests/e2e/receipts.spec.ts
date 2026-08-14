@@ -64,8 +64,25 @@ test("uploads, reviews, and submits a receipt to Actual Budget", async ({
     page.getByText("Transaction added to Actual Budget for review."),
   ).toBeVisible();
 
+  const transactionsLoaded = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/transactions" &&
+      response.request().method() === "GET" &&
+      response.ok(),
+  );
   await page.getByRole("link", { name: "Transactions" }).click();
-  await expect(page.getByText("Cosmic Market", { exact: true })).toBeVisible();
+  const transactionPayload = (await (await transactionsLoaded).json()) as {
+    transactions: Array<{ payee: string }>;
+  };
+  expect(transactionPayload.transactions).toContainEqual(
+    expect.objectContaining({ payee: "Cosmic Market" }),
+  );
+  await expect(
+    page.getByRole("heading", { name: "Transactions", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Moonberry provisions", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.locator(".cleared-badge.is-uncleared").first(),
   ).toContainText("Uncleared");
