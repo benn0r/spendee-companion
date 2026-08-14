@@ -209,14 +209,6 @@ export function translateUiText(locale: AppLocale, text: string) {
               "$1 ausgewählte Duplikate löschen? Dies kann nicht rückgängig gemacht werden.",
             )
             .replace(
-              /^Transactions through (.+) are marked as verified\.$/,
-              "Transaktionen bis $1 sind als verifiziert markiert.",
-            )
-            .replace(
-              /^Transaction verification date cleared\.$/,
-              "Verifizierungsdatum der Transaktionen gelöscht.",
-            )
-            .replace(
               /^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/,
               (_match, files, imported, duplicates, replaced) =>
                 `${files} Dateien verarbeitet · ${imported} importiert · ${duplicates} Duplikate getrennt${replaced ? ` · ${replaced} vorherige Transaktionen ersetzt` : ""}`,

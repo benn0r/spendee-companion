@@ -1,5 +1,5 @@
 import { expect, test } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
 test("Monthly columns can merge categories and persist a budget", async ({
   page,
@@ -9,12 +9,7 @@ test("Monthly columns can merge categories and persist a budget", async ({
     "Monthly",
   );
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `monthly-${variant}.csv`,
-    /1 file processed · 3 imported/,
-  );
+  await seedCsvTransactions(page, csv);
   await page.getByRole("link", { name: "Monthly", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Monthly", exact: true }),

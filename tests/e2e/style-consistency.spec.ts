@@ -83,13 +83,6 @@ test("pages and modals share the same visual foundations", async ({
     "31px",
   );
 
-  await page.getByRole("button", { name: "Import files" }).click();
-  const importDialog = page.getByRole("dialog", {
-    name: "Choose export files",
-  });
-  await expectSharedDialog(page, importDialog, mobile);
-  await importDialog.getByRole("button", { name: "Close import" }).click();
-
   await page.getByRole("link", { name: "Validate" }).click();
   await expect(page.getByRole("heading", { name: "Validate" })).toHaveCSS(
     "font-size",

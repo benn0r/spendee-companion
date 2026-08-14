@@ -1,17 +1,12 @@
 import { expect, test } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
 test("splits can be created, listed, downloaded as PDF, and deleted", async ({
   page,
 }, testInfo) => {
   const { csv, variant } = fantasyData(testInfo, "Splits");
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `splits-${variant}.csv`,
-    /1 file processed · 3 imported/,
-  );
+  await seedCsvTransactions(page, csv);
   await page.getByRole("button", { name: "Split transactions" }).click();
   const selectedRow = page
     .getByRole("row")

@@ -32,10 +32,13 @@ export const ptBrUi: Record<string, string> = {
   "Balances and transaction totals": "Saldos e totais de transações",
   Categories: "Categorias",
   "Transaction history": "Histórico de transações",
+  "No transactions are available in Actual Budget.":
+    "Nenhuma transação está disponível no Actual Budget.",
   "Duplicate records": "Registros duplicados",
   "All imported records, newest first":
     "Todos os registros importados, do mais recente ao mais antigo",
-  "Verified until": "Verificado até",
+  Cleared: "Compensada",
+  Uncleared: "Não compensada",
   Save: "Salvar",
   "Saving…": "Salvando…",
   "Split transactions": "Ratear transações",
@@ -338,7 +341,6 @@ export const ptBrUi: Record<string, string> = {
   "splitCount must be a number.": "splitCount deve ser um número.",
   "Currency and a valid starting amount are required.":
     "A moeda e um saldo inicial válido são obrigatórios.",
-  "validUntil must be a date or null.": "validUntil deve ser uma data ou null.",
   "ids must contain duplicate IDs.":
     "ids deve conter identificadores de duplicatas.",
   "columns must contain a name and a list of categories.":

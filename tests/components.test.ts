@@ -12,6 +12,7 @@ import MonthlyReport from "../app/monthly/MonthlyReport";
 import SplitsView from "../app/splits/SplitsView";
 import WalletDetails from "../app/wallets/[wallet]/WalletDetails";
 import Brand from "../app/Brand";
+import TransactionClearedStatus from "../app/TransactionClearedStatus";
 import { assetUrl, BUILD_ID } from "../lib/assets";
 
 test("shared UI components render accessible fantasy-data states", () => {
@@ -62,6 +63,17 @@ test("shared UI components render accessible fantasy-data states", () => {
   );
   assert.match(navigation, /Duplicates <span>4<\/span>/);
   assert.match(navigation, /class="active">Duplicates/);
+
+  const cleared = renderToStaticMarkup(
+    React.createElement(TransactionClearedStatus, { cleared: true }),
+  );
+  const uncleared = renderToStaticMarkup(
+    React.createElement(TransactionClearedStatus, { cleared: false }),
+  );
+  assert.match(cleared, /is-cleared/);
+  assert.match(cleared, /✓.*Cleared/);
+  assert.match(uncleared, /is-uncleared/);
+  assert.match(uncleared, /○.*Uncleared/);
 });
 
 test("assetUrl versions public assets with the footer build id", () => {

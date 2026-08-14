@@ -1,5 +1,8 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { seedFantasyActualFromCsv } from "../support/fantasy-actual";
+import {
+  seedFantasyActualFromCsv,
+  seedFantasyActualTransactionsFromCsv,
+} from "../support/fantasy-actual";
 
 export function fantasyData(testInfo: TestInfo, scenario: string) {
   const device = testInfo.project.name === "chromium" ? "Desktop" : "Mobile";
@@ -44,23 +47,7 @@ export async function openDashboard(page: Page) {
   ).toBeVisible();
 }
 
-export async function importCsv(
-  page: Page,
-  csv: string,
-  filename: string,
-  expected: RegExp,
-  options: { fullImport?: boolean } = {},
-) {
-  seedFantasyActualFromCsv(csv);
-  await page.getByRole("button", { name: "Import files" }).click();
-  const dialog = page.getByRole("dialog", { name: "Choose export files" });
-  if (options.fullImport) await dialog.getByRole("checkbox").check();
-  await dialog.locator('input[type="file"]').setInputFiles({
-    name: filename,
-    mimeType: "text/csv",
-    buffer: Buffer.from(csv),
-  });
-  await expect(
-    page.locator(".notice").filter({ hasText: expected }),
-  ).toBeVisible();
+export async function seedCsvTransactions(page: Page, csv: string) {
+  seedFantasyActualTransactionsFromCsv(csv);
+  await page.reload();
 }

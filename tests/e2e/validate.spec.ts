@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
 async function uploadMockStatement(
   page: Page,
@@ -36,15 +36,10 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
     "Document validation",
   );
   await openDashboard(page);
-  await importCsv(page, csv, `validation-${variant}.csv`, /3 imported/);
+  await seedCsvTransactions(page, csv);
   const header = csv.split("\n")[0];
   const candidateRow = `2026-07-02T09:00:00+00:00,${wallet},Expense,${expenseCategories[0]},-18,CHF,Comet cafe ${variant},cosmic,Nova Quill`;
-  await importCsv(
-    page,
-    [header, candidateRow].join("\n"),
-    `validation-candidate-${variant}.csv`,
-    /1 imported/,
-  );
+  await seedCsvTransactions(page, [header, candidateRow].join("\n"));
   await page.getByRole("link", { name: "Validate" }).click();
   await expect(page.getByRole("heading", { name: "Validate" })).toBeVisible();
 
@@ -149,13 +144,7 @@ test("validates a PDF against a wallet and persists the mocked OpenAI result", a
       .filter((row) => row.includes(`,${wallet},`)),
     candidateRow,
   ].join("\n");
-  await importCsv(
-    page,
-    walletSnapshot,
-    `validation-full-reimport-${variant}.csv`,
-    /0 imported to Actual · 0 already present/,
-    { fullImport: true },
-  );
+  await seedCsvTransactions(page, walletSnapshot);
   await page.goto(`/validate?validation=${validationId}`);
   await expect(
     page.getByRole("heading", { name: "Moon Guild Card Statement" }),
@@ -192,7 +181,7 @@ test("links matched transactions to their exact validation and document descript
     "Validation transaction link",
   );
   await openDashboard(page);
-  await importCsv(page, csv, `validation-link-${variant}.csv`, /3 imported/);
+  await seedCsvTransactions(page, csv);
   await page.getByRole("link", { name: "Validate" }).click();
 
   const matchedValidationId = await uploadMockStatement(
@@ -253,13 +242,7 @@ test("links matched transactions to their exact validation and document descript
     (row: { note: string }) => row.note === `Nebula lunch ${variant}`,
   ).id;
   const matchedWalletSnapshot = csv.split("\n").slice(0, 2).join("\n");
-  await importCsv(
-    page,
-    matchedWalletSnapshot,
-    `validation-link-full-reimport-${variant}.csv`,
-    /1 file processed · 0 imported to Actual · 0 already present/,
-    { fullImport: true },
-  );
+  await seedCsvTransactions(page, matchedWalletSnapshot);
   const reimportedId = (
     await (await page.request.get("/api/transactions?pageSize=100")).json()
   ).rows.find(

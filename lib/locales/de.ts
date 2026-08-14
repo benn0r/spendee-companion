@@ -31,10 +31,13 @@ export const deUi: Record<string, string> = {
   "Balances and transaction totals": "Salden und Transaktionssummen",
   Categories: "Kategorien",
   "Transaction history": "Transaktionsverlauf",
+  "No transactions are available in Actual Budget.":
+    "In Actual Budget sind keine Transaktionen verfügbar.",
   "Duplicate records": "Doppelte Datensätze",
   "All imported records, newest first":
     "Alle importierten Datensätze, neueste zuerst",
-  "Verified until": "Verifiziert bis",
+  Cleared: "Abgeglichen",
+  Uncleared: "Nicht abgeglichen",
   Save: "Speichern",
   "Saving…": "Wird gespeichert…",
   "Split transactions": "Transaktionen aufteilen",
@@ -320,8 +323,6 @@ export const deUi: Record<string, string> = {
   "transactionIds must contain transaction IDs.":
     "transactionIds muss Transaktions-IDs enthalten.",
   "splitCount must be a number.": "splitCount muss eine Zahl sein.",
-  "validUntil must be a date or null.":
-    "validUntil muss ein Datum oder null sein.",
   "ids must contain duplicate IDs.": "ids muss Duplikat-IDs enthalten.",
   "columns must contain a name and a list of categories.":
     "Spalten müssen einen Namen und eine Liste von Kategorien enthalten.",

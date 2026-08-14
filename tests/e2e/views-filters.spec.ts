@@ -1,5 +1,5 @@
 import { expect, test } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
 test("transaction and category filters work across wallet and category views", async ({
   page,
@@ -9,13 +9,7 @@ test("transaction and category filters work across wallet and category views", a
     "Views",
   );
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `views-${variant}.csv`,
-    /1 file processed · 3 imported/,
-  );
-  await page.reload();
+  await seedCsvTransactions(page, csv);
   await expect(page.getByText(`Nebula lunch ${variant}`)).toBeVisible();
 
   const filters = page.getByRole("region", { name: "Transaction filters" });

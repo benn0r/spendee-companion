@@ -1,23 +1,10 @@
 import { expect, test } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
-test("Actual deduplicates repeated imports without a local duplicate ledger", async ({
-  page,
-}, testInfo) => {
-  const { csv, variant } = fantasyData(testInfo, "Duplicates");
+test("Actual uses no local duplicate ledger", async ({ page }, testInfo) => {
+  const { csv } = fantasyData(testInfo, "Duplicates");
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `duplicates-${variant}.csv`,
-    /1 file processed · 3 imported/,
-  );
-  await importCsv(
-    page,
-    csv,
-    `duplicates-repeat-${variant}.csv`,
-    /1 file processed · 0 imported to Actual · 0 already present/,
-  );
+  await seedCsvTransactions(page, csv);
   await page.getByRole("button", { name: /Duplicates/ }).click();
   await expect(
     page.getByRole("heading", { name: "Duplicate records" }),

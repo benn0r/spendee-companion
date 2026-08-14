@@ -28,8 +28,6 @@ type DynamicConfig = {
   repeatedWallet: (wallet: string) => string;
   deleteTitle: (title: string) => string;
   deleteDuplicates: Forms;
-  verifiedThrough: (date: string) => string;
-  verificationCleared: string;
   importSummary: (
     files: string,
     imported: string,
@@ -77,9 +75,6 @@ const configs: Record<Locale, DynamicConfig> = {
       "duplicata selecionada? Esta ação não pode ser desfeita.",
       "duplicatas selecionadas? Esta ação não pode ser desfeita.",
     ],
-    verifiedThrough: (date) =>
-      `As transações até ${date} estão marcadas como verificadas.`,
-    verificationCleared: "A data de verificação das transações foi removida.",
     importSummary: (files, imported, duplicates, replaced) =>
       `${files} arquivos processados · ${imported} importados · ${duplicates} duplicatas separadas${replaced ? ` · ${replaced} transações anteriores substituídas` : ""}`,
     page: (page, pages) => `Página ${page} de ${pages}`,
@@ -124,10 +119,6 @@ const configs: Record<Locale, DynamicConfig> = {
       "doublon sélectionné ? Cette action est irréversible.",
       "doublons sélectionnés ? Cette action est irréversible.",
     ],
-    verifiedThrough: (date) =>
-      `Les transactions jusqu’au ${date} sont marquées comme vérifiées.`,
-    verificationCleared:
-      "La date de vérification des transactions a été supprimée.",
     importSummary: (files, imported, duplicates, replaced) =>
       `${files} fichiers traités · ${imported} importés · ${duplicates} doublons séparés${replaced ? ` · ${replaced} transactions précédentes remplacées` : ""}`,
     page: (page, pages) => `Page ${page} sur ${pages}`,
@@ -172,10 +163,6 @@ const configs: Record<Locale, DynamicConfig> = {
       "duplicato selezionato? Questa operazione non può essere annullata.",
       "duplicati selezionati? Questa operazione non può essere annullata.",
     ],
-    verifiedThrough: (date) =>
-      `Le transazioni fino al ${date} sono contrassegnate come verificate.`,
-    verificationCleared:
-      "La data di verifica delle transazioni è stata rimossa.",
     importSummary: (files, imported, duplicates, replaced) =>
       `${files} file elaborati · ${imported} importati · ${duplicates} duplicati separati${replaced ? ` · ${replaced} transazioni precedenti sostituite` : ""}`,
     page: (page, pages) => `Pagina ${page} di ${pages}`,
@@ -255,10 +242,6 @@ export function translateDynamicUi(locale: Locale, text: string): string {
     /^Delete (\d+) selected duplicates?\? This cannot be undone\.$/,
   );
   if (match) return `${match[1]} ${form(c.deleteDuplicates, match[1])}`;
-  match = text.match(/^Transactions through (.+) are marked as verified\.$/);
-  if (match) return c.verifiedThrough(match[1]);
-  if (text === "Transaction verification date cleared.")
-    return c.verificationCleared;
   match = text.match(
     /^(\d+) files? processed · (\d+) imported · (\d+) duplicates? separated(?: · (\d+) previous transactions? replaced)?$/,
   );

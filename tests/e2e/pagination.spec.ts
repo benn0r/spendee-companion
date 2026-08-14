@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
 async function useTenRowsAndOpenSecondPage(pagination: Locator) {
   await expect(pagination).toContainText("1–23 of 23");
@@ -29,15 +29,7 @@ test("page size and next-page controls work in transaction, wallet, and category
   const csv = [header, ...rows].join("\n");
 
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `pagination-${variant}.csv`,
-    /1 file processed · 23 imported/,
-  );
-  // Filter options are loaded independently when the page mounts; reloading
-  // makes the wallet created by the import available in that control.
-  await page.reload();
+  await seedCsvTransactions(page, csv);
 
   const filters = page.getByRole("region", { name: "Transaction filters" });
   const walletFilter = filters

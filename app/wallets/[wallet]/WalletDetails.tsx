@@ -6,7 +6,8 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import DayHeader from "@/app/DayHeader";
 import TopNavigation from "@/app/TopNavigation";
 import PageSizeSelect from "@/app/PageSizeSelect";
-import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import TransactionClearedStatus from "@/app/TransactionClearedStatus";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 import CategoryIcon from "@/app/CategoryIcon";
 import type { CategoryAppearance } from "@/lib/category-appearance";
@@ -25,13 +26,13 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
+  cleared: boolean;
 };
 
 type WalletData = {
   wallet: string;
   rows: Row[];
   dayTotals: DayTotals;
-  validUntil: string | null;
   totals: Array<{
     currency: string;
     transactionTotal: number;
@@ -48,7 +49,6 @@ const emptyData: WalletData = {
   wallet: "",
   rows: [],
   dayTotals: {},
-  validUntil: null,
   totals: [],
   page: 1,
   pages: 1,
@@ -353,12 +353,7 @@ export default function WalletDetails({ wallet }: { wallet: string }) {
                               <strong>
                                 {formatDate(row.date, intlLocale)}
                               </strong>
-                              {data.validUntil &&
-                                dayKey(row.date) <= data.validUntil && (
-                                  <span className="verified-badge">
-                                    ✓ Verified
-                                  </span>
-                                )}
+                              <TransactionClearedStatus cleared={row.cleared} />
                             </td>
                             <td>
                               <span

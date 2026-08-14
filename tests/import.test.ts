@@ -8,14 +8,12 @@ import {
   deleteDuplicates,
   getFilteredTransactionPage,
   getTransactionFilterOptions,
-  getValidUntil,
   getWalletSummaries,
   getWalletTransactions,
   importTransactions,
   openDatabase,
   resolveCategory,
   setCategoryTags,
-  setValidUntil,
   getMonthlyReport,
   getSplit,
   getSplits,
@@ -104,19 +102,6 @@ test("persists unique transactions and separates every duplicate occurrence", ()
     ).count,
     1,
   );
-  db.close();
-});
-
-test("persists the global transaction validation date", () => {
-  const path = `/tmp/spendee-valid-until-${crypto.randomUUID()}.db`;
-  paths.push(path);
-  const db = openDatabase(path);
-  assert.equal(getValidUntil(db), null);
-  assert.equal(setValidUntil(db, "2026-07-25"), "2026-07-25");
-  assert.equal(getValidUntil(db), "2026-07-25");
-  assert.equal(setValidUntil(db, null), null);
-  assert.equal(getValidUntil(db), null);
-  assert.throws(() => setValidUntil(db, "not-a-date"), /must be a date/);
   db.close();
 });
 

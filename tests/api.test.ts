@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { after, test } from "node:test";
 import type { ActualSnapshot } from "../lib/actual-adapter";
 import { actualIds, writeActualApiFixture } from "./support/actual-api-fixture";
@@ -43,7 +43,7 @@ for (const name of [
 ]) {
   delete process.env[name];
 }
-writeActualApiFixture(actualPath, false);
+writeActualApiFixture(actualPath);
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -77,15 +77,6 @@ function actualSnapshot(): ActualSnapshot {
   return JSON.parse(readFileSync(actualPath, "utf8")) as ActualSnapshot;
 }
 
-async function importCsv(csv: string, filename: string) {
-  const route = await import("../app/api/import/route");
-  const form = new FormData();
-  form.append("files", new File([csv], filename, { type: "text/csv" }));
-  return route.POST(
-    new Request("http://test/api/import", { method: "POST", body: form }),
-  );
-}
-
 async function retainedSqliteTables() {
   const { getDatabase } = await import("../lib/db");
   return (
@@ -98,18 +89,10 @@ async function retainedSqliteTables() {
 }
 
 test("API routes use Actual while SQLite retains only companion state", async (t) => {
-  const csv = [
-    "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
-    "2026-07-01T08:00:00+00:00,Moon Purse,Expense,Stardust Snacks,-24,CHF,Nebula lunch,cosmic;team,Nova Quill",
-    "2026-07-02T09:00:00+00:00,Moon Purse,Income,Quest Rewards,120,CHF,Dragon bounty,quest,Orion Vale",
-    "2026-07-03T10:00:00+00:00,Cloud Vault,Expense,Portal Travel,-45,CHF,Gate fare,travel,Lyra Moss",
-  ].join("\n");
-
   await t.test(
     "opens only retained SQLite tables and checks Actual readiness",
     async () => {
       assert.deepEqual(await retainedSqliteTables(), [
-        "app_settings",
         "category_tag_config",
         "monthly_report_columns",
         "split_entries",
@@ -141,79 +124,6 @@ test("API routes use Actual while SQLite retains only companion state", async (t
   );
 
   await t.test(
-    "imports into Actual and keeps UUID transaction identities",
-    async () => {
-      const route = await import("../app/api/import/route");
-      assert.equal(
-        (
-          await route.POST(
-            new Request("http://test/api/import", {
-              method: "POST",
-              body: new FormData(),
-            }),
-          )
-        ).status,
-        400,
-      );
-
-      const response = await importCsv(csv, "fantasy.csv");
-      assert.equal(response.status, 200);
-      assert.deepEqual((await body(response)).summary, {
-        total: 3,
-        imported: 3,
-        duplicates: 0,
-        replaced: 0,
-        files: 1,
-        failed: 0,
-      });
-      const imported = actualSnapshot().transactions.filter((transaction) =>
-        transaction.importedId?.startsWith("spendee:"),
-      );
-      assert.equal(imported.length, 3);
-      assert.ok(
-        imported.every((transaction) => uuidPattern.test(transaction.id)),
-      );
-      assert.deepEqual(
-        new Set(imported.map((transaction) => transaction.accountId)),
-        new Set([actualIds.moonAccount, actualIds.cloudAccount]),
-      );
-
-      const repeated = await body(await importCsv(csv, "fantasy-repeat.csv"));
-      assert.deepEqual(repeated.summary, {
-        total: 3,
-        imported: 0,
-        duplicates: 0,
-        replaced: 0,
-        files: 1,
-        failed: 0,
-      });
-      assert.equal(repeated.results[0].updated, 3);
-      assert.equal(
-        actualSnapshot().transactions.filter((transaction) =>
-          transaction.importedId?.startsWith("spendee:"),
-        ).length,
-        3,
-      );
-
-      const invalid = new FormData();
-      invalid.append("fullImport", "true");
-      invalid.append(
-        "files",
-        new File([csv], "two-wallets.csv", { type: "text/csv" }),
-      );
-      const rejected = await route.POST(
-        new Request("http://test/api/import", {
-          method: "POST",
-          body: invalid,
-        }),
-      );
-      assert.equal(rejected.status, 400);
-      assert.match(String((await body(rejected)).error), /exactly one wallet/);
-      assert.ok(!(await retainedSqliteTables()).includes("transactions"));
-    },
-  );
-
-  await t.test(
     "reads Actual account, category, and tag paths by UUID",
     async () => {
       const stats = await import("../app/api/stats/route");
@@ -224,7 +134,6 @@ test("API routes use Actual while SQLite retains only companion state", async (t
         categories: 6,
         tags: 6,
         duplicates: 0,
-        imports: 0,
       });
 
       const filters = await import("../app/api/filter-options/route");
@@ -245,11 +154,12 @@ test("API routes use Actual while SQLite retains only companion state", async (t
       assert.equal(transactionPage.total, 1);
       assert.match(transactionPage.rows[0].id, uuidPattern);
       assert.equal(transactionPage.rows[0].accountId, actualIds.moonAccount);
-      assert.equal(transactionPage.rows[0].categoryId, actualIds.questRewards);
+      assert.equal(transactionPage.rows[0].categoryId, actualIds.dragonRewards);
       assert.deepEqual(transactionPage.rows[0].tags, [
         { id: actualIds.questTag, name: "quest" },
       ]);
       assert.equal(transactionPage.rows[0].author, null);
+      assert.equal(transactionPage.rows[0].cleared, true);
 
       const wallets = await import("../app/api/wallets/route");
       const walletList = await body(await wallets.GET());
@@ -312,18 +222,18 @@ test("API routes use Actual while SQLite retains only companion state", async (t
 
       const category = await import("../app/api/categories/[category]/route");
       const categoryParams = {
-        params: Promise.resolve({ category: actualIds.stardustSnacks }),
+        params: Promise.resolve({ category: actualIds.enchantedGroceries }),
       };
       const categoryDetail = await body(
         await category.GET(
           new Request(
-            `http://test/api/categories/${actualIds.stardustSnacks}?month=2026-07`,
+            `http://test/api/categories/${actualIds.enchantedGroceries}?month=2026-07`,
           ),
           categoryParams,
         ),
       );
-      assert.equal(categoryDetail.categoryId, actualIds.stardustSnacks);
-      assert.equal(categoryDetail.chartTotals[0].amount, -24);
+      assert.equal(categoryDetail.categoryId, actualIds.enchantedGroceries);
+      assert.equal(categoryDetail.chartTotals[0].amount, -36);
       assert.equal(
         (
           await category.GET(
@@ -344,7 +254,7 @@ test("API routes use Actual while SQLite retains only companion state", async (t
           categoryParams,
         ),
       );
-      assert.equal(saved.categoryId, actualIds.stardustSnacks);
+      assert.equal(saved.categoryId, actualIds.enchantedGroceries);
       assert.deepEqual(saved.appearance, { iconId: 3, color: "#8719e0" });
       const { getDatabase } = await import("../lib/db");
       assert.equal(
@@ -353,69 +263,80 @@ test("API routes use Actual while SQLite retains only companion state", async (t
             .prepare("SELECT category FROM category_tag_config")
             .get() as { category: string }
         ).category,
-        actualIds.stardustSnacks,
+        actualIds.enchantedGroceries,
       );
     },
   );
 
-  await t.test(
-    "persists verification and monthly settings in SQLite",
-    async () => {
-      const validUntil = await import("../app/api/valid-until/route");
-      assert.equal((await body(await validUntil.GET())).validUntil, null);
-      assert.equal(
-        (
-          await validUntil.PUT(
-            jsonRequest("http://test", "PUT", { validUntil: 7 }),
-          )
-        ).status,
-        400,
-      );
-      assert.equal(
-        (
-          await body(
-            await validUntil.PUT(
-              jsonRequest("http://test", "PUT", { validUntil: "2026-07-02" }),
-            ),
-          )
-        ).validUntil,
-        "2026-07-02",
-      );
-
-      const monthly = await import("../app/api/monthly-report/route");
-      assert.equal((await body(await monthly.GET())).configured, false);
-      assert.equal(
-        (
-          await monthly.PUT(
-            jsonRequest("http://test", "PUT", { columns: "invalid" }),
-          )
-        ).status,
-        400,
-      );
-      const saved = await body(
+  await t.test("persists monthly settings in SQLite", async () => {
+    const monthly = await import("../app/api/monthly-report/route");
+    assert.equal((await body(await monthly.GET())).configured, false);
+    assert.equal(
+      (
         await monthly.PUT(
-          jsonRequest("http://test", "PUT", {
-            columns: [
-              {
-                name: "Adventures",
-                categories: ["Portal Travel", "Stardust Snacks"],
-                budget: 100,
-              },
-            ],
-          }),
-        ),
-      );
-      assert.equal(saved.columns[0].name, "Adventures");
-      assert.equal(saved.configured, true);
-    },
-  );
+          jsonRequest("http://test", "PUT", { columns: "invalid" }),
+        )
+      ).status,
+      400,
+    );
+    const saved = await body(
+      await monthly.PUT(
+        jsonRequest("http://test", "PUT", {
+          columns: [
+            {
+              name: "Adventures",
+              categories: ["Portal Travel", "Stardust Snacks"],
+              budget: 100,
+            },
+          ],
+        }),
+      ),
+    );
+    assert.equal(saved.columns[0].name, "Adventures");
+    assert.equal(saved.configured, true);
+  });
 
   await t.test("validates against live Actual transactions", async () => {
-    const candidateCsv = [
-      "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
-      "2026-07-02T10:00:00+00:00,Moon Purse,Expense,Comet Food,-18,CHF,Comet cafe,cosmic,Nova Quill",
-    ].join("\n");
-    assert.equal((await importCsv(candidateCsv, "candidate.csv")).status, 200);
+    const snapshot = actualSnapshot();
+    snapshot.transactions.push({
+      id: "40000000-0000-4000-8000-000000000005",
+      accountId: actualIds.moonAccount,
+      categoryId: actualIds.cometFood,
+      payeeId: actualIds.grocerPayee,
+      amountCents: -1_800,
+      date: "2026-07-03",
+      notes: "Comet cafe #cosmic",
+      importedId: "fantasy:comet-cafe",
+      transferId: null,
+      parentId: null,
+      isParent: false,
+      isChild: false,
+      startingBalance: false,
+      cleared: true,
+      reconciled: false,
+      sortOrder: 4,
+      subtransactions: [],
+    });
+    snapshot.transactions.push({
+      id: "40000000-0000-4000-8000-000000000006",
+      accountId: actualIds.moonAccount,
+      categoryId: actualIds.cometFood,
+      payeeId: actualIds.grocerPayee,
+      amountCents: -2_400,
+      date: "2026-07-02",
+      notes: "Nebula canteen",
+      importedId: "fantasy:nebula-canteen",
+      transferId: null,
+      parentId: null,
+      isParent: false,
+      isChild: false,
+      startingBalance: false,
+      cleared: false,
+      reconciled: false,
+      sortOrder: 5,
+      subtransactions: [],
+    });
+    writeFileSync(actualPath, JSON.stringify(snapshot, null, 2));
 
     const route = await import("../app/api/validations/route");
     const form = new FormData();
@@ -449,9 +370,9 @@ test("API routes use Actual while SQLite retains only companion state", async (t
     assert.equal(completed.accountId, actualIds.moonAccount);
     assert.equal(completed.diff.matching.length, 1);
     assert.equal(completed.diff.missingInApp.length, 1);
-    assert.equal(completed.diff.missingInDocument.length, 2);
+    assert.equal(completed.diff.missingInDocument.length, 1);
     assert.equal(completed.rawOpenAI.output.title, "Moon Guild Statement");
-    assert.equal(completed.suggestions[0].app.note, "Comet cafe");
+    assert.equal(completed.suggestions[0].app.note, "Nebula canteen");
 
     const manuallyMatched = await body(
       await detail.POST(

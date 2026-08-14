@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Brand from "@/app/Brand";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import DayHeader from "./DayHeader";
-import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 import { categorySlug } from "@/lib/category-slug";
 import TransactionFilters, {
   emptyFilters,
@@ -17,11 +17,11 @@ import TopNavigation from "./TopNavigation";
 import PageSizeSelect from "./PageSizeSelect";
 import CategoryIcon from "./CategoryIcon";
 import { useI18n } from "./I18nProvider";
+import TransactionClearedStatus from "./TransactionClearedStatus";
 
 type Stats = {
   transactions: number;
   duplicates: number;
-  imports: number;
   wallets: number;
 };
 type Row = {
@@ -38,6 +38,7 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
+  cleared: boolean;
   validation?: { id: number; title: string; description: string } | null;
 };
 type PageData = {
@@ -47,16 +48,6 @@ type PageData = {
   pages: number;
   total: number;
   pageSize: number;
-};
-type ImportResult = {
-  summary: {
-    total: number;
-    imported: number;
-    duplicates: number;
-    replaced: number;
-    files: number;
-    failed: number;
-  };
 };
 type WalletSummary = {
   id: string;
@@ -70,7 +61,7 @@ type WalletSummary = {
   }>;
 };
 
-const emptyStats = { transactions: 0, duplicates: 0, imports: 0, wallets: 0 };
+const emptyStats = { transactions: 0, duplicates: 0, wallets: 0 };
 const emptyPage = {
   rows: [],
   dayTotals: {},
@@ -129,14 +120,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>(emptyStats);
   const [data, setData] = useState<PageData>(emptyPage);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [fullImport, setFullImport] = useState(false);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [message, setMessage] = useState<{
     tone: "success" | "error";
     text: string;
   } | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [filterOptions, setFilterOptions] =
     useState<FilterOptions>(emptyFilterOptions);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
@@ -144,14 +132,9 @@ export default function Dashboard() {
   const [splitMode, setSplitMode] = useState(false);
   const [splitRows, setSplitRows] = useState<Row[]>([]);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
-  const [validUntil, setValidUntil] = useState("");
-  const [savedValidUntil, setSavedValidUntil] = useState("");
-  const [savingValidUntil, setSavingValidUntil] = useState(false);
   const [selectedDuplicates, setSelectedDuplicates] = useState<string[]>([]);
   const [deletingDuplicates, setDeletingDuplicates] = useState(false);
   const [pageSize, setPageSize] = useState(25);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [draggingImport, setDraggingImport] = useState(false);
 
   const load = useCallback(
     async (targetTab = tab, page = 1) => {
@@ -192,83 +175,6 @@ export default function Dashboard() {
       .then((response) => response.json())
       .then((result: FilterOptions) => setFilterOptions(result));
   }, []);
-  useEffect(() => {
-    void fetch("/api/valid-until", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result: { validUntil: string | null }) => {
-        setValidUntil(result.validUntil ?? "");
-        setSavedValidUntil(result.validUntil ?? "");
-      });
-  }, []);
-
-  async function saveValidUntil() {
-    setSavingValidUntil(true);
-    try {
-      const response = await fetch("/api/valid-until", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ validUntil: validUntil || null }),
-      });
-      const result = (await response.json()) as {
-        validUntil?: string | null;
-        error?: string;
-      };
-      if (!response.ok)
-        throw new Error(result.error ?? "Could not save the validation date.");
-      setValidUntil(result.validUntil ?? "");
-      setSavedValidUntil(result.validUntil ?? "");
-      setMessage({
-        tone: "success",
-        text: result.validUntil
-          ? `Transactions through ${result.validUntil} are marked as verified.`
-          : "Transaction verification date cleared.",
-      });
-    } catch (error) {
-      setMessage({
-        tone: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Could not save the validation date.",
-      });
-    } finally {
-      setSavingValidUntil(false);
-    }
-  }
-
-  async function upload(files: FileList | File[]) {
-    if (!files.length) return;
-    setUploading(true);
-    setMessage(null);
-    const form = new FormData();
-    form.set("fullImport", fullImport ? "true" : "false");
-    Array.from(files).forEach((file) => form.append("files", file));
-    try {
-      const response = await fetch("/api/import", {
-        method: "POST",
-        body: form,
-      });
-      const result = (await response.json()) as ImportResult & {
-        error?: string;
-      };
-      if (!response.ok) throw new Error(result.error ?? "Import failed.");
-      setMessage({
-        tone: result.summary.failed ? "error" : "success",
-        text: `${result.summary.files} file${result.summary.files === 1 ? "" : "s"} processed · ${result.summary.imported} imported to Actual · ${result.summary.duplicates} already present${result.summary.failed ? ` · ${result.summary.failed} file${result.summary.failed === 1 ? "" : "s"} failed` : ""}`,
-      });
-      setImportDialogOpen(false);
-      await load(tab, 1);
-    } catch (error) {
-      setMessage({
-        tone: "error",
-        text: error instanceof Error ? error.message : "Import failed.",
-      });
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
-
   async function removeDuplicates(ids: string[]) {
     if (
       !ids.length ||
@@ -350,22 +256,10 @@ export default function Dashboard() {
             <h1>{tab === "transactions" ? "Transactions" : "Duplicates"}</h1>
             <p>
               {tab === "transactions"
-                ? "Review your synced Actual Budget ledger and import Spendee exports."
+                ? "Review your synced Actual Budget ledger and clearing status."
                 : "Actual handles imported transaction identity and duplicate detection."}
             </p>
           </div>
-          {tab === "transactions" && (
-            <div className="transaction-import-controls">
-              <button
-                className="page-import-button"
-                disabled={uploading}
-                onClick={() => setImportDialogOpen(true)}
-              >
-                <span>＋</span>
-                {uploading ? "Importing…" : "Import files"}
-              </button>
-            </div>
-          )}
         </section>
 
         {message && (
@@ -514,27 +408,6 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="ledger-tools">
-              {tab === "transactions" && (
-                <div className="valid-until-control">
-                  <label>
-                    <span>Verified until</span>
-                    <input
-                      aria-label="Verified until"
-                      type="date"
-                      value={validUntil}
-                      onChange={(event) => setValidUntil(event.target.value)}
-                    />
-                  </label>
-                  <button
-                    disabled={
-                      savingValidUntil || validUntil === savedValidUntil
-                    }
-                    onClick={() => void saveValidUntil()}
-                  >
-                    {savingValidUntil ? "Saving…" : "Save"}
-                  </button>
-                </div>
-              )}
               {tab === "transactions" &&
                 (splitMode ? (
                   <div className="split-mode-actions">
@@ -648,7 +521,7 @@ export default function Dashboard() {
                       className="empty"
                     >
                       {tab === "transactions"
-                        ? "Import an XLSX or CSV export to begin."
+                        ? "No transactions are available in Actual Budget."
                         : "No duplicates have been found."}
                     </td>
                   </tr>
@@ -700,12 +573,7 @@ export default function Dashboard() {
                           )}
                           <td>
                             <strong>{formatDate(row.date, intlLocale)}</strong>
-                            {savedValidUntil &&
-                              dayKey(row.date) <= savedValidUntil && (
-                                <span className="verified-badge">
-                                  ✓ Verified
-                                </span>
-                              )}
+                            <TransactionClearedStatus cleared={row.cleared} />
                           </td>
                           <td>
                             <Link
@@ -838,95 +706,6 @@ export default function Dashboard() {
           transactions={splitRows}
           onClose={() => setSplitDialogOpen(false)}
         />
-      )}
-      {importDialogOpen && (
-        <div
-          className="dialog-backdrop"
-          role="presentation"
-          onMouseDown={() => !uploading && setImportDialogOpen(false)}
-        >
-          <section
-            aria-labelledby="import-dialog-title"
-            aria-modal="true"
-            className="dialog-surface import-dialog"
-            role="dialog"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="dialog-head">
-              <div>
-                <p className="eyebrow">IMPORT TRANSACTIONS</p>
-                <h2 id="import-dialog-title">Choose export files</h2>
-                <span>Upload one or more XLSX or CSV files.</span>
-              </div>
-              <button
-                aria-label="Close import"
-                disabled={uploading}
-                onClick={() => setImportDialogOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div
-              className={`dropzone import-dropzone ${draggingImport ? "dragging" : ""}`}
-              onDragEnter={(event) => {
-                event.preventDefault();
-                setDraggingImport(true);
-              }}
-              onDragLeave={(event) => {
-                event.preventDefault();
-                setDraggingImport(false);
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                setDraggingImport(false);
-                if (event.dataTransfer.files.length)
-                  void upload(event.dataTransfer.files);
-              }}
-            >
-              <div className="upload-icon">⇧</div>
-              <div className="upload-copy">
-                <h2>Drop files here</h2>
-                <p>XLSX and CSV exports are supported.</p>
-                <span>
-                  Wallets, categories, and currency must already exist in
-                  Actual.
-                </span>
-              </div>
-              <button
-                disabled={uploading}
-                onClick={() => inputRef.current?.click()}
-              >
-                {uploading ? "Importing…" : "Choose files"}
-              </button>
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".xlsx,.csv,text/csv"
-                multiple
-                hidden
-                onChange={(event) =>
-                  event.target.files && void upload(event.target.files)
-                }
-              />
-            </div>
-            <label className="full-import import-full-option">
-              <input
-                checked={fullImport}
-                disabled={uploading}
-                type="checkbox"
-                onChange={(event) => setFullImport(event.target.checked)}
-              />
-              <span>
-                <b>One wallet per file</b>
-                <small>
-                  Validate each file as one wallet. Existing Actual transactions
-                  are never deleted or replaced.
-                </small>
-              </span>
-            </label>
-          </section>
-        </div>
       )}
     </main>
   );

@@ -1,5 +1,4 @@
 import type { Db, MonthlyReportColumn, TransactionFilters } from "./db";
-import { getValidUntil } from "./db";
 import { defaultCategoryColor } from "./category-appearance";
 import { categorySlug } from "./category-slug";
 import {
@@ -180,7 +179,6 @@ export function getLedgerCategoryDetails(
     ...detail,
     category: category.name,
     categoryId: category.id,
-    validUntil: getValidUntil(db),
     spendingTotals: [{ currency: snapshot.currency, amount: spendingTotal }],
     chartTotals: [{ currency: snapshot.currency, amount: chartTotal }],
     currentMonth,

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getDatabase, getValidUntil } from "@/lib/db";
 import { parsePagination } from "@/lib/pagination";
 import {
   getLedgerAccount,
@@ -25,10 +24,7 @@ export async function GET(
   if (!result) {
     return NextResponse.json({ error: "Wallet not found." }, { status: 404 });
   }
-  return NextResponse.json({
-    ...result,
-    validUntil: getValidUntil(getDatabase()),
-  });
+  return NextResponse.json(result);
 }
 
 export async function PUT(

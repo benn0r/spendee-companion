@@ -449,7 +449,6 @@ test("pure ledger queries cover filters, pagination, accounts, categories, and m
     categories: 3,
     tags: 3,
     duplicates: 0,
-    imports: 0,
   });
   assert.deepEqual(getLedgerFilterOptions(snapshot).types, [
     "Expense",

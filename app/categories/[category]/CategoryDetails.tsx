@@ -20,7 +20,8 @@ import {
   type CategoryAppearance,
 } from "@/lib/category-appearance";
 import { assetUrl } from "@/lib/assets";
-import { dayKey, groupRowsByDay, type DayTotals } from "@/lib/day-groups";
+import TransactionClearedStatus from "@/app/TransactionClearedStatus";
+import { groupRowsByDay, type DayTotals } from "@/lib/day-groups";
 
 type Row = {
   id: string;
@@ -34,13 +35,13 @@ type Row = {
   note: string | null;
   labels: string | null;
   author: string | null;
+  cleared: boolean;
 };
 
 type CategoryData = {
   category: string;
   rows: Row[];
   dayTotals: DayTotals;
-  validUntil: string | null;
   wallets: Array<{ wallet: string; transactionCount: number }>;
   spendingTotals: Array<{ currency: string; amount: number }>;
   chartTotals: Array<{ currency: string; amount: number }>;
@@ -68,7 +69,6 @@ const emptyData: CategoryData = {
   category: "",
   rows: [],
   dayTotals: {},
-  validUntil: null,
   wallets: [],
   spendingTotals: [],
   chartTotals: [],
@@ -604,12 +604,9 @@ export default function CategoryDetails({ category }: { category: string }) {
                                 <strong>
                                   {formatDate(row.date, intlLocale)}
                                 </strong>
-                                {data.validUntil &&
-                                  dayKey(row.date) <= data.validUntil && (
-                                    <span className="verified-badge">
-                                      ✓ Verified
-                                    </span>
-                                  )}
+                                <TransactionClearedStatus
+                                  cleared={row.cleared}
+                                />
                               </td>
                               <td>
                                 <Link

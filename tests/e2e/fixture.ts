@@ -18,7 +18,6 @@ function resetE2eDatabase() {
       db.prepare("DELETE FROM split_records").run();
       db.prepare("DELETE FROM category_tag_config").run();
       db.prepare("DELETE FROM monthly_report_columns").run();
-      db.prepare("DELETE FROM app_settings").run();
       db.prepare("DELETE FROM validation_manual_matches").run();
       db.prepare("DELETE FROM validation_runs").run();
       db.prepare("DELETE FROM validation_description_blacklist").run();

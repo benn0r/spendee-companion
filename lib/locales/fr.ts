@@ -33,10 +33,13 @@ export const frUi: Record<string, string> = {
   "Balances and transaction totals": "Soldes et totaux des transactions",
   Categories: "Catégories",
   "Transaction history": "Historique des transactions",
+  "No transactions are available in Actual Budget.":
+    "Aucune transaction n’est disponible dans Actual Budget.",
   "Duplicate records": "Enregistrements en double",
   "All imported records, newest first":
     "Tous les enregistrements importés, du plus récent au plus ancien",
-  "Verified until": "Vérifiées jusqu’au",
+  Cleared: "Pointée",
+  Uncleared: "Non pointée",
   Save: "Enregistrer",
   "Saving…": "Enregistrement…",
   "Split transactions": "Répartir les transactions",
@@ -323,8 +326,6 @@ export const frUi: Record<string, string> = {
   "splitCount must be a number.": "splitCount doit être un nombre.",
   "Currency and a valid starting amount are required.":
     "Une devise et un montant initial valide sont obligatoires.",
-  "validUntil must be a date or null.":
-    "validUntil doit être une date ou null.",
   "ids must contain duplicate IDs.":
     "ids doit contenir des identifiants de doublons.",
   "columns must contain a name and a list of categories.":

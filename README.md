@@ -3,8 +3,8 @@
 > [!IMPORTANT]
 > **This entire repository, including the application, design, tests, documentation, and deployment setup was made with AI.**
 
-A private, self-hosted companion for Spendee exports backed by Actual Budget.
-Upload `.xlsx` or `.csv` exports, browse the resulting ledger, validate account
+A private, self-hosted companion for an Actual Budget ledger.
+Browse the synchronized ledger, see Actual's cleared state, validate account
 statements, and save shareable splits without maintaining a second transaction
 database.
 
@@ -35,18 +35,9 @@ environment files or downloaded budget data.
 
 ## What it does
 
-- Imports Spendee's date, wallet, type, category, amount, currency, note, labels,
-  and author fields from mixed XLSX/CSV batches.
-- Resolves each Spendee wallet and category to an existing Actual account and
-  category. Missing or ambiguous matches fail visibly instead of creating an
-  unintended ledger structure.
-- Writes imports directly to Actual with a stable imported ID, allowing Actual
-  to identify a repeated source row. Notes are preserved and labels become
-  Actual-style tag tokens.
-- Treats **Full import** as a one-account-per-file validation mode. It does not
-  delete or replace transactions in Actual.
 - Shows account totals, account and category activity, filters, daily groups,
-  and monthly category reports from the synchronized Actual snapshot.
+  Actual's cleared status, and monthly category reports from the synchronized
+  Actual snapshot.
 - Edits an account's starting balance through its Actual starting-balance
   transaction when one exists.
 - Validates PDF statements against an Actual account with OpenAI extraction.
@@ -55,8 +46,8 @@ environment files or downloaded budget data.
   retained.
 - Saves split snapshots independently in SQLite and renders downloadable A4 PDF
   copies without copying the live ledger into SQLite.
-- Exposes Actual-backed read tools, SQLite-backed split tools, and one explicit
-  Spendee file-import tool through a stateless MCP Streamable HTTP endpoint.
+- Exposes Actual-backed read tools and SQLite-backed split tools through a
+  stateless MCP Streamable HTTP endpoint.
 - Provides an English-first localization layer with additional locale catalogs.
 
 ## Configure Actual Budget
@@ -174,10 +165,8 @@ https://your-spendee.example.test/mcp
 ```
 
 The endpoint uses stateless Streamable HTTP with JSON responses. Data tools
-read the synchronized Actual snapshot, while split tools read SQLite. The
-`import_transaction_files` tool accepts one to ten XLSX/CSV files as base64
-using `{ filename, contentBase64 }`. Setting `full: true` validates that each
-file maps to one Actual account; it never replaces that account's ledger.
+read the synchronized Actual snapshot, while split tools read SQLite. It does
+not expose transaction mutation or file-import tools.
 When application authentication is configured, MCP clients must send the same
 credentials in the standard HTTP `Authorization: Basic ...` header.
 

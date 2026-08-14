@@ -7,7 +7,7 @@ import { assetUrl, BUILD_ID } from "@/lib/assets";
 export const metadata: Metadata = {
   title: "Spendee companion",
   description:
-    "Import Spendee XLSX and CSV exports into a durable, duplicate-aware archive.",
+    "Review an Actual Budget ledger with account, category, split, and statement insights.",
   icons: {
     icon: [
       { url: assetUrl("/favicon-16.png"), sizes: "16x16", type: "image/png" },

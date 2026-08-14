@@ -1,90 +1,65 @@
 import { expect, test } from "./fixture";
-import { fantasyData, importCsv, openDashboard } from "./helpers";
+import { fantasyData, openDashboard, seedCsvTransactions } from "./helpers";
 
-test("verified-until can be saved, persists, and can be cleared", async ({
+test("Actual cleared status is shown across transaction views", async ({
   page,
 }, testInfo) => {
-  const { csv, dates, variant, wallet } = fantasyData(
+  const { category, csv, variant, wallet } = fantasyData(
     testInfo,
-    "Verified until",
+    "Cleared status",
   );
-  const secondWallet = `Cloud Vault ${variant}`;
+  const [header, ...rows] = csv.split("\n");
+  const clearedCsv = [
+    `${header},Cleared`,
+    `${rows[0]},true`,
+    `${rows[1]},false`,
+    `${rows[2]},true`,
+  ].join("\n");
 
   await openDashboard(page);
-  await importCsv(
-    page,
-    csv,
-    `verified-${variant}.csv`,
-    /1 file processed · 3 imported/,
-  );
-  await page.reload();
+  await seedCsvTransactions(page, clearedCsv);
 
-  const filters = page.getByRole("region", { name: "Transaction filters" });
-  const walletFilter = filters
-    .locator("details.filter-multi")
-    .filter({ hasText: "Wallets" });
-  await walletFilter.locator("summary").click();
-  await walletFilter.getByLabel(wallet, { exact: true }).check();
-  await walletFilter.getByLabel(secondWallet, { exact: true }).check();
-  await walletFilter.locator("summary").click();
-  await filters.getByRole("button", { name: "Apply filters" }).click();
-
-  const verifiedUntil = page.locator(
-    '.valid-until-control input[aria-label="Verified until"]',
-  );
-  await expect(verifiedUntil).toHaveValue("");
-  await verifiedUntil.fill(dates[1]);
-  await page
-    .locator(".valid-until-control")
-    .getByRole("button", { name: "Save" })
-    .click();
-  await expect(page.locator(".notice.success")).toContainText(
-    `Transactions through ${dates[1]} are marked as verified.`,
-  );
-
-  const oldestRow = page
+  const clearedRow = page
     .getByRole("row")
     .filter({ hasText: `Nebula lunch ${variant}` });
-  const middleRow = page
+  const unclearedRow = page
     .getByRole("row")
     .filter({ hasText: `Dragon bounty ${variant}` });
-  const newestRow = page
-    .getByRole("row")
-    .filter({ hasText: `Gate fare ${variant}` });
-  await expect(oldestRow.locator(".verified-badge")).toHaveText("✓ Verified");
-  await expect(middleRow.locator(".verified-badge")).toHaveText("✓ Verified");
-  await expect(newestRow.locator(".verified-badge")).toHaveCount(0);
-
-  await page.reload();
-  await expect(
-    page.locator('.valid-until-control input[aria-label="Verified until"]'),
-  ).toHaveValue(dates[1]);
-
-  await page
-    .locator('.valid-until-control input[aria-label="Verified until"]')
-    .fill("");
-  await page
-    .locator(".valid-until-control")
-    .getByRole("button", { name: "Save" })
-    .click();
-  await expect(page.locator(".notice.success")).toContainText(
-    "Transaction verification date cleared.",
+  await expect(clearedRow.locator(".cleared-badge")).toHaveText("✓ Cleared");
+  await expect(unclearedRow.locator(".cleared-badge")).toHaveText(
+    "○ Uncleared",
   );
-  await expect(
-    page
-      .getByRole("row")
-      .filter({ hasText: variant })
-      .locator(".verified-badge"),
-  ).toHaveCount(0);
+  await expect(page.getByText("Verified until")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Import files" })).toHaveCount(
+    0,
+  );
+  expect((await page.request.get("/api/valid-until")).status()).toBe(404);
+  expect((await page.request.post("/api/import")).status()).toBe(404);
 
-  await page.reload();
-  await expect(
-    page.locator('.valid-until-control input[aria-label="Verified until"]'),
-  ).toHaveValue("");
+  await clearedRow.getByRole("link", { name: wallet }).click();
   await expect(
     page
       .getByRole("row")
-      .filter({ hasText: variant })
-      .locator(".verified-badge"),
-  ).toHaveCount(0);
+      .filter({ hasText: `Nebula lunch ${variant}` })
+      .locator(".cleared-badge"),
+  ).toHaveText("✓ Cleared");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: `Dragon bounty ${variant}` })
+      .locator(".cleared-badge"),
+  ).toHaveText("○ Uncleared");
+
+  await page.getByRole("link", { name: "Spendee companion" }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: `Nebula lunch ${variant}` })
+    .getByRole("link", { name: category })
+    .click();
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: `Nebula lunch ${variant}` })
+      .locator(".cleared-badge"),
+  ).toHaveText("✓ Cleared");
 });

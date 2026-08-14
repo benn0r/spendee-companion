@@ -1,11 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
-import { importFiles } from "./import-service";
 import {
   getDatabase,
   getSplit,
   getSplits,
-  getValidUntil,
   type TransactionFilters,
 } from "./db";
 import {
@@ -60,18 +58,6 @@ function result(data: unknown) {
   };
 }
 
-function decodeBase64(value: string): Buffer {
-  const normalized = value.replace(/\s+/g, "");
-  if (
-    !normalized ||
-    !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) ||
-    normalized.length % 4 !== 0
-  ) {
-    throw new Error("File content must be valid base64.");
-  }
-  return Buffer.from(normalized, "base64");
-}
-
 function filters(
   input: z.infer<z.ZodObject<typeof filterSchema>>,
 ): TransactionFilters {
@@ -95,7 +81,7 @@ export function createReadOnlyMcpServer() {
     "get_overview",
     {
       description:
-        "Read global counts, wallets, filter options, and the persisted verification date.",
+        "Read global counts, wallets, and filter options from Actual Budget.",
     },
     async () => {
       const db = getDatabase();
@@ -105,10 +91,8 @@ export function createReadOnlyMcpServer() {
         counts: {
           transactions: stats.transactions,
           duplicates: stats.duplicates,
-          imports: stats.imports,
           wallets: stats.wallets,
         },
-        validUntil: getValidUntil(db),
         wallets: getLedgerAccountSummaries(snapshot),
         filters: getLedgerFilterOptionsWithMetadata(db, snapshot),
       });
@@ -240,41 +224,6 @@ export function createReadOnlyMcpServer() {
       inputSchema: { id: z.number().int().positive() },
     },
     async ({ id }) => result(getSplit(getDatabase(), id)),
-  );
-
-  server.registerTool(
-    "import_transaction_files",
-    {
-      description:
-        "Import uploaded Spendee XLSX or CSV files into Actual Budget. Full mode validates one account per file but never deletes unrelated Actual transactions.",
-      inputSchema: {
-        files: z
-          .array(
-            z.object({
-              filename: z.string().min(1),
-              contentBase64: z.string().min(1).max(20_000_000),
-            }),
-          )
-          .min(1)
-          .max(10),
-        full: z.boolean().default(false),
-      },
-    },
-    async ({ files, full }) => {
-      const payload = await importFiles(
-        files.map((file) => ({
-          name: file.filename,
-          buffer: decodeBase64(file.contentBase64),
-        })),
-        { full },
-      );
-      const response = result({
-        results: payload.results,
-        summary: payload.summary,
-        error: payload.error,
-      });
-      return payload.successful ? response : { ...response, isError: true };
-    },
   );
 
   return server;

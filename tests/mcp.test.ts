@@ -3,11 +3,7 @@ import { rmSync } from "node:fs";
 import { after, test } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import {
-  createSplitFromTransactions,
-  getDatabase,
-  setValidUntil,
-} from "../lib/db";
+import { createSplitFromTransactions, getDatabase } from "../lib/db";
 import { saveLedgerMonthlyColumns } from "../lib/ledger-metadata";
 import { normalizeActualSnapshot } from "../lib/ledger-service";
 import { createReadOnlyMcpServer } from "../lib/mcp-server";
@@ -32,9 +28,6 @@ for (const name of [
   delete process.env[name];
 }
 writeActualApiFixture(actualPath);
-
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 after(() => {
   getDatabase().close();
@@ -72,7 +65,6 @@ function sqliteTables(): string[] {
 test("MCP reads Actual UUID data and retained SQLite companion state", async () => {
   const db = getDatabase();
   const snapshot = normalizeActualSnapshot(createActualApiFixture());
-  setValidUntil(db, "2026-07-12");
   saveLedgerMonthlyColumns(db, snapshot, [
     {
       name: "Magic life",
@@ -95,7 +87,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
   );
   assert.ok(split);
   assert.deepEqual(sqliteTables(), [
-    "app_settings",
     "category_tag_config",
     "monthly_report_columns",
     "split_entries",
@@ -123,7 +114,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
       "get_overview",
       "get_split",
       "get_wallet",
-      "import_transaction_files",
       "list_duplicates",
       "list_splits",
       "list_transactions",
@@ -133,7 +123,7 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
       names.filter((name) =>
         /create|update|delete|import|approve|reject/.test(name),
       ),
-      ["import_transaction_files"],
+      [],
     );
 
     const overview = parseResult(
@@ -142,10 +132,8 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
     assert.deepEqual(overview.counts, {
       transactions: 3,
       duplicates: 0,
-      imports: 0,
       wallets: 2,
     });
-    assert.equal(overview.validUntil, "2026-07-12");
     const moonOverview = overview.wallets.find(
       (wallet: { id: string }) => wallet.id === actualIds.moonAccount,
     );
@@ -251,76 +239,6 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
         .sort(),
       [actualIds.groceryTransaction, actualIds.rewardTransaction].sort(),
     );
-
-    const importCsv = [
-      "Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author",
-      "2026-07-14T10:00:00.000Z,Moon Purse,Expense,Enchanted Groceries,-42,CHF,Fresh moonberries,magic,Nova Quill",
-    ].join("\n");
-    const imported = parseResult(
-      await client.callTool({
-        name: "import_transaction_files",
-        arguments: {
-          files: [
-            {
-              filename: "moon-full.csv",
-              contentBase64: Buffer.from(importCsv).toString("base64"),
-            },
-          ],
-          full: true,
-        },
-      }),
-    );
-    assert.deepEqual(imported.summary, {
-      total: 1,
-      imported: 1,
-      duplicates: 0,
-      replaced: 0,
-      files: 1,
-      failed: 0,
-    });
-    assert.equal(imported.results[0].updated, 0);
-
-    const updatedWallet = parseResult(
-      await client.callTool({
-        name: "get_wallet",
-        arguments: {
-          wallet: actualIds.moonAccount,
-          page: 1,
-          pageSize: 10,
-        },
-      }),
-    );
-    assert.equal(updatedWallet.total, 3);
-    assert.ok(
-      updatedWallet.rows.some(
-        (row: { id: string }) => row.id === actualIds.groceryTransaction,
-      ),
-    );
-    const fresh = updatedWallet.rows.find(
-      (row: { note: string }) => row.note === "Fresh moonberries",
-    );
-    assert.match(fresh.id, uuidPattern);
-    assert.equal(fresh.accountId, actualIds.moonAccount);
-    assert.equal(fresh.categoryId, actualIds.enchantedGroceries);
-    assert.deepEqual(fresh.tags, [{ id: actualIds.magicTag, name: "magic" }]);
-
-    const repeated = parseResult(
-      await client.callTool({
-        name: "import_transaction_files",
-        arguments: {
-          files: [
-            {
-              filename: "moon-repeat.csv",
-              contentBase64: Buffer.from(importCsv).toString("base64"),
-            },
-          ],
-          full: false,
-        },
-      }),
-    );
-    assert.equal(repeated.summary.imported, 0);
-    assert.equal(repeated.summary.duplicates, 0);
-    assert.equal(repeated.results[0].updated, 1);
 
     const invalid = await client.callTool({
       name: "list_transactions",

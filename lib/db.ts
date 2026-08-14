@@ -137,11 +137,6 @@ export function openDatabase(
       snapshot_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS split_entries_split_idx ON split_entries(split_id, id);
-    CREATE TABLE IF NOT EXISTS app_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
     CREATE TABLE IF NOT EXISTS validation_runs (
       id INTEGER PRIMARY KEY,
       wallet TEXT NOT NULL,
@@ -209,6 +204,9 @@ export function openDatabase(
     "CREATE INDEX IF NOT EXISTS validation_runs_account_range_idx ON validation_runs(account_id, date_from, date_to)",
   );
   db.exec("DROP TABLE IF EXISTS reconciliation_items");
+  // The retired verified-until setting has been replaced by Actual's cleared
+  // flag on each transaction.
+  db.exec("DROP TABLE IF EXISTS app_settings");
   if (sqliteLedgerCompatibility) {
     db.exec(`
       CREATE INDEX IF NOT EXISTS transactions_identity_idx ON transactions(identity_key);
@@ -260,39 +258,6 @@ export function openDatabase(
 export function getDatabase(): Db {
   singleton ??= openDatabase();
   return singleton;
-}
-
-export function getValidUntil(db: Db): string | null {
-  const row = db
-    .prepare(
-      "SELECT value FROM app_settings WHERE key = 'transactions_valid_until'",
-    )
-    .get() as { value: string | null } | undefined;
-  return row?.value || null;
-}
-
-export function setValidUntil(db: Db, value: string | null): string | null {
-  const normalized = value?.trim() || null;
-  if (normalized && !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    throw new Error("Valid until must be a date.");
-  }
-  if (normalized) {
-    const parsed = new Date(`${normalized}T00:00:00.000Z`);
-    if (
-      Number.isNaN(parsed.valueOf()) ||
-      parsed.toISOString().slice(0, 10) !== normalized
-    ) {
-      throw new Error("Valid until must be a valid date.");
-    }
-  }
-  db.prepare(
-    `
-    INSERT INTO app_settings (key, value, updated_at)
-    VALUES ('transactions_valid_until', ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
-  `,
-  ).run(normalized);
-  return normalized;
 }
 
 export type WalletSummary = {
@@ -377,7 +342,6 @@ export function getWalletTransactions(
     wallet,
     rows,
     totals,
-    validUntil: getValidUntil(db),
     dayTotals: calculateDayTotals(dayRows),
     page,
     pageSize,
@@ -576,7 +540,6 @@ export function getCategoryDetails(
   return {
     category,
     rows,
-    validUntil: getValidUntil(db),
     dayTotals: calculateDayTotals(dayRows),
     wallets,
     spendingTotals: Array.from(spendingTotals, ([currency, amount]) => ({

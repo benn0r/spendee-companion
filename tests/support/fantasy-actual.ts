@@ -139,10 +139,7 @@ function parseCsv(csv: string): CsvRow[] {
   }) as CsvRow[];
 }
 
-/**
- * Actual requires accounts and categories to exist before an import. Browser
- * tests seed those reference records from their fantasy CSV before uploading.
- */
+/** Seed Actual reference records from a compact fantasy CSV fixture. */
 export function seedFantasyActualFromCsv(
   csv: string,
   path: string = actualMockDataPath,
@@ -227,5 +224,87 @@ export function seedFantasyActualFromCsv(
   }
 
   snapshot.budgetMonths = Array.from(months).sort().reverse();
+  writeSnapshot(path, snapshot);
+}
+
+export function seedFantasyActualTransactionsFromCsv(
+  csv: string,
+  path: string = actualMockDataPath,
+): void {
+  seedFantasyActualFromCsv(csv, path);
+  const snapshot = readSnapshot(path);
+  const accounts = new Map(
+    snapshot.accounts.map((account) => [normalized(account.name), account]),
+  );
+  const categories = new Map(
+    snapshot.categories.map((category) => [
+      normalized(category.name),
+      category,
+    ]),
+  );
+  const transactionIds = new Set(
+    snapshot.transactions.map((transaction) => transaction.id),
+  );
+
+  for (const row of parseCsv(csv)) {
+    const account = accounts.get(normalized(row.Wallet ?? ""));
+    if (!account) throw new Error("Fantasy transaction account is missing.");
+    const categoryName = row["Category name"]?.trim();
+    const category = categoryName
+      ? categories.get(normalized(categoryName))
+      : undefined;
+    if (categoryName && !category) {
+      throw new Error("Fantasy transaction category is missing.");
+    }
+    const amount = Number(row.Amount);
+    if (!Number.isFinite(amount)) {
+      throw new Error("Fantasy transaction amount is invalid.");
+    }
+    const date = row.Date?.trim().slice(0, 10) ?? "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error("Fantasy transaction date is invalid.");
+    }
+    const identity = JSON.stringify([
+      date,
+      account.id,
+      category?.id ?? null,
+      amount,
+      row.Note?.trim() ?? null,
+      row.Labels?.trim() ?? null,
+    ]);
+    const id = stableId("fantasy-transaction", identity);
+    if (transactionIds.has(id)) continue;
+
+    const tags = (row.Labels?.split(/[,;]/) ?? [])
+      .map((tag) => tag.trim().replace(/^#/, ""))
+      .filter(Boolean);
+    const notes = [row.Note?.trim(), ...tags.map((tag) => `#${tag}`)]
+      .filter(Boolean)
+      .join(" ");
+    const clearedValue = normalized(row.Cleared ?? "true");
+    const amountCents = Math.round(amount * 100);
+    snapshot.transactions.push({
+      id,
+      accountId: account.id,
+      categoryId: category?.id ?? null,
+      payeeId: null,
+      amountCents,
+      date,
+      notes: notes || null,
+      importedId: `fantasy:${id}`,
+      transferId: null,
+      parentId: null,
+      isParent: false,
+      isChild: false,
+      startingBalance: false,
+      cleared: clearedValue !== "false" && clearedValue !== "0",
+      reconciled: false,
+      sortOrder: snapshot.transactions.length,
+      subtransactions: [],
+    });
+    transactionIds.add(id);
+    account.balanceCents += amountCents;
+  }
+
   writeSnapshot(path, snapshot);
 }

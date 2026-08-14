@@ -33,8 +33,6 @@ export const itUi: Record<string, string> = {
   "transactionIds must contain transaction IDs.":
     "transactionIds deve contenere ID di transazioni.",
   "splitCount must be a number.": "splitCount deve essere un numero.",
-  "validUntil must be a date or null.":
-    "validUntil deve essere una data o null.",
   "ids must contain duplicate IDs.": "ids deve contenere ID di duplicati.",
   "columns must contain a name and a list of categories.":
     "Le colonne devono contenere un nome e un elenco di categorie.",
@@ -55,10 +53,13 @@ export const itUi: Record<string, string> = {
   "Balances and transaction totals": "Saldi e totali delle transazioni",
   Categories: "Categorie",
   "Transaction history": "Cronologia transazioni",
+  "No transactions are available in Actual Budget.":
+    "Nessuna transazione è disponibile in Actual Budget.",
   "Duplicate records": "Record duplicati",
   "All imported records, newest first":
     "Tutti i record importati, dal più recente",
-  "Verified until": "Verificato fino al",
+  Cleared: "Registrata",
+  Uncleared: "Non registrata",
   Save: "Salva",
   "Saving…": "Salvataggio in corso…",
   "Split transactions": "Ripartisci transazioni",
