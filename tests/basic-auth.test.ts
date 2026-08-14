@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import {
   evaluateBasicAuth,
   getBasicAuthRejection,
+  isApiBearerAuthorized,
   isBasicAuthBypassPath,
   type BasicAuthEnvironment,
 } from "../lib/basic-auth";
@@ -121,6 +122,44 @@ test("protected routes challenge missing or invalid credentials", async () => {
       configuredEnvironment,
     ),
     null,
+  );
+});
+
+test("API routes accept a dedicated bearer key without weakening page auth", () => {
+  const environment = {
+    ...configuredEnvironment,
+    SPENDEE_API_KEY: "fantasy-api-key",
+  };
+  assert.equal(
+    isApiBearerAuthorized(
+      "/api/transactions",
+      "Bearer fantasy-api-key",
+      environment,
+    ),
+    true,
+  );
+  assert.equal(
+    getBasicAuthRejection(
+      "/api/transactions",
+      "Bearer fantasy-api-key",
+      environment,
+    ),
+    null,
+  );
+  assert.equal(
+    isApiBearerAuthorized("/receipts", "Bearer fantasy-api-key", environment),
+    false,
+  );
+  assert.equal(
+    getBasicAuthRejection("/api/transactions", "Bearer wrong-key", environment)
+      ?.status,
+    401,
+  );
+  assert.equal(
+    isApiBearerAuthorized("/api/references", "Bearer legacy-key", {
+      API_KEY: "legacy-key",
+    }),
+    true,
   );
 });
 

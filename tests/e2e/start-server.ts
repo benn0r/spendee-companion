@@ -23,6 +23,12 @@ if (
 }
 resetFantasyActualData(actualMockDataPath);
 
+const receiptsPath = process.env.RECEIPTS_DIR;
+if (!receiptsPath?.startsWith("/tmp/spendee-playwright-receipts")) {
+  throw new Error("Refusing to reset an unexpected receipt path.");
+}
+rmSync(receiptsPath, { recursive: true, force: true });
+
 const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION_BUILD === "1";
 const require = createRequire(import.meta.url);
 const entrypoint = useProductionBuild

@@ -31,6 +31,22 @@ function constantTimeEqual(actual: string, expected: string): boolean {
   return timingSafeEqual(actualDigest, expectedDigest);
 }
 
+function configuredApiKey(env: BasicAuthEnvironment): string | null {
+  const value = env.SPENDEE_API_KEY || env.API_KEY;
+  return value === undefined || value.length === 0 ? null : value;
+}
+
+export function isApiBearerAuthorized(
+  pathname: string,
+  authorization: string | null,
+  env: BasicAuthEnvironment = process.env,
+): boolean {
+  if (!pathname.startsWith("/api/") || pathname === "/api/ready") return false;
+  const expected = configuredApiKey(env);
+  const match = /^Bearer +(.+)$/i.exec(authorization ?? "");
+  return Boolean(expected && match && constantTimeEqual(match[1], expected));
+}
+
 function parseBasicCredentials(
   authorization: string | null,
 ): { username: string; password: string } | null {
@@ -104,6 +120,7 @@ export function getBasicAuthRejection(
   env: BasicAuthEnvironment = process.env,
 ): Response | null {
   if (isBasicAuthBypassPath(pathname)) return null;
+  if (isApiBearerAuthorized(pathname, authorization, env)) return null;
 
   const decision = evaluateBasicAuth(authorization, env);
   if (decision === "disabled" || decision === "authorized") return null;

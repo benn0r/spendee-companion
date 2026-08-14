@@ -137,6 +137,23 @@ export function openDatabase(
       snapshot_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS split_entries_split_idx ON split_entries(split_id, id);
+    CREATE TABLE IF NOT EXISTS receipts (
+      id INTEGER PRIMARY KEY,
+      filename TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      account_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued', 'processing', 'processed', 'failed')),
+      suggestion_json TEXT,
+      error TEXT,
+      submitted INTEGER NOT NULL DEFAULT 0,
+      actual_transaction_id TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at TEXT,
+      submitted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS receipts_created_idx ON receipts(created_at DESC, id DESC);
     CREATE TABLE IF NOT EXISTS validation_runs (
       id INTEGER PRIMARY KEY,
       wallet TEXT NOT NULL,
@@ -185,6 +202,9 @@ export function openDatabase(
   ensureColumn(db, "monthly_report_columns", "budget", "REAL");
   ensureColumn(db, "split_records", "title", "TEXT");
   ensureColumn(db, "split_records", "locale", "TEXT NOT NULL DEFAULT 'en'");
+  db.prepare(
+    "UPDATE receipts SET status = 'queued' WHERE status = 'processing'",
+  ).run();
   ensureColumn(
     db,
     "validation_runs",

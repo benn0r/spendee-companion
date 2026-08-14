@@ -6,8 +6,31 @@ import { actualIds, writeActualApiFixture } from "./support/actual-api-fixture";
 
 const databasePath = `/tmp/spendee-api-fantasy-${crypto.randomUUID()}.db`;
 const actualPath = `/tmp/spendee-api-fantasy-${crypto.randomUUID()}.json`;
+const receiptsPath = `/tmp/spendee-api-receipts-${crypto.randomUUID()}`;
 process.env.SQLITE_PATH = databasePath;
 process.env.ACTUAL_MOCK_DATA_PATH = actualPath;
+process.env.RECEIPTS_DIR = receiptsPath;
+process.env.RECEIPT_BACKGROUND_IMMEDIATE = "1";
+process.env.OPENAI_RECEIPT_MOCK = JSON.stringify({
+  merchant: "Moonberry Market",
+  date: "2026-07-15",
+  amount: -12.5,
+  currency: "CHF",
+  category: actualIds.enchantedGroceries,
+  notes: "Moonberry tonic",
+  tags: [actualIds.pantryTag],
+  items: [
+    {
+      description: "Moonberry tonic",
+      quantity: 1,
+      unitAmount: -12.5,
+      totalAmount: -12.5,
+      category: actualIds.enchantedGroceries,
+    },
+  ],
+  splits: [],
+  confidence: 0.98,
+});
 process.env.APP_VERSION = "fantasy-test-build";
 process.env.OPENAI_VALIDATION_MOCK = JSON.stringify({
   title: "Moon Guild Statement",
@@ -56,8 +79,9 @@ after(async () => {
     `${databasePath}-shm`,
     `${databasePath}-wal`,
     actualPath,
+    receiptsPath,
   ]) {
-    rmSync(path, { force: true });
+    rmSync(path, { force: true, recursive: path === receiptsPath });
   }
 });
 
@@ -95,6 +119,7 @@ test("API routes use Actual while SQLite retains only companion state", async (t
       assert.deepEqual(await retainedSqliteTables(), [
         "category_tag_config",
         "monthly_report_columns",
+        "receipts",
         "split_entries",
         "split_records",
         "validation_description_blacklist",
@@ -398,6 +423,136 @@ test("API routes use Actual while SQLite retains only companion state", async (t
       (await detail.DELETE(new Request("http://test"), params)).status,
       200,
     );
+  });
+
+  await t.test("creates mobile transactions and reviews receipts", async () => {
+    const references = await import("../app/api/references/route");
+    const referencePayload = await body(await references.GET());
+    assert.equal(referencePayload.accounts[0].id, actualIds.moonAccount);
+    assert.ok(
+      referencePayload.categories.some(
+        ({ id }: { id: string }) => id === actualIds.enchantedGroceries,
+      ),
+    );
+
+    const transactions = await import("../app/api/transactions/route");
+    assert.equal(
+      (
+        await transactions.POST(
+          new Request("http://test/api/transactions", {
+            method: "POST",
+            body: "not-json",
+          }),
+        )
+      ).status,
+      400,
+    );
+    const income = await body(
+      await transactions.POST(
+        jsonRequest("http://test/api/transactions", "POST", {
+          account: actualIds.moonAccount,
+          category: actualIds.dragonRewards,
+          date: "2026-07-16",
+          amount: 25,
+          payee: "Phoenix Guild",
+          notes: "Tournament prize",
+          tags: [actualIds.questTag],
+        }),
+      ),
+    );
+    assert.match(income.id, uuidPattern);
+    assert.equal(income.status, "created");
+    const transactionDetail =
+      await import("../app/api/transactions/[id]/route");
+    assert.equal(
+      (
+        await transactionDetail.DELETE(new Request("http://test"), {
+          params: Promise.resolve({ id: income.id }),
+        })
+      ).status,
+      204,
+    );
+
+    const receipts = await import("../app/api/receipts/route");
+    const upload = new FormData();
+    upload.set("account", actualIds.moonAccount);
+    upload.set(
+      "receipt",
+      new File(
+        [
+          Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+            "base64",
+          ),
+        ],
+        "moonberry-receipt.png",
+        { type: "image/png" },
+      ),
+    );
+    const uploadedResponse = await receipts.POST(
+      new Request("http://test/api/receipts", {
+        method: "POST",
+        body: upload,
+      }),
+    );
+    assert.equal(uploadedResponse.status, 202);
+    const uploaded = await body(uploadedResponse);
+    const listing = await body(await receipts.GET());
+    assert.equal(listing.receipts[0].id, uploaded.id);
+    assert.equal(listing.receipts[0].status, "processed");
+    assert.equal(listing.receipts[0].suggestion.merchant, "Moonberry Market");
+    assert.equal(listing.receipts[0].filePath, undefined);
+
+    const receipt = await import("../app/api/receipts/[id]/route");
+    const params = { params: Promise.resolve({ id: String(uploaded.id) }) };
+    assert.equal(
+      (await body(await receipt.GET(new Request("http://test"), params))).id,
+      uploaded.id,
+    );
+
+    const receiptFile = await import("../app/api/receipts/[id]/file/route");
+    const fileResponse = await receiptFile.GET(
+      new Request("http://test"),
+      params,
+    );
+    assert.equal(fileResponse.headers.get("content-type"), "image/png");
+    assert.ok((await fileResponse.arrayBuffer()).byteLength > 10);
+
+    const submit = await import("../app/api/receipts/[id]/submit/route");
+    const submittedResponse = await submit.POST(
+      jsonRequest("http://test", "POST", {
+        account: actualIds.moonAccount,
+        category: actualIds.enchantedGroceries,
+        date: "2026-07-15",
+        amount: -12.5,
+        payee: "Moonberry Market",
+        notes: "Moonberry tonic",
+        tags: [actualIds.pantryTag],
+      }),
+      params,
+    );
+    assert.equal(submittedResponse.status, 201);
+    const submitted = await body(submittedResponse);
+    assert.match(submitted.id, uuidPattern);
+    assert.equal(
+      (await submit.POST(jsonRequest("http://test", "POST", {}), params))
+        .status,
+      409,
+    );
+    const createdReceiptTransaction = actualSnapshot().transactions.find(
+      ({ id }) => id === submitted.id,
+    );
+    assert.equal(createdReceiptTransaction?.cleared, false);
+    assert.equal(
+      createdReceiptTransaction?.importedId,
+      `spendee-receipt:${uploaded.id}`,
+    );
+
+    assert.equal(
+      (await receipt.DELETE(new Request("http://test"), params)).status,
+      204,
+    );
+    assert.deepEqual((await body(await receipts.GET())).receipts, []);
   });
 
   await t.test(

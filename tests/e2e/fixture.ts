@@ -1,3 +1,4 @@
+import { rmSync } from "node:fs";
 import { test as base } from "@playwright/test";
 import { openDatabase } from "../../lib/db";
 import {
@@ -6,6 +7,7 @@ import {
 } from "../support/fantasy-actual";
 
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
+const receiptsPath = "/tmp/spendee-playwright-receipts";
 
 function resetE2eDatabase() {
   resetFantasyActualData(actualMockDataPath);
@@ -21,10 +23,12 @@ function resetE2eDatabase() {
       db.prepare("DELETE FROM validation_manual_matches").run();
       db.prepare("DELETE FROM validation_runs").run();
       db.prepare("DELETE FROM validation_description_blacklist").run();
+      db.prepare("DELETE FROM receipts").run();
     })();
   } finally {
     db.close();
   }
+  rmSync(receiptsPath, { recursive: true, force: true });
 }
 
 export const test = base.extend({

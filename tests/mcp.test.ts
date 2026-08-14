@@ -89,6 +89,7 @@ test("MCP reads Actual UUID data and retained SQLite companion state", async () 
   assert.deepEqual(sqliteTables(), [
     "category_tag_config",
     "monthly_report_columns",
+    "receipts",
     "split_entries",
     "split_records",
     "validation_description_blacklist",

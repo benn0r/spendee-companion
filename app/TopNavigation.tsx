@@ -6,7 +6,7 @@ export default function TopNavigation({
   active,
   onTransactions,
 }: {
-  active?: "transactions" | "splits" | "monthly" | "validate";
+  active?: "transactions" | "receipts" | "splits" | "monthly" | "validate";
   onTransactions?: () => void;
 }) {
   return (
@@ -21,6 +21,9 @@ export default function TopNavigation({
       ) : (
         <Link href="/">Transactions</Link>
       )}
+      <Link className={active === "receipts" ? "active" : ""} href="/receipts">
+        Receipts
+      </Link>
       <Link className={active === "splits" ? "active" : ""} href="/splits">
         Splits
       </Link>

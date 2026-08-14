@@ -24,10 +24,11 @@ budget before producing its short-lived read snapshot. Tags follow Actual's
 exact-case semantics and are represented by `#tokens` in transaction notes.
 
 SQLite is intentionally limited to application-owned records that Actual does
-not model: saved split snapshots and validation runs, including their immutable
-transaction snapshots and generated artifacts. Small UI preferences such as
-category appearance, monthly column layouts, and the verification date also
-remain there. The SQLite file is not a second transaction ledger.
+not model: receipt review records, saved split snapshots, and validation runs,
+including their immutable transaction snapshots and generated artifacts. Small
+UI preferences such as category appearance and monthly column layouts also
+remain there. Receipt files live in a separate persistent directory. The SQLite
+file is not a second transaction ledger.
 
 Both stores contain financial information. Keep the SQLite file and Actual's
 local cache on persistent, access-controlled storage, and never commit runtime
@@ -44,6 +45,12 @@ environment files or downloaded budget data.
   Validation metadata, normalized statement rows, matching results, the model
   response, and a first-page thumbnail remain in SQLite; the source PDF is not
   retained.
+- Extracts JPEG, PNG, WebP, and PDF receipts with OpenAI, presents every line
+  item for review, and creates an uncleared Actual transaction only after
+  confirmation. Receipt documents and review state stay on the companion
+  server and can be deleted independently.
+- Offers a bearer-authenticated mobile API for Actual references, transaction
+  creation/deletion, and the receipt workflow.
 - Saves split snapshots independently in SQLite and renders downloadable A4 PDF
   copies without copying the live ledger into SQLite.
 - Exposes Actual-backed read tools and SQLite-backed split tools through a
@@ -67,6 +74,8 @@ Requires Node.js 22 or newer and an accessible Actual Budget server.
    `SPENDEE_BASIC_AUTH_PASSWORD` for every network-accessible deployment. Both
    may be left empty for local development; a partial configuration fails
    closed.
+7. Optionally set `SPENDEE_API_KEY` for clients that use
+   `Authorization: Bearer …`. Browser requests continue to use Basic Auth.
 
 Do not put real server URLs, identifiers, passwords, tokens, or budget exports
 in tracked files. Configuration errors intentionally name the missing variable
@@ -84,8 +93,9 @@ Open <http://localhost:3000>. Local development stores split and validation
 records at `./data/spendee.db` and the downloaded Actual cache under
 `./data/actual` unless the corresponding paths are overridden.
 
-Document validation is optional and requires `OPENAI_API_KEY`. It uses
-`gpt-5.6-sol` by default; set `OPENAI_VALIDATION_MODEL` to override it. The
+Document validation and receipt extraction are optional and require
+`OPENAI_API_KEY`. Both use `gpt-5.6-sol` by default; set
+`OPENAI_VALIDATION_MODEL` or `OPENAI_RECEIPT_MODEL` to override either task. The
 runtime image includes Poppler for first-page thumbnails.
 
 ## Test and build
@@ -113,9 +123,9 @@ cp .env.example .env
 docker compose --env-file .env -f compose.example.yml up --build -d
 ```
 
-The container exposes port `3000`, keeps SQLite at `/data/spendee.db`, keeps
-Actual's cache at `/data/actual`, and reports liveness at `/api/health` and
-Actual-backed readiness at `/api/ready`. For a
+The container exposes port `3000`, keeps SQLite at `/data/spendee.db`, Actual's
+cache at `/data/actual`, receipt files at `/data/receipts`, and reports liveness
+at `/api/health` and Actual-backed readiness at `/api/ready`. For a
 direct Docker run, provide the same environment file and persistent volume:
 
 ```sh
@@ -145,8 +155,9 @@ Configure these Gitea repository secrets:
 
 In Coolify, create a separate environment in the existing project, point its
 application at the normalized branch image tag, configure the `ACTUAL_*` and
-`SPENDEE_BASIC_AUTH_*` runtime variables there, and mount persistent storage at
-`/data`. The deploy job sends only the configured resource identifier to
+`SPENDEE_BASIC_AUTH_*` runtime variables there, optionally add
+`SPENDEE_API_KEY`, and mount persistent storage at `/data`. The deploy job sends
+only the configured resource identifier to
 Coolify and suppresses the API response so identifiers and tokens are not
 printed in CI logs.
 
@@ -169,6 +180,20 @@ read the synchronized Actual snapshot, while split tools read SQLite. It does
 not expose transaction mutation or file-import tools.
 When application authentication is configured, MCP clients must send the same
 credentials in the standard HTTP `Authorization: Basic ...` header.
+
+## Mobile API
+
+When `SPENDEE_API_KEY` is configured, mobile clients can send it as a bearer
+token to these endpoints:
+
+- `GET /api/references`
+- `GET|POST /api/transactions` and `DELETE /api/transactions/:id`
+- `GET|POST /api/receipts`, `GET|DELETE /api/receipts/:id`,
+  `GET /api/receipts/:id/file`, and `POST /api/receipts/:id/submit`
+
+Receipt uploads use multipart form data with `account` and `receipt` fields.
+Transaction creation accepts Actual account, category, and tag IDs; amounts are
+decimal currency units and submitted transactions default to uncleared.
 
 ## License
 

@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const port = 3100;
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
 const actualMockDataPath = "/tmp/spendee-playwright-fantasy-actual.json";
+const receiptsPath = "/tmp/spendee-playwright-receipts";
 const useProductionBuild = process.env.PLAYWRIGHT_USE_PRODUCTION_BUILD === "1";
 const validationMock = JSON.stringify({
   title: "Moon Guild Card Statement",
@@ -24,6 +25,26 @@ const validationMock = JSON.stringify({
       currency: "CHF",
     },
   ],
+});
+const receiptMock = JSON.stringify({
+  merchant: "Cosmic Market",
+  date: "2026-08-12",
+  amount: -18,
+  currency: "CHF",
+  category: "style-audit-category",
+  notes: "Moonberry provisions",
+  tags: ["fantasy-tag-cosmic"],
+  items: [
+    {
+      description: "Moonberry provisions",
+      quantity: 1,
+      unitAmount: -18,
+      totalAmount: -18,
+      category: "style-audit-category",
+    },
+  ],
+  splits: [],
+  confidence: 0.96,
 });
 
 export default defineConfig({
@@ -55,6 +76,9 @@ export default defineConfig({
       PLAYWRIGHT_USE_PRODUCTION_BUILD: useProductionBuild ? "1" : "0",
       PORT: String(port),
       SQLITE_PATH: databasePath,
+      RECEIPTS_DIR: receiptsPath,
+      RECEIPT_BACKGROUND_IMMEDIATE: "1",
+      OPENAI_RECEIPT_MOCK: receiptMock,
       OPENAI_VALIDATION_MOCK: validationMock,
       VALIDATION_THUMBNAIL_MOCK_BASE64:
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",

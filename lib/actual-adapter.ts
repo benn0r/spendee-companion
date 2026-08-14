@@ -87,6 +87,24 @@ export type ActualImportBatchResult = {
   errors: string[];
 };
 
+export type ActualCreateSubtransaction = {
+  categoryId: string;
+  amountCents: number;
+  notes?: string;
+};
+
+export type ActualCreateTransaction = {
+  accountId: string;
+  categoryId?: string;
+  date: string;
+  amountCents: number;
+  payeeName?: string;
+  notes?: string;
+  importedId: string;
+  cleared?: boolean;
+  subtransactions?: ActualCreateSubtransaction[];
+};
+
 export interface ActualAdapter {
   getSnapshot(options?: { forceSync?: boolean }): Promise<ActualSnapshot>;
   importTransactions(
@@ -96,6 +114,8 @@ export interface ActualAdapter {
     transactionId: string,
     amountCents: number,
   ): Promise<void>;
+  createTransaction?(input: ActualCreateTransaction): Promise<string>;
+  deleteTransaction?(transactionId: string): Promise<void>;
   invalidateSnapshot(): void;
 }
 
@@ -474,6 +494,75 @@ class OfficialActualAdapter implements ActualAdapter {
     });
   }
 
+  async createTransaction(input: ActualCreateTransaction): Promise<string> {
+    return serialized(async () => {
+      const state = runtimeState();
+      state.snapshot = undefined;
+      const initialized = await initializeActual();
+      await initialized.api.sync();
+      const before = await readSnapshot(initialized);
+      const existing = before.transactions.find(
+        (transaction) =>
+          transaction.accountId === input.accountId &&
+          transaction.importedId === input.importedId,
+      );
+      if (existing) return existing.id;
+
+      const subtransactions = input.subtransactions?.map((child) => ({
+        account: input.accountId,
+        date: input.date,
+        amount: child.amountCents,
+        category: child.categoryId,
+        notes: child.notes,
+        cleared: input.cleared ?? false,
+        is_child: true,
+        is_parent: false,
+      }));
+      await initialized.api.addTransactions(input.accountId, [
+        {
+          date: input.date,
+          amount: input.amountCents,
+          category: input.categoryId,
+          payee_name: input.payeeName,
+          notes: input.notes,
+          imported_id: input.importedId,
+          cleared: input.cleared ?? false,
+          ...(subtransactions?.length
+            ? {
+                is_parent: true,
+                subtransactions,
+              }
+            : {}),
+        },
+      ]);
+      await initialized.api.sync();
+      const after = await readSnapshot(initialized);
+      const created = after.transactions.find(
+        (transaction) =>
+          transaction.accountId === input.accountId &&
+          transaction.importedId === input.importedId,
+      );
+      if (!created)
+        throw new Error(
+          "Actual Budget did not return the created transaction.",
+        );
+      state.snapshot = undefined;
+      return created.id;
+    });
+  }
+
+  async deleteTransaction(transactionId: string): Promise<void> {
+    await serialized(async () => {
+      const state = runtimeState();
+      state.snapshot = undefined;
+      const { api } = await initializeActual();
+      await api.sync();
+      await api.deleteTransaction(transactionId);
+      await api.sync();
+      state.snapshot = undefined;
+    });
+  }
+
   invalidateSnapshot(): void {
     runtimeState().snapshot = undefined;
   }
@@ -710,6 +799,125 @@ export class ActualMockFileAdapter implements ActualAdapter {
       const nextAmount = finiteInteger(amountCents, "mock transaction amount");
       account.balanceCents += nextAmount - transaction.amountCents;
       transaction.amountCents = nextAmount;
+      writeMockSnapshot(this.path, snapshot);
+    });
+  }
+
+  async createTransaction(input: ActualCreateTransaction): Promise<string> {
+    return serialized(async () => {
+      const snapshot = readMockSnapshot(this.path);
+      const existing = snapshot.transactions.find(
+        (transaction) =>
+          transaction.accountId === input.accountId &&
+          transaction.importedId === input.importedId,
+      );
+      if (existing) return existing.id;
+      const account = snapshot.accounts.find(
+        (candidate) => candidate.id === input.accountId,
+      );
+      if (!account)
+        throw new Error(`Mock account ${input.accountId} was not found.`);
+      if (
+        input.categoryId &&
+        !snapshot.categories.some(
+          (category) => category.id === input.categoryId,
+        )
+      ) {
+        throw new Error(`Mock category ${input.categoryId} was not found.`);
+      }
+      for (const child of input.subtransactions ?? []) {
+        if (
+          !snapshot.categories.some(
+            (category) => category.id === child.categoryId,
+          )
+        ) {
+          throw new Error(`Mock category ${child.categoryId} was not found.`);
+        }
+      }
+      let payeeId: string | null = null;
+      if (input.payeeName?.trim()) {
+        const name = input.payeeName.trim();
+        const payee = snapshot.payees.find(
+          (candidate) => candidate.name === name,
+        );
+        payeeId = payee?.id ?? deterministicMockId("mock-payee", name);
+        if (!payee) {
+          snapshot.payees.push({ id: payeeId, name, transferAccountId: null });
+        }
+      }
+      const id = deterministicMockId(
+        "mock-transaction",
+        input.accountId,
+        input.importedId,
+      );
+      const subtransactions: ActualTransactionRecord[] = (
+        input.subtransactions ?? []
+      ).map((child, index) => ({
+        id: deterministicMockId("mock-split", id, String(index)),
+        accountId: input.accountId,
+        categoryId: child.categoryId,
+        payeeId: null,
+        amountCents: finiteInteger(child.amountCents, "mock split amount"),
+        date: input.date,
+        notes: child.notes ?? null,
+        importedId: null,
+        transferId: null,
+        parentId: id,
+        isParent: false,
+        isChild: true,
+        startingBalance: false,
+        cleared: input.cleared ?? false,
+        reconciled: false,
+        sortOrder: index,
+        subtransactions: [],
+      }));
+      const transaction: ActualTransactionRecord = {
+        id,
+        accountId: input.accountId,
+        categoryId: input.categoryId ?? null,
+        payeeId,
+        amountCents: finiteInteger(
+          input.amountCents,
+          "mock transaction amount",
+        ),
+        date: input.date,
+        notes: input.notes ?? null,
+        importedId: input.importedId,
+        transferId: null,
+        parentId: null,
+        isParent: subtransactions.length > 0,
+        isChild: false,
+        startingBalance: false,
+        cleared: input.cleared ?? false,
+        reconciled: false,
+        sortOrder: snapshot.transactions.length,
+        subtransactions,
+      };
+      snapshot.transactions.push(transaction);
+      account.balanceCents += transaction.amountCents;
+      const month = input.date.slice(0, 7);
+      if (!snapshot.budgetMonths.includes(month)) {
+        snapshot.budgetMonths.push(month);
+        snapshot.budgetMonths.sort().reverse();
+      }
+      writeMockSnapshot(this.path, snapshot);
+      return id;
+    });
+  }
+
+  async deleteTransaction(transactionId: string): Promise<void> {
+    await serialized(async () => {
+      const snapshot = readMockSnapshot(this.path);
+      const index = snapshot.transactions.findIndex(
+        (transaction) => transaction.id === transactionId,
+      );
+      if (index < 0)
+        throw new Error(`Mock transaction ${transactionId} was not found.`);
+      const [transaction] = snapshot.transactions.splice(index, 1);
+      const account = snapshot.accounts.find(
+        (candidate) => candidate.id === transaction.accountId,
+      );
+      if (account) account.balanceCents -= transaction.amountCents;
       writeMockSnapshot(this.path, snapshot);
     });
   }

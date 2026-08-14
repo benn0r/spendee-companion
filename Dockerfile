@@ -18,10 +18,10 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ARG APP_VERSION=dev
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 APP_VERSION=${APP_VERSION}
-ENV SQLITE_PATH=/data/spendee.db ACTUAL_DATA_DIR=/data/actual
+ENV SQLITE_PATH=/data/spendee.db ACTUAL_DATA_DIR=/data/actual RECEIPTS_DIR=/data/receipts
 RUN apt-get update && apt-get install -y --no-install-recommends curl poppler-utils \
   && rm -rf /var/lib/apt/lists/* \
-  && mkdir -p /data/actual && chown -R node:node /data
+  && mkdir -p /data/actual /data/receipts && chown -R node:node /data
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
