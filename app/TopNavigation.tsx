@@ -6,7 +6,13 @@ export default function TopNavigation({
   active,
   onTransactions,
 }: {
-  active?: "transactions" | "receipts" | "splits" | "monthly" | "validate";
+  active?:
+    | "transactions"
+    | "receipts"
+    | "splits"
+    | "monthly"
+    | "validate"
+    | "api-docs";
   onTransactions?: () => void;
 }) {
   return (
@@ -32,6 +38,9 @@ export default function TopNavigation({
       </Link>
       <Link className={active === "validate" ? "active" : ""} href="/validate">
         Validate
+      </Link>
+      <Link className={active === "api-docs" ? "active" : ""} href="/api-docs">
+        API docs
       </Link>
     </nav>
   );

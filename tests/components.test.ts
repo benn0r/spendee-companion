@@ -61,6 +61,7 @@ test("shared UI components render accessible fantasy-data states", () => {
   );
   assert.doesNotMatch(navigation, /Duplicates/);
   assert.match(navigation, /class="active">Transactions/);
+  assert.match(navigation, /href="\/api-docs">API docs/);
 
   const cleared = renderToStaticMarkup(
     React.createElement(TransactionClearedStatus, { cleared: true }),

@@ -245,6 +245,83 @@ main {
   background: var(--accent);
   box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
 }
+
+.api-docs-page {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+.api-docs-shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+}
+.api-docs-shell .swagger-ui {
+  color: var(--text);
+  font-family: inherit;
+}
+.api-docs-shell .swagger-ui .wrapper {
+  max-width: none;
+  padding: 0;
+}
+.api-docs-shell .swagger-ui .info {
+  margin: 0 0 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.api-docs-shell .swagger-ui .info .title,
+.api-docs-shell .swagger-ui .info p,
+.api-docs-shell .swagger-ui .info li,
+.api-docs-shell .swagger-ui .opblock-tag,
+.api-docs-shell .swagger-ui .opblock-description-wrapper p,
+.api-docs-shell .swagger-ui .response-col_status,
+.api-docs-shell .swagger-ui table thead tr td,
+.api-docs-shell .swagger-ui table thead tr th {
+  color: var(--text);
+  font-family: inherit;
+}
+.api-docs-shell .swagger-ui .info .title {
+  font-size: 31px;
+}
+.api-docs-shell .swagger-ui .scheme-container {
+  margin: 0 0 20px;
+  padding: 18px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.api-docs-shell .swagger-ui .opblock-tag-section {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.api-docs-shell .swagger-ui .opblock-tag {
+  border-bottom-color: var(--line);
+  font-family: inherit;
+}
+.api-docs-shell .swagger-ui .opblock {
+  margin: 0 12px 12px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+.api-docs-shell .swagger-ui .btn.authorize,
+.api-docs-shell .swagger-ui .btn.execute {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.api-docs-shell .swagger-ui .btn.execute {
+  color: var(--white);
+  background: var(--primary);
+}
+.api-docs-shell .swagger-ui .model-box {
+  background: var(--surface-subtle);
+}
 .page-import-button:hover,
 .dropzone button:hover {
   background: var(--primary-hover);
@@ -3453,9 +3530,20 @@ td small {
 
 @media (max-width: 640px) {
   .topbar-inner,
-  .workspace {
+  .workspace,
+  .api-docs-shell {
     padding-left: 16px;
     padding-right: 16px;
+  }
+  .api-docs-shell {
+    padding-top: 16px;
+    padding-bottom: 32px;
+  }
+  .api-docs-shell .swagger-ui .info {
+    padding: 18px;
+  }
+  .api-docs-shell .swagger-ui .info .title {
+    font-size: 25px;
   }
   .topbar {
     height: auto;

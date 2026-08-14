@@ -2,6 +2,9 @@
   "name": "spendee",
   "version": "1.0.0",
   "private": true,
+  "scarfSettings": {
+    "enabled": false
+  },
   "scripts": {
     "dev": "next dev",
     "format": "prettier --check .",
@@ -24,6 +27,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "read-excel-file": "^9.3.4",
+    "swagger-ui-react": "^5.32.13",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -33,6 +37,7 @@
     "@types/pdfkit": "^0.17.6",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
+    "@types/swagger-ui-react": "^5.18.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.12",
     "prettier": "^3.9.6",
