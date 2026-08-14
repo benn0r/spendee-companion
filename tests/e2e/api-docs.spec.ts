@@ -17,6 +17,13 @@ test("Swagger UI renders below the application header", async ({ page }) => {
   await expect(
     page.getByText("List accounts, categories, and tags"),
   ).toBeVisible();
+  await page.getByRole("button", { name: /Authorize/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "bearerAuth (http, Bearer)" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Use the configured Spendee API key."),
+  ).toBeVisible();
 
   const headerBox = await header.boundingBox();
   const swaggerBox = await swagger.boundingBox();

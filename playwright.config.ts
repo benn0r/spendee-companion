@@ -1,6 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
+const apiKey = "fantasy-e2e-api-key";
+const basicAuth = {
+  username: "fantasy-e2e-user",
+  password: "fantasy-e2e-password",
+};
+const basicAuthorization = `Basic ${Buffer.from(
+  `${basicAuth.username}:${basicAuth.password}`,
+  "utf8",
+).toString("base64")}`;
 const databasePath = "/tmp/spendee-playwright-fantasy.db";
 const actualMockDataPath = "/tmp/spendee-playwright-fantasy-actual.json";
 const receiptsPath = "/tmp/spendee-playwright-receipts";
@@ -59,6 +68,8 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
+    extraHTTPHeaders: { Authorization: basicAuthorization },
+    httpCredentials: basicAuth,
     screenshot: process.env.CI ? "on" : "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure",
@@ -71,6 +82,9 @@ export default defineConfig({
     command: "node --import tsx tests/e2e/start-server.ts",
     env: {
       APP_VERSION: "fantasy-e2e-build",
+      SPENDEE_API_KEY: apiKey,
+      SPENDEE_BASIC_AUTH_USERNAME: basicAuth.username,
+      SPENDEE_BASIC_AUTH_PASSWORD: basicAuth.password,
       ACTUAL_MOCK_DATA_PATH: actualMockDataPath,
       HOSTNAME: "127.0.0.1",
       PLAYWRIGHT_USE_PRODUCTION_BUILD: useProductionBuild ? "1" : "0",
@@ -85,6 +99,6 @@ export default defineConfig({
     },
     reuseExistingServer: false,
     timeout: 120_000,
-    url: `http://127.0.0.1:${port}/api/health`,
+    url: `http://127.0.0.1:${port}/favicon-32.png`,
   },
 });

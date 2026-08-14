@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "swagger-ui-react/swagger-ui.css";
 import Brand from "@/app/Brand";
 import TopNavigation from "@/app/TopNavigation";
+import { openApiDocument } from "@/lib/openapi";
 import SwaggerDocs from "./SwaggerDocs";
 
 export const metadata: Metadata = { title: "API docs · Spendee companion" };
@@ -18,7 +19,7 @@ export default function ApiDocsPage() {
         </div>
       </header>
       <div className="api-docs-shell">
-        <SwaggerDocs />
+        <SwaggerDocs spec={openApiDocument} />
       </div>
     </main>
   );

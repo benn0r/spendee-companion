@@ -5,6 +5,9 @@ export type BasicAuthEnvironment = Readonly<Record<string, string | undefined>>;
 export type BasicAuthDecision =
   "disabled" | "authorized" | "unauthorized" | "misconfigured";
 
+export type ApiBearerDecision =
+  "not-applicable" | "authorized" | "unauthorized" | "misconfigured";
+
 const PUBLIC_ASSET_PATHS = new Set([
   "/apple-icon.png",
   "/favicon-16.png",
@@ -31,20 +34,53 @@ function constantTimeEqual(actual: string, expected: string): boolean {
   return timingSafeEqual(actualDigest, expectedDigest);
 }
 
-function configuredApiKey(env: BasicAuthEnvironment): string | null {
-  const value = env.SPENDEE_API_KEY || env.API_KEY;
+export function configuredApiKey(env: BasicAuthEnvironment): string | null {
+  const value = env.SPENDEE_API_KEY;
   return value === undefined || value.length === 0 ? null : value;
 }
 
-export function isApiBearerAuthorized(
+export function evaluateApiBearer(
   pathname: string,
   authorization: string | null,
   env: BasicAuthEnvironment = process.env,
-): boolean {
-  if (!pathname.startsWith("/api/") || pathname === "/api/ready") return false;
+): ApiBearerDecision {
+  if (!pathname.startsWith("/api/")) return "not-applicable";
   const expected = configuredApiKey(env);
+  if (expected === null) return "misconfigured";
   const match = /^Bearer +(.+)$/i.exec(authorization ?? "");
-  return Boolean(expected && match && constantTimeEqual(match[1], expected));
+  return match && constantTimeEqual(match[1], expected)
+    ? "authorized"
+    : "unauthorized";
+}
+
+export function getApiBearerRejection(
+  pathname: string,
+  authorization: string | null,
+  env: BasicAuthEnvironment = process.env,
+): Response | null {
+  const decision = evaluateApiBearer(pathname, authorization, env);
+  if (decision === "not-applicable" || decision === "authorized") return null;
+
+  const headers = {
+    "Cache-Control": "no-store",
+    "Content-Type": "application/json; charset=utf-8",
+  };
+  if (decision === "misconfigured") {
+    return Response.json(
+      { error: "SPENDEE_API_KEY is not configured." },
+      { status: 503, headers },
+    );
+  }
+  return Response.json(
+    { error: "A valid bearer API key is required." },
+    {
+      status: 401,
+      headers: {
+        ...headers,
+        "WWW-Authenticate": 'Bearer realm="Spendee API"',
+      },
+    },
+  );
 }
 
 function parseBasicCredentials(
@@ -71,7 +107,6 @@ function parseBasicCredentials(
 }
 
 export function isBasicAuthBypassPath(pathname: string): boolean {
-  if (pathname === "/api/ready") return true;
   if (
     pathname === "/_next/static" ||
     pathname.startsWith("/_next/static/") ||
@@ -120,7 +155,6 @@ export function getBasicAuthRejection(
   env: BasicAuthEnvironment = process.env,
 ): Response | null {
   if (isBasicAuthBypassPath(pathname)) return null;
-  if (isApiBearerAuthorized(pathname, authorization, env)) return null;
 
   const decision = evaluateBasicAuth(authorization, env);
   if (decision === "disabled" || decision === "authorized") return null;

@@ -29,7 +29,7 @@ export const openApiDocument = {
     { name: "Transactions", description: "Actual Budget ledger operations." },
     { name: "Receipts", description: "Receipt extraction and submission." },
   ],
-  security: [{ bearerAuth: [] }, { basicAuth: [] }],
+  security: [{ bearerAuth: [] }],
   paths: {
     "/api/references": {
       get: {
@@ -323,12 +323,8 @@ export const openApiDocument = {
       bearerAuth: {
         type: "http",
         scheme: "bearer",
+        bearerFormat: "API key",
         description: "Use the configured Spendee API key.",
-      },
-      basicAuth: {
-        type: "http",
-        scheme: "basic",
-        description: "Use the same credentials as the web application.",
       },
     },
     parameters: {

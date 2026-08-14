@@ -19,7 +19,15 @@ test("OpenAPI document describes the supported mobile and receipt API", async ()
     "/api/transactions",
     "/api/transactions/{id}",
   ]);
-  assert.deepEqual(document.security, [{ bearerAuth: [] }, { basicAuth: [] }]);
+  assert.deepEqual(document.security, [{ bearerAuth: [] }]);
+  assert.deepEqual(document.components.securitySchemes, {
+    bearerAuth: {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "API key",
+      description: "Use the configured Spendee API key.",
+    },
+  });
   assert.equal(
     document.paths["/api/receipts"].post.requestBody.content[
       "multipart/form-data"

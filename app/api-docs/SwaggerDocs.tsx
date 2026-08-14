@@ -2,7 +2,7 @@
 
 import SwaggerUI from "swagger-ui-react";
 
-export default function SwaggerDocs() {
+export default function SwaggerDocs({ spec }: { spec: object }) {
   return (
     <SwaggerUI
       deepLinking
@@ -12,7 +12,7 @@ export default function SwaggerDocs() {
       filter
       persistAuthorization
       requestSnippetsEnabled
-      url="/api/openapi"
+      spec={spec}
       withCredentials
     />
   );

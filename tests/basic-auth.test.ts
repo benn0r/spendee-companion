@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { NextRequest } from "next/server";
 import {
+  evaluateApiBearer,
   evaluateBasicAuth,
+  getApiBearerRejection,
   getBasicAuthRejection,
-  isApiBearerAuthorized,
   isBasicAuthBypassPath,
   type BasicAuthEnvironment,
 } from "../lib/basic-auth";
@@ -13,6 +14,7 @@ import { proxy } from "../proxy";
 const configuredEnvironment: BasicAuthEnvironment = {
   SPENDEE_BASIC_AUTH_USERNAME: "fantasy-user",
   SPENDEE_BASIC_AUTH_PASSWORD: "fantasy:password",
+  SPENDEE_API_KEY: "fantasy-api-key",
 };
 
 function authorization(username: string, password: string): string {
@@ -72,9 +74,8 @@ test("Basic Auth validates a complete UTF-8 credential pair", () => {
   );
 });
 
-test("readiness and static assets bypass authentication", () => {
+test("only static assets bypass authentication", () => {
   for (const pathname of [
-    "/api/ready",
     "/_next/static/chunks/app.js",
     "/_next/image",
     "/category-icons/cat_1.svg",
@@ -91,6 +92,7 @@ test("readiness and static assets bypass authentication", () => {
 
   for (const pathname of [
     "/",
+    "/api/ready",
     "/api/transactions",
     "/api/ready/details",
     "/mcp",
@@ -101,11 +103,7 @@ test("readiness and static assets bypass authentication", () => {
 });
 
 test("protected routes challenge missing or invalid credentials", async () => {
-  const missing = getBasicAuthRejection(
-    "/api/transactions",
-    null,
-    configuredEnvironment,
-  );
+  const missing = getBasicAuthRejection("/mcp", null, configuredEnvironment);
   assert.ok(missing);
   assert.equal(missing.status, 401);
   assert.equal(
@@ -125,45 +123,79 @@ test("protected routes challenge missing or invalid credentials", async () => {
   );
 });
 
-test("API routes accept a dedicated bearer key without weakening page auth", () => {
-  const environment = {
-    ...configuredEnvironment,
-    SPENDEE_API_KEY: "fantasy-api-key",
-  };
+test("every API route requires the configured bearer key", async () => {
+  for (const pathname of [
+    "/api/transactions",
+    "/api/openapi",
+    "/api/health",
+    "/api/ready",
+  ]) {
+    assert.equal(
+      evaluateApiBearer(
+        pathname,
+        "Bearer fantasy-api-key",
+        configuredEnvironment,
+      ),
+      "authorized",
+      pathname,
+    );
+    assert.equal(
+      getApiBearerRejection(
+        pathname,
+        "Bearer fantasy-api-key",
+        configuredEnvironment,
+      ),
+      null,
+      pathname,
+    );
+  }
+
   assert.equal(
-    isApiBearerAuthorized(
+    evaluateApiBearer(
       "/api/transactions",
-      "Bearer fantasy-api-key",
-      environment,
+      "Bearer wrong-key",
+      configuredEnvironment,
     ),
-    true,
+    "unauthorized",
   );
   assert.equal(
-    getBasicAuthRejection(
-      "/api/transactions",
+    evaluateApiBearer(
+      "/receipts",
       "Bearer fantasy-api-key",
-      environment,
+      configuredEnvironment,
     ),
-    null,
+    "not-applicable",
   );
-  assert.equal(
-    isApiBearerAuthorized("/receipts", "Bearer fantasy-api-key", environment),
-    false,
+  const rejected = getApiBearerRejection(
+    "/api/transactions",
+    "Bearer wrong-key",
+    configuredEnvironment,
   );
+  assert.ok(rejected);
+  assert.equal(rejected.status, 401);
   assert.equal(
-    getBasicAuthRejection("/api/transactions", "Bearer wrong-key", environment)
-      ?.status,
-    401,
+    rejected.headers.get("www-authenticate"),
+    'Bearer realm="Spendee API"',
   );
+  assert.deepEqual(await rejected.json(), {
+    error: "A valid bearer API key is required.",
+  });
+
+  const missingConfiguration = getApiBearerRejection("/api/ready", null, {});
+  assert.ok(missingConfiguration);
+  assert.equal(missingConfiguration.status, 503);
+  assert.deepEqual(await missingConfiguration.json(), {
+    error: "SPENDEE_API_KEY is not configured.",
+  });
   assert.equal(
-    isApiBearerAuthorized("/api/references", "Bearer legacy-key", {
+    evaluateApiBearer("/api/references", "Bearer legacy-key", {
       API_KEY: "legacy-key",
     }),
-    true,
+    "misconfigured",
   );
 });
 
-test("a partial deployment configuration fails closed but keeps readiness public", async () => {
+test("a partial Basic Auth configuration fails closed", async () => {
   const partialEnvironment = {
     SPENDEE_BASIC_AUTH_USERNAME: "fantasy-user",
   };
@@ -175,19 +207,17 @@ test("a partial deployment configuration fails closed but keeps readiness public
     await response.text(),
     "HTTP Basic Authentication is not configured correctly.",
   );
-  assert.equal(
-    getBasicAuthRejection("/api/ready", null, partialEnvironment),
-    null,
-  );
 });
 
 test("the Next.js proxy applies the guard at the request boundary", () => {
   const previousUsername = process.env.SPENDEE_BASIC_AUTH_USERNAME;
   const previousPassword = process.env.SPENDEE_BASIC_AUTH_PASSWORD;
+  const previousApiKey = process.env.SPENDEE_API_KEY;
 
   try {
     process.env.SPENDEE_BASIC_AUTH_USERNAME = "fantasy-user";
     process.env.SPENDEE_BASIC_AUTH_PASSWORD = "fantasy:password";
+    process.env.SPENDEE_API_KEY = "fantasy-api-key";
 
     const rejected = proxy(new NextRequest("https://spendee.example.test/mcp"));
     assert.equal(rejected.status, 401);
@@ -202,11 +232,32 @@ test("the Next.js proxy applies the guard at the request boundary", () => {
     assert.equal(accepted.status, 200);
     assert.equal(accepted.headers.get("x-middleware-next"), "1");
 
-    const readiness = proxy(
+    const missingApiKey = proxy(
       new NextRequest("https://spendee.example.test/api/ready"),
     );
-    assert.equal(readiness.status, 200);
-    assert.equal(readiness.headers.get("x-middleware-next"), "1");
+    assert.equal(missingApiKey.status, 401);
+
+    const bearerApi = proxy(
+      new NextRequest("https://spendee.example.test/api/ready", {
+        headers: { authorization: "Bearer fantasy-api-key" },
+      }),
+    );
+    assert.equal(bearerApi.status, 200);
+    assert.equal(bearerApi.headers.get("x-middleware-next"), "1");
+
+    const browserApi = proxy(
+      new NextRequest("https://spendee.example.test/api/transactions", {
+        headers: {
+          authorization: authorization("fantasy-user", "fantasy:password"),
+        },
+      }),
+    );
+    assert.equal(browserApi.status, 200);
+    assert.equal(browserApi.headers.get("x-middleware-next"), "1");
+    assert.equal(
+      browserApi.headers.get("x-middleware-request-authorization"),
+      "Bearer fantasy-api-key",
+    );
   } finally {
     if (previousUsername === undefined)
       delete process.env.SPENDEE_BASIC_AUTH_USERNAME;
@@ -214,5 +265,7 @@ test("the Next.js proxy applies the guard at the request boundary", () => {
     if (previousPassword === undefined)
       delete process.env.SPENDEE_BASIC_AUTH_PASSWORD;
     else process.env.SPENDEE_BASIC_AUTH_PASSWORD = previousPassword;
+    if (previousApiKey === undefined) delete process.env.SPENDEE_API_KEY;
+    else process.env.SPENDEE_API_KEY = previousApiKey;
   }
 });

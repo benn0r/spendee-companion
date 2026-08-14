@@ -70,12 +70,15 @@ Requires Node.js 22 or newer and an accessible Actual Budget server.
 5. Optionally set `ACTUAL_BUDGET_ID` when the local budget ID differs from the
    sync ID. `ACTUAL_DEFAULT_CURRENCY` may also be set as a safety check; when it
    is omitted, the budget's Actual preference is used.
-6. Set both `SPENDEE_BASIC_AUTH_USERNAME` and
+6. Set `SPENDEE_API_KEY` to a long random value. Every `/api/*` endpoint,
+   including health, readiness, and the OpenAPI document, requires it as
+   `Authorization: Bearer …`.
+7. Set both `SPENDEE_BASIC_AUTH_USERNAME` and
    `SPENDEE_BASIC_AUTH_PASSWORD` for every network-accessible deployment. Both
-   may be left empty for local development; a partial configuration fails
-   closed.
-7. Optionally set `SPENDEE_API_KEY` for clients that use
-   `Authorization: Bearer …`. Browser requests continue to use Basic Auth.
+   may be left empty for bearer-only local API development, but the browser UI
+   needs them to call the protected API. A partial configuration fails closed.
+   Authenticated browser API requests are converted to bearer-authenticated
+   server requests without exposing the API key to browser JavaScript.
 
 Do not put real server URLs, identifiers, passwords, tokens, or budget exports
 in tracked files. Configuration errors intentionally name the missing variable
@@ -125,8 +128,9 @@ docker compose --env-file .env -f compose.example.yml up --build -d
 
 The container exposes port `3000`, keeps SQLite at `/data/spendee.db`, Actual's
 cache at `/data/actual`, receipt files at `/data/receipts`, and reports liveness
-at `/api/health` and Actual-backed readiness at `/api/ready`. For a
-direct Docker run, provide the same environment file and persistent volume:
+at `/api/health` and Actual-backed readiness at `/api/ready`; both require the
+bearer key. For a direct Docker run, provide the same environment file and
+persistent volume:
 
 ```sh
 docker build -t spendee .
@@ -155,17 +159,18 @@ Configure these Gitea repository secrets:
 
 In Coolify, create a separate environment in the existing project, point its
 application at the normalized branch image tag, configure the `ACTUAL_*` and
-`SPENDEE_BASIC_AUTH_*` runtime variables there, optionally add
-`SPENDEE_API_KEY`, and mount persistent storage at `/data`. The deploy job sends
+`SPENDEE_BASIC_AUTH_*` runtime variables there, add `SPENDEE_API_KEY`, and mount
+persistent storage at `/data`. The deploy job sends
 only the configured resource identifier to
 Coolify and suppresses the API response so identifiers and tokens are not
 printed in CI logs.
 
 The application enforces HTTP Basic Authentication at the request boundary
 when both Spendee authentication variables are present. It protects the UI,
-financial APIs, and MCP endpoint while leaving only `/api/ready` and static
-assets public for orchestration and rendering. Use an additional private access
-policy when stronger identity controls are required.
+financial APIs, and MCP endpoint while leaving only static assets public for
+rendering. Every API endpoint separately requires the bearer key; the container
+health check supplies it from the runtime environment. Use an additional private
+access policy when stronger identity controls are required.
 
 ## MCP server
 
@@ -183,8 +188,13 @@ credentials in the standard HTTP `Authorization: Basic ...` header.
 
 ## Mobile API
 
-When `SPENDEE_API_KEY` is configured, mobile clients can send it as a bearer
-token to these endpoints:
+Clients must send `SPENDEE_API_KEY` as a bearer token to every API endpoint:
+
+```text
+Authorization: Bearer your-api-key
+```
+
+This includes these mobile endpoints:
 
 - `GET /api/references`
 - `GET|POST /api/transactions` and `DELETE /api/transactions/:id`
